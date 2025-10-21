@@ -1,7 +1,7 @@
 #include <iostream>
-#include "../application/simulation/Simulation.h"
-#include "../domain/cell/SimpleCell.h"
-#include "../domain/adapters/RandomNoise.h"
+#include "../src/application/simulation/Simulation.h"
+#include "../src/domain/cell/SimpleCell.h"
+#include "../src/domain/adapters/RandomNoise.h"
 
 int main() {
     adapters::RandomNoise noise(42);

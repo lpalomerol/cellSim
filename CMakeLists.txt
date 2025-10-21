@@ -12,15 +12,15 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(cxxopts)
 
 add_executable(cellSim app/main.cpp
-        domain/cell/cell.cpp
-        domain/cell/cell.h
-        domain/ports/ICell.h
-        domain/cell/SimpleCell.cpp
-        domain/cell/SimpleCell.h
-        application/simulation/Simulation.cpp
-        application/simulation/Simulation.h
-        domain/ports/INoiseSource.h
-        domain/ports/CellNoise.h
-        domain/adapters/RandomNoise.h
-        domain/adapters/FixedNoise.h)
+        src/domain/cell/cell.cpp
+        src/domain/cell/cell.h
+        src/domain/ports/ICell.h
+        src/domain/cell/SimpleCell.cpp
+        src/domain/cell/SimpleCell.h
+        src/application/simulation/Simulation.cpp
+        src/application/simulation/Simulation.h
+        src/domain/ports/INoiseSource.h
+        src/domain/ports/CellNoise.h
+        src/domain/adapters/RandomNoise.h
+        src/domain/adapters/FixedNoise.h)
 target_link_libraries(cellSim PRIVATE cxxopts)
