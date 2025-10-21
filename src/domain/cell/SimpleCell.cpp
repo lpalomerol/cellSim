@@ -4,8 +4,6 @@
 
 #include "SimpleCell.h"
 
-#include <iostream>
-
 namespace domain {
     void SimpleCell::live() {
         // Implementación del mét. live

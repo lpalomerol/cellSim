@@ -22,7 +22,11 @@ add_executable(cellSim app/main.cpp
         src/domain/ports/INoiseSource.h
         src/domain/ports/CellNoise.h
         src/domain/adapters/RandomNoise.h
-        src/domain/adapters/FixedNoise.h)
+        src/domain/adapters/FixedNoise.h
+        src/domain/cell/GeneCell.cpp
+        src/domain/cell/GeneCell.h
+        src/domain/gene/Gene.cpp
+        src/domain/gene/Gene.h)
 target_link_libraries(cellSim PRIVATE cxxopts)
 
 enable_testing()
