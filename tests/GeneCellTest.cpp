@@ -16,7 +16,7 @@ TEST(GeneCellTest, MutatesBRCA1WhenNoiseExceedsThreshold) {
 
 }
 
-TEST(GeneCellTest, DoesNotMutateTP53WhenNoiseBelowThreshold) {
+TEST(GeneCellTest, DiesWhenBRCA1Disabled) {
     GeneCellParams params;
     params.p_mutation_brca = 0.5;
     FakeNoise noise({ CellNoise{0.1, 0.1, 0.1} });
