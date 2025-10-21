@@ -1,25 +1,15 @@
-#include <cxxopts.hpp>
 #include <iostream>
+#include "../application/simulation/Simulation.h"
+#include "../domain/cell/SimpleCell.h"
 
-int main(int argc, char* argv[]) {
-    try {
-        cxxopts::Options options("cellSim", "Simple CLI");
-        options.add_options()
-            ("n,name", "Name to greet", cxxopts::value<std::string>()->default_value("world"))
-            ("h,help", "Show help");
+int main() {
+    constexpr int max_t = 80; // 1 año por tick
+    application::Simulation sim(max_t);
 
-        auto result = options.parse(argc, argv);
+    // Por ahora creamos algunas células de ejemplo:
+    sim.addCell(std::make_unique<domain::SimpleCell>());
+    sim.addCell(std::make_unique<domain::SimpleCell>());
 
-        if (result.count("help")) {
-            std::cout << options.help() << std::endl;
-            return 0;
-        }
-
-        std::string name = result["name"].as<std::string>();
-        std::cout << "Hello, " << name << "!" << std::endl;
-
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return 1;
-    }
+    sim.run();
+    return 0;
 }

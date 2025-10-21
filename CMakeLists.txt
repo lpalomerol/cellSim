@@ -11,5 +11,12 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(cxxopts)
 
-add_executable(cellSim app/main.cpp)
+add_executable(cellSim app/main.cpp
+        domain/cell/cell.cpp
+        domain/cell/cell.h
+        domain/ports/ICell.h
+        domain/cell/SimpleCell.cpp
+        domain/cell/SimpleCell.h
+        application/simulation/Simulation.cpp
+        application/simulation/Simulation.h)
 target_link_libraries(cellSim PRIVATE cxxopts)
