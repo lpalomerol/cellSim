@@ -18,5 +18,9 @@ add_executable(cellSim app/main.cpp
         domain/cell/SimpleCell.cpp
         domain/cell/SimpleCell.h
         application/simulation/Simulation.cpp
-        application/simulation/Simulation.h)
+        application/simulation/Simulation.h
+        domain/ports/INoiseSource.h
+        domain/ports/CellNoise.h
+        domain/adapters/RandomNoise.h
+        domain/adapters/FixedNoise.h)
 target_link_libraries(cellSim PRIVATE cxxopts)

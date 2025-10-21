@@ -1,16 +1,27 @@
-//
-// Created by luis on 20/10/25.
-//
-
 #pragma once
 #include "../ports/ICell.h"
+#include "../ports/INoiseSource.h"
 
 namespace domain {
+    struct SimpleCellParams {
+        double p_homeostasis = 0.95; // Keep homeostasis probability
+    };
+
     class SimpleCell final : public ICell {
-        public :
-            SimpleCell() = default;
-            void live() override;
-            bool alive() override;
+    public :
+
+        SimpleCell(INoiseSource& noise, const SimpleCellParams& cfg = SimpleCellParams{})
+            : noise_(noise), cfg_(cfg) {}
+
+        void live() override;
+        bool alive() override;
+
+    private:
+        SimpleCellParams cfg_;
+        INoiseSource& noise_;
+        bool is_alive_ = true;
+        int age_ = 0;
 
     };
+
 }
