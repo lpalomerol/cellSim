@@ -24,3 +24,6 @@ add_executable(cellSim app/main.cpp
         src/domain/adapters/RandomNoise.h
         src/domain/adapters/FixedNoise.h)
 target_link_libraries(cellSim PRIVATE cxxopts)
+
+enable_testing()
+add_subdirectory(tests)
