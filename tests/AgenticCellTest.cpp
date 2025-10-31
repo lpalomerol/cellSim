@@ -74,3 +74,51 @@ TEST(AgenticCellTest, LiveMutatesGenesWithCustomThreshold) {
     EXPECT_DOUBLE_EQ(tp53.getMutationThreshold(), threshold);
     EXPECT_DOUBLE_EQ(brca1.getMutationThreshold(), threshold);
 }
+
+TEST(AgenticCellTest, AliveWhenBRCA1IsPlusMinus) {
+    DummyNoise noise;
+    AgenticCellParams params;
+    params.BRCA1 = Gene::State::PlusMinus;
+    AgenticCell cell(noise, params);
+    EXPECT_TRUE(cell.alive());
+}
+
+TEST(AgenticCellTest, DeadWhenBRCA1IsMinusMinus) {
+    DummyNoise noise;
+    AgenticCellParams params;
+    params.BRCA1 = Gene::State::MinusMinus;
+    AgenticCell cell(noise, params);
+    EXPECT_FALSE(cell.alive());
+}
+
+TEST(AgenticCellTest, LiveDisablesCellWhenBRCA1Mutates) {
+    HighNoise noise;
+    AgenticCellParams params;
+    params.BRCA1 = Gene::State::PlusMinus; // empieza viva
+    // Umbral por defecto de BRCA1 es 0.01, noise=0.5 > 0.01 -> muta a MinusMinus
+    AgenticCell cell(noise, params);
+    EXPECT_TRUE(cell.alive());
+    cell.live();
+    EXPECT_FALSE(cell.alive()); // ahora BRCA1 debería ser -/- y la célula está disabled (Disables)
+}
+
+TEST(AgenticCellTest, TumoralWhenTP53IsMinusMinus) {
+    DummyNoise noise;
+    AgenticCellParams params;
+    params.TP53 = Gene::State::MinusMinus;
+    AgenticCell cell(noise, params);
+    EXPECT_EQ(cell.getTP53(), "-/-");
+    EXPECT_TRUE(cell.tumoral());
+}
+
+TEST(AgenticCellTest, LiveMakesCellTumoralWhenTP53Mutates) {
+    HighNoise noise;
+    AgenticCellParams params;
+    params.TP53 = Gene::State::PlusMinus; // una mutación lleva a MinusMinus
+    AgenticCell cell(noise, params);
+    EXPECT_EQ(cell.getTP53(), "+/-");
+    EXPECT_FALSE(cell.tumoral());
+    cell.live();
+    EXPECT_EQ(cell.getTP53(), "-/-");
+    EXPECT_TRUE(cell.tumoral());
+}

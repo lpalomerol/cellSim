@@ -3,6 +3,7 @@
 //
 
 #include "AgenticCell.h"
+#include <iostream> // Incluir iostream para usar std::cout
 
 namespace domain {
 
@@ -12,12 +13,14 @@ namespace domain {
     }
 
     bool AgenticCell::alive() {
-        return true;
+        // La célula está viva si BRCA1 no es minusminus
+        return gene_brca1_.enabled();
 
     }
 
     bool AgenticCell::tumoral() {
-        return false;
+        bool enabled = gene_tp53_.enabled();
+        return !enabled;
     }
 
     std::string AgenticCell::getTP53() const {
