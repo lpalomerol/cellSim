@@ -3,13 +3,26 @@
 //
 
 #include "AgenticCell.h"
-#include <iostream> // Incluir iostream para usar std::cout
 
 namespace domain {
 
     void AgenticCell::live() {
+        // Primero los genes pueden mutar
         gene_tp53_.live();
         gene_brca1_.live();
+
+        // Si ya es tumoral no necesitamos evaluar
+        if (is_tumoral_) return;
+
+        // Determinar probabilidad p: 0 si TP53 está activo (protección), params_.tumor_k si inactivo
+        double p = gene_tp53_.enabled() ? 0.0 : params_.tumor_k;
+        if (p <= 0.0) return;
+
+        // Muestra del ruido compartido
+        auto sample = noise_.next().u01;
+        if (sample < p) {
+            is_tumoral_ = true;
+        }
     }
 
     bool AgenticCell::alive() {
@@ -19,8 +32,7 @@ namespace domain {
     }
 
     bool AgenticCell::tumoral() {
-        bool enabled = gene_tp53_.enabled();
-        return !enabled;
+        return is_tumoral_;
     }
 
     std::string AgenticCell::getTP53() const {

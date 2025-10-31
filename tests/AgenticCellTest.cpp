@@ -102,19 +102,45 @@ TEST(AgenticCellTest, LiveDisablesCellWhenBRCA1Mutates) {
     EXPECT_FALSE(cell.alive()); // ahora BRCA1 debería ser -/- y la célula está disabled (Disables)
 }
 
-TEST(AgenticCellTest, TumoralWhenTP53IsMinusMinus) {
+TEST(AgenticCellTest, NoTumoralWhenTP53IsMinusMinusByDefault) {
     DummyNoise noise;
     AgenticCellParams params;
     params.TP53 = Gene::State::MinusMinus;
     AgenticCell cell(noise, params);
     EXPECT_EQ(cell.getTP53(), "-/-");
+    EXPECT_FALSE(cell.tumoral());
+}
+
+TEST(AgenticCellTest, TumorProtectedByActiveTP53) {
+    HighNoise noise;
+    AgenticCellParams params;
+    params.TP53 = Gene::State::PlusPlus; // TP53 activo protege
+    params.TP53_mutation_threshold = 1.0; // evitar mutación de TP53 durante live
+    params.tumor_k = 1.0; // si no hubiera protección, probabilid = 1
+    AgenticCell cell(noise, params);
+    EXPECT_FALSE(cell.tumoral());
+    cell.live();
+    EXPECT_FALSE(cell.tumoral()); // protegido por TP53 activo
+}
+
+TEST(AgenticCellTest, TumoralWhenTP53InitiallyInactiveWithHighK) {
+    HighNoise noise;
+    AgenticCellParams params;
+    params.TP53 = Gene::State::MinusMinus; // TP53 inactivo
+    params.TP53_mutation_threshold = 1.0; // evitar que el gen mute a activo durante live
+    params.tumor_k = 1.0; // probabilidad alta
+    AgenticCell cell(noise, params);
+    EXPECT_EQ(cell.getTP53(), "-/-");
+    EXPECT_FALSE(cell.tumoral());
+    cell.live();
     EXPECT_TRUE(cell.tumoral());
 }
 
-TEST(AgenticCellTest, LiveMakesCellTumoralWhenTP53Mutates) {
+TEST(AgenticCellTest, LiveMakesCellTumoralWhenTP53MutatesAndKHigh) {
     HighNoise noise;
     AgenticCellParams params;
     params.TP53 = Gene::State::PlusMinus; // una mutación lleva a MinusMinus
+    params.tumor_k = 1.0; // probabilidad alta
     AgenticCell cell(noise, params);
     EXPECT_EQ(cell.getTP53(), "+/-");
     EXPECT_FALSE(cell.tumoral());
