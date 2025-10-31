@@ -22,8 +22,8 @@ namespace domain {
         void live() override;
         bool alive() override;
         bool tumoral() override;
-        CellState state() override { return state_;}
-        OncoState getOncoState() override { return onco_;}
+        CellState state()  { return state_;}
+        OncoState getOncoState() { return onco_;}
     private:
         INoiseSource& noise_;
         SimpleCellParams params_;

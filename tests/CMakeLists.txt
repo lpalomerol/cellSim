@@ -22,6 +22,8 @@ add_executable(unit_tests
         ../src/domain/cell/CellState.h
         ../src/domain/cell/CellFactory.cpp
         ../src/domain/cell/CellFactory.h
+        ../src/domain/cell/AgenticCell.cpp
+        ../src/domain/cell/AgenticCell.h
 
 )
 

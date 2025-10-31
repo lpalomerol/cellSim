@@ -4,6 +4,8 @@
 
 #include "CellFactory.h"
 
+#include "AgenticCell.h"
+
 namespace domain {
 
     std::unique_ptr<ICell> CellFactory::createSimpleCell(
@@ -13,7 +15,11 @@ namespace domain {
 
     }
 
-
+    std::unique_ptr<ICell> CellFactory::createAgenticCell(
+        adapters::RandomNoise& noise,
+        const domain::AgenticCellParams& params){
+        return std::make_unique<domain::AgenticCell>(noise, params);
+    }
 
 
 }

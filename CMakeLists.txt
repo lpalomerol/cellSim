@@ -25,7 +25,9 @@ add_executable(cellSim app/main.cpp
         src/domain/cell/CellFactory.cpp
         src/domain/cell/CellFactory.h
         src/domain/cell/OncoState.h
-        src/domain/cell/OncoMatrix.h)
+        src/domain/cell/OncoMatrix.h
+        src/domain/cell/AgenticCell.cpp
+        src/domain/cell/AgenticCell.h)
 target_link_libraries(cellSim PRIVATE cxxopts)
 
 enable_testing()
