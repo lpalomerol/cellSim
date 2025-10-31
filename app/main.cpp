@@ -15,5 +15,6 @@ int main() {
         noise, the_params));
 
     sim.run();
+    sim.printResults();
     return 0;
 }
