@@ -14,34 +14,24 @@ namespace application {
     }
 
     void Simulation::run() {
-        int alives = 0;
-        int deads = 0;
         int tumors = 0;
-        domain::CellState state;
+        domain::OncoState state;
         std::cout << "Starting simulation (dt=1 year, max_t=" << max_t_
                   << ", cells=" << cells_.size() << ")\n";
         for (int t = 0; t < max_t_; ++t) {
-            alives = 0;
-            deads = 0;
             tumors = 0;
             for (auto& c : cells_) {
                 c->live();
-                state = c->state();
+                state = c->getOncoState();
                 switch (state) {
-                    case domain::CellState::Alive:
-                        alives += 1;
+                    case domain::OncoState::Tumoral:
+                        tumors += 1;
                         break;
-                    case domain::CellState::Apoptotic:
-                        deads ++;
-                        break;
-                    case domain::CellState::Tumoral:
-                        tumors ++;
+                    default:
                         break;
 
                 }
             }
-            cell_state_counter_[t][0] = alives;
-            cell_state_counter_[t][1] = deads;
             cell_state_counter_[t][2] = tumors;
         }
         std::cout << "Simulation finished.\n";

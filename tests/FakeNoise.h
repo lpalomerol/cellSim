@@ -5,16 +5,20 @@
 
 class FakeNoise : public domain::INoiseSource {
 public:
-    explicit FakeNoise(std::vector<domain::CellNoise> seq)
-      : seq_(std::move(seq)) {}
+    explicit FakeNoise(std::vector<domain::CellNoise> sequence)
+        : seq_(std::move(sequence)) {}
 
     domain::CellNoise next() override {
-        if (seq_.empty()) return domain::CellNoise{0.0};
-        auto v = seq_[idx_ < seq_.size() ? idx_ : seq_.size()-1];
+        if (seq_.empty()) {
+            return domain::CellNoise{0.0};
+        }
+        // Devuelve el valor siguiente o el último si ya pasamos el final
+        const auto& val = seq_[std::min(idx_, seq_.size() - 1)];
         ++idx_;
-        return v;
+        return val;
     }
+
 private:
     std::vector<domain::CellNoise> seq_;
-    std::size_t idx_{0};
+    std::size_t idx_ = 0;
 };

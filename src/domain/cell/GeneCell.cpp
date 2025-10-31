@@ -3,53 +3,41 @@
 //
 
 #include "GeneCell.h"
-
+#include "OncoMatrix.h"
 
 namespace domain {
     void GeneCell::live() {
-        const auto noise1 = noise_.next();
-        if (noise1.mutation_brca_u01 < params_.p_mutation_brca)
-            brca1_.disable();
-        if (noise1.mutation_tp53_u01 < params_.p_mutation_tp53)
-            tp53_.disable();
+        // 1) Matriz del tick (depende solo de p_brca/p_tp53)
+        TransitionMatrix P = build_onco_matrix(params_.p_mutation_brca,
+                                               params_.p_mutation_tp53);
 
-        // 2. Construye matriz actual (modulada)
-        auto P = modulatedMatrix(params_.base_matrix, brca1_, tp53_);
+        // 2) Elegir transición con una única muestra
+        const auto z = noise_.next();            // trae, p.ej., z.markov_u01
+        int cur  = static_cast<int>(onco_);
+        int next = sampleNextState(P, cur, z.markov_u01);
+        onco_ = static_cast<OncoState>(next);
 
-        // 3. Muestra transición Markov
-        const auto noise2 = noise_.next();
-        int current = static_cast<int>(state_);
-        int next = sampleNextState(P, current, noise2.markov_u01);
-        state_ = static_cast<CellState>(next);
-
-        is_alive_ = (state_ != CellState::Apoptotic);
-
+        // 3) Mapear a fenotipo (determinista)
+        switch (onco_) {
+            case OncoState::S0:
+            case OncoState::S1:
+                state_ = CellState::Alive;
+                break;
+            case OncoState::Tumoral:
+                state_ = CellState::Alive;
+                break; // si quieres “viva pero tumoral”
+            case OncoState::Apoptotic:
+                state_ = CellState::Apoptotic;
+                is_alive_ = false;
+                break;
+        }
     }
+
     bool GeneCell::alive() {
         return is_alive_;
 
     }
 
-    CellState GeneCell::state() {
-        return state_;
-
-    }
-
-    int GeneCell::sampleNextState(const TransitionMatrix& matrix, int current_state, double u) {
-        double cumulative = 0.0;
-        for (int next_state = 0; next_state < N_STATES; ++next_state) {
-            cumulative += matrix[current_state][next_state];
-            if (u < cumulative) {
-                return next_state;
-            }
-        }
-        return N_STATES - 1; // Fallback
-    }
-
-    TransitionMatrix GeneCell::modulatedMatrix(const TransitionMatrix& base, const Gene& brca1, const Gene& tp53) {
-        TransitionMatrix modulated = base;
-        return modulated;
-    }
 
 
 

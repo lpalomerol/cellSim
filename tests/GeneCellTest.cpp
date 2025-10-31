@@ -1,50 +1,51 @@
-
 #include <gtest/gtest.h>
-#include "../src/domain/cell/GeneCell.h"
 #include "FakeNoise.h"
 
-using namespace domain;
+#include "../src/domain/ports/CellNoise.h"
+#include "../src/domain/cell/GeneCell.h"
 
-TEST(GeneCellTest, DoesNotMutateBRCA1WhenNoiseExceedsThreshold) {
-    GeneCellParams params;
-    FakeNoise noise({ CellNoise{0.1, 0.1, 0.9, .9} });
+TEST(GeneCell, S0_to_S1_then_to_Tumoral_with_two_tp53_hits) {
+    // p_tp53 = 0.4, p_brca = 0.1
+    domain::GeneCellParams params;
+    params.p_mutation_tp53 = 0.1;
+    params.p_mutation_brca = 0.1;
+    // 0 -> 0.8 S0, 0.8->0.9 S1, 0.9->1.0 Apoptotic
 
-    GeneCell cell(noise, params, Gene::PartiallyDisabled, Gene::Active);
+    std::vector<domain::CellNoise> seq = {
+        {0.85}, // tick 1: u=0.05 → S0->S1
+        {0.85}, // tick 2: u=0.05 → S1->Tumoral
+    };
+
+    FakeNoise noise(seq);
+
+    domain::GeneCell cell(noise, params);
+
+    // Tick 1 => sigue viva (S1 mapea a Alive)
     cell.live();
+
+    EXPECT_EQ(cell.state(), domain::CellState::Alive);
     EXPECT_TRUE(cell.alive());
-    EXPECT_TRUE(cell.state() == CellState::Alive);
-    EXPECT_TRUE(cell.getBRCA1().getState() == Gene::PartiallyDisabled);
-    EXPECT_TRUE(cell.getTP53().getState() == Gene::Active);
 
-}
-
-TEST(GeneCellTest, MutatesAndDiesBRCA1WhenNoiseExceedsThreshold) {
-    GeneCellParams params;
-    params.p_mutation_brca = 0.3;
-    FakeNoise noise({ CellNoise{0.1, 0.1, 0.0001, .99} });
-
-    GeneCell cell(noise, params, Gene::PartiallyDisabled, Gene::Active);
+    // Tick 2 => Tumoral (absorbente)
     cell.live();
+    EXPECT_EQ(cell.state(), domain::CellState::Alive);
+    EXPECT_EQ(cell.getOncoState(), domain::OncoState::Tumoral);
+    EXPECT_TRUE(cell.alive()); // si Tumoral se considera "viva"
+}
+TEST(GeneCell, Becomes_Apoptotic_with_BRCA_mutation) {
+    domain::GeneCellParams params;
+    params.p_mutation_tp53 = 0.0;
+    params.p_mutation_brca = 1.0; // Fuerza mutación BRCA
+
+    std::vector<domain::CellNoise> seq = {
+        {0.5}, // tick 1: cualquier valor, BRCA muta seguro
+    };
+
+    FakeNoise noise(seq);
+    domain::GeneCell cell(noise, params);
+
+    cell.live();
+
+    EXPECT_EQ(cell.state(), domain::CellState::Apoptotic);
     EXPECT_FALSE(cell.alive());
-    EXPECT_TRUE(cell.state() == CellState::Apoptotic);
-    EXPECT_TRUE(cell.getBRCA1().getState() == Gene::Disabled);
-    EXPECT_TRUE(cell.getTP53().getState() == Gene::Active);
-
-}
-
-
-TEST(GeneCell, AliveTransitionsToDamagedWithUBelowThreshold) {
-    // Matriz: Alive->Damaged = 0.5
-    domain::TransitionMatrix P = {{
-        {{0.5, 0.5, 0}},
-        {{0.0, 1.0, 0}},
-        {{0.0, 0, 1.0}}
-    }};
-    GeneCellParams cfg;
-    cfg.base_matrix = P;
-
-    FakeNoise noise({ CellNoise{0.6,0,0,0} }); // u=0.4 < 0.5 → Damaged
-    domain::GeneCell cell(noise, cfg);
-    cell.live();
-    EXPECT_EQ(cell.state(), domain::CellState::Damaged);
 }

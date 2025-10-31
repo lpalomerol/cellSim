@@ -15,8 +15,6 @@ add_executable(cellSim app/main.cpp
         src/domain/cell/cell.cpp
         src/domain/cell/cell.h
         src/domain/ports/ICell.h
-        src/domain/cell/SimpleCell.cpp
-        src/domain/cell/SimpleCell.h
         src/application/simulation/Simulation.cpp
         src/application/simulation/Simulation.h
         src/domain/ports/INoiseSource.h
@@ -29,7 +27,9 @@ add_executable(cellSim app/main.cpp
         src/domain/gene/Gene.h
         src/domain/cell/CellState.h
         src/domain/cell/CellFactory.cpp
-        src/domain/cell/CellFactory.h)
+        src/domain/cell/CellFactory.h
+        src/domain/cell/OncoState.h
+        src/domain/cell/OncoMatrix.h)
 target_link_libraries(cellSim PRIVATE cxxopts)
 
 enable_testing()
