@@ -7,7 +7,7 @@
 
 namespace domain {
 
-    constexpr int N_STATES = 4;
+    constexpr int N_STATES = 3;
 
     using TransitionMatrix = std::array<std::array<double, N_STATES>, N_STATES>;
     enum class BRCA1State { PlusMinus, MinusMinus };
@@ -17,9 +17,9 @@ namespace domain {
 
         domain::TransitionMatrix base_matrix = {
             {
-                {{0.98, 0.02, 0,  0.0}},
-                {{0.30, 0.60, 0, 0.10}},
-                {{0.0, 0.0, 0, 1.0}}
+                {{1.00, 0.00, 0.0}}, //Viva
+                {{0.00, 1.00, 0.0}}, //Tumoral
+                {{0.00, 0.00, 1.0}}  //Muerta
             }};
 
         double p_mutation_brca = 0.1;

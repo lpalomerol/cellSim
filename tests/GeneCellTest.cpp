@@ -36,10 +36,9 @@ TEST(GeneCellTest, MutatesAndDiesBRCA1WhenNoiseExceedsThreshold) {
 TEST(GeneCell, AliveTransitionsToDamagedWithUBelowThreshold) {
     // Matriz: Alive->Damaged = 0.5
     domain::TransitionMatrix P = {{
-        {{0.5, 0.5, 0.0, 0}},
-        {{0.0, 1.0, 0, 0.0}},
-        {{0.0, 0, 1.0, 0.0}},
-        {{0.0, 0.0, 0, 1.0}}
+        {{0.5, 0.5, 0}},
+        {{0.0, 1.0, 0}},
+        {{0.0, 0, 1.0}}
     }};
     GeneCellParams cfg;
     cfg.base_matrix = P;
