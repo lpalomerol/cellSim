@@ -12,6 +12,8 @@ namespace domain {
     struct AgenticCellParams {
         Gene::State TP53  = Gene::State::PlusPlus;
         Gene::State BRCA1 = Gene::State::PlusMinus;
+        double TP53_mutation_threshold = 0.05; // umbral por defecto para TP53
+        double BRCA1_mutation_threshold = 0.01; // umbral por defecto para BRCA1
     };
 
     class AgenticCell final : public domain::ICell {
@@ -19,8 +21,8 @@ namespace domain {
         explicit AgenticCell(INoiseSource& noise, const AgenticCellParams& params = AgenticCellParams())
         : params_(params),
         noise_(noise),
-        gene_tp53_(&noise, params.TP53),
-        gene_brca1_(&noise, params.BRCA1) {}
+        gene_tp53_(&noise, params.TP53, params.TP53_mutation_threshold),
+        gene_brca1_(&noise, params.BRCA1, params.BRCA1_mutation_threshold) {}
 
         void live() override;
         bool alive() override;

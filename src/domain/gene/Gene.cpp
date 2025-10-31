@@ -3,6 +3,7 @@
 //
 
 #include "Gene.h"
+#include <iostream>
 
 namespace domain {
 
@@ -34,7 +35,7 @@ namespace domain {
     }
 
     void Gene::live() {
-        if (noise_ && noise_->next().u01 > 0.1) {
+        if (noise_ && noise_->next().u01 > mutation_threshold_) {
             mutate();
         }
     }

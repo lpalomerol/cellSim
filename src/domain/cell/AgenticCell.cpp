@@ -7,7 +7,8 @@
 namespace domain {
 
     void AgenticCell::live() {
-
+        gene_tp53_.live();
+        gene_brca1_.live();
     }
 
     bool AgenticCell::alive() {
