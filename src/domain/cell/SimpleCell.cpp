@@ -2,11 +2,11 @@
 // Created by luis on 21/10/25.
 //
 
-#include "GeneCell.h"
+#include "SimpleCell.h"
 #include "OncoMatrix.h"
 
 namespace domain {
-    void GeneCell::live() {
+    void SimpleCell::live() {
         // 1) Matriz del tick (depende solo de p_brca/p_tp53)
         TransitionMatrix P = build_onco_matrix(params_.p_mutation_brca,
                                                params_.p_mutation_tp53);
@@ -19,11 +19,11 @@ namespace domain {
 
         // 3) Mapear a fenotipo (determinista)
         switch (onco_) {
-            case OncoState::S0:
-            case OncoState::S1:
+            case OncoState::TP53_plus_plus:
+            case OncoState::TP53_plus_minus:
                 state_ = CellState::Alive;
                 break;
-            case OncoState::Tumoral:
+            case OncoState::TP53_minus_minus:
                 state_ = CellState::Alive;
                 break; // si quieres “viva pero tumoral”
             case OncoState::Apoptotic:
@@ -33,7 +33,7 @@ namespace domain {
         }
     }
 
-    bool GeneCell::alive() {
+    bool SimpleCell::alive() {
         return is_alive_;
 
     }

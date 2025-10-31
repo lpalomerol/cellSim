@@ -6,22 +6,18 @@
 int main() {
     int n_cells = 100;
     int num_simulations = 100;
-    std::vector results(num_simulations, std::vector(2, 0));
+    std::vector results(num_simulations, std::vector(1, 0));
     domain::CellFactory factory;
     for (int k = 0; k < num_simulations; ++k) {
-        std::cout << "Running simulation #" << (k+1) << "\n";
-
         adapters::RandomNoise noise(k);
         constexpr int max_t = 80; // 1 año por tick
         application::Simulation sim(max_t);
 
         for (int i = 0; i < n_cells; ++i) {
-            sim.addCell(factory.createGeneCell(noise, domain::GeneCellParams()));
+            sim.addCell(factory.createSimpleCell(noise, domain::SimpleCellParams()));
 
         }
-
         sim.run();
-        results[k][0] = sim.firstTimeDead();
         results[k][1] = sim.firstTimeTumoral();
 
     }
@@ -30,7 +26,7 @@ int main() {
     // Calcula el ratio de valores -1 en results[][1]
     int count_minus_one = 0;
     for (const auto& res : results) {
-        if (res[1] == -1) ++count_minus_one;
+        if (res[0] == -1) ++count_minus_one;
     }
     double ratio_minus_one = static_cast<double>(count_minus_one) / num_simulations;
     std::cout << "Ratio de -1 en First Tumoral Year: " << ratio_minus_one << "\n";

@@ -12,17 +12,15 @@ FetchContent_MakeAvailable(googletest)
 add_executable(unit_tests
         ../src/domain/cell/cell.cpp
         ../src/domain/cell/cell.h
-        ../src/domain/cell/GeneCell.cpp
-        ../src/domain/cell/GeneCell.h
+        ../src/domain/cell/SimpleCell.cpp
+        ../src/domain/cell/SimpleCell.h
         ../src/domain/ports/ICell.h
         ../src/domain/ports/INoiseSource.h
         ../src/domain/ports/CellNoise.h
         ../src/domain/adapters/RandomNoise.h
         ../src/domain/adapters/FixedNoise.h
-        ../src/domain/gene/Gene.cpp
-        ../src/domain/gene/Gene.h
 
-        GeneCellTest.cpp
+        SimpleCellTest.cpp
         ../src/domain/cell/CellState.h
         ../src/domain/cell/CellFactory.cpp
         ../src/domain/cell/CellFactory.h

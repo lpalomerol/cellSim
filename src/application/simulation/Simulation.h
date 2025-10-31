@@ -10,9 +10,7 @@ namespace application {
         explicit Simulation(int max_t_years);
         void addCell(std::unique_ptr<domain::ICell> cell);
         void run(); // dt=1 año, hasta max_t_
-        void printResults();
 
-        int firstTimeDead();
         int firstTimeTumoral();
 
     private:

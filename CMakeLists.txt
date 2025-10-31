@@ -21,10 +21,8 @@ add_executable(cellSim app/main.cpp
         src/domain/ports/CellNoise.h
         src/domain/adapters/RandomNoise.h
         src/domain/adapters/FixedNoise.h
-        src/domain/cell/GeneCell.cpp
-        src/domain/cell/GeneCell.h
-        src/domain/gene/Gene.cpp
-        src/domain/gene/Gene.h
+        src/domain/cell/SimpleCell.cpp
+        src/domain/cell/SimpleCell.h
         src/domain/cell/CellState.h
         src/domain/cell/CellFactory.cpp
         src/domain/cell/CellFactory.h
