@@ -12,8 +12,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(cxxopts)
 
 add_executable(cellSim app/main.cpp
-        src/domain/cell/cell.cpp
-        src/domain/cell/cell.h
         src/domain/ports/ICell.h
         src/application/simulation/Simulation.cpp
         src/application/simulation/Simulation.h

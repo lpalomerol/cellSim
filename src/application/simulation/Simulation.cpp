@@ -20,14 +20,8 @@ namespace application {
             tumors = 0;
             for (auto& c : cells_) {
                 c->live();
-                state = c->getOncoState();
-                switch (state) {
-                    case domain::OncoState::TP53_minus_minus:
-                        tumors += 1;
-                        break;
-                    default:
-                        break;
-
+                if (c->tumoral()) {
+                    tumors += 1;
                 }
             }
             cell_state_counter_[t][2] = tumors;

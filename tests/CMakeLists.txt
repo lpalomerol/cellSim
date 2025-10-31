@@ -10,8 +10,6 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 add_executable(unit_tests
-        ../src/domain/cell/cell.cpp
-        ../src/domain/cell/cell.h
         ../src/domain/cell/SimpleCell.cpp
         ../src/domain/cell/SimpleCell.h
         ../src/domain/ports/ICell.h

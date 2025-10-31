@@ -38,6 +38,9 @@ namespace domain {
 
     }
 
+    bool SimpleCell::tumoral() {
+        return onco_ == OncoState::TP53_minus_minus;
+    }
 
 
 

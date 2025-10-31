@@ -10,6 +10,7 @@ namespace domain {
         virtual ~ICell() = default;
         virtual void live() = 0;
         virtual bool alive() = 0;
+        virtual bool tumoral() = 0;
         virtual CellState state() = 0;
         virtual OncoState getOncoState() = 0;
     };
