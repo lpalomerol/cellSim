@@ -16,7 +16,7 @@ namespace domain {
     }
 
     CellState SimpleCell::state() {
-        return is_alive_ ? CellState::Alive : CellState::Dead;
+        return is_alive_ ? CellState::Alive : CellState::Apoptotic;
     }
 
 }

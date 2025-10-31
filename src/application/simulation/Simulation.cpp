@@ -31,7 +31,7 @@ namespace application {
                     case domain::CellState::Alive:
                         alives += 1;
                         break;
-                    case domain::CellState::Dead:
+                    case domain::CellState::Apoptotic:
                         deads ++;
                         break;
                     case domain::CellState::Tumoral:

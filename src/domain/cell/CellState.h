@@ -2,8 +2,10 @@
 
 namespace  domain {
     enum class CellState {
-        Dead,
         Alive,
-        Tumoral
+        Damaged,
+        Tumoral,
+        Apoptotic
+
     };
 }

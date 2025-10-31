@@ -22,7 +22,7 @@ TEST(SimpleCell, StaysAliveWithHighHomeostasisAndLowNoise) {
 
 TEST(SimpleCell, DiesWhenNoiseExceedsHomeostasisProb) {
     // u=0.99 >= p=0.2 => muere (según la regla asumida)
-    FakeNoise noise({ CellNoise{0.99} });
+    FakeNoise noise({ CellNoise{0.99, 0.99} });
     domain::SimpleCellParams cfg;
     cfg.p_homeostasis = 0.2;
 
@@ -31,14 +31,14 @@ TEST(SimpleCell, DiesWhenNoiseExceedsHomeostasisProb) {
     EXPECT_TRUE(cell.state() == domain::CellState::Alive);
     cell.live();
     EXPECT_FALSE(cell.alive());
-    EXPECT_TRUE(cell.state() == domain::CellState::Dead);
+    EXPECT_TRUE(cell.state() == domain::CellState::Apoptotic);
 }
 
 TEST(SimpleCell, DeterministicAcrossStepsWithSequence) {
     // Primera vive (0.0 < 0.5), segunda muere (0.9 >= 0.5)
     FakeNoise noise({
-        CellNoise{0.0},
-        CellNoise{0.9}
+        CellNoise{0.0, 0.0},
+        CellNoise{0.0, 0.9}
     });
     domain::SimpleCellParams cfg;
     cfg.p_homeostasis = 0.5;
@@ -51,5 +51,5 @@ TEST(SimpleCell, DeterministicAcrossStepsWithSequence) {
     EXPECT_TRUE(cell.state() == domain::CellState::Alive);
     cell.live(); // u=0.9 -> muere
     EXPECT_FALSE(cell.alive());
-    EXPECT_TRUE(cell.state() == domain::CellState::Dead);
+    EXPECT_TRUE(cell.state() == domain::CellState::Apoptotic);
 }
