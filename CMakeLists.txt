@@ -26,7 +26,8 @@ add_executable(cellSim app/main.cpp
         src/domain/cell/GeneCell.cpp
         src/domain/cell/GeneCell.h
         src/domain/gene/Gene.cpp
-        src/domain/gene/Gene.h)
+        src/domain/gene/Gene.h
+        src/domain/cell/CellState.h)
 target_link_libraries(cellSim PRIVATE cxxopts)
 
 enable_testing()

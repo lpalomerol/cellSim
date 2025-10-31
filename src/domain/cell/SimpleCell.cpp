@@ -12,7 +12,11 @@ namespace domain {
         }
     }
     bool SimpleCell::alive() {
-        return is_alive_;
-
+        return state() == CellState::Alive;
     }
+
+    CellState SimpleCell::state() {
+        return is_alive_ ? CellState::Alive : CellState::Dead;
+    }
+
 }

@@ -28,8 +28,10 @@ TEST(SimpleCell, DiesWhenNoiseExceedsHomeostasisProb) {
 
     SimpleCell cell(noise, cfg);
     EXPECT_TRUE(cell.alive());
+    EXPECT_TRUE(cell.state() == domain::CellState::Alive);
     cell.live();
     EXPECT_FALSE(cell.alive());
+    EXPECT_TRUE(cell.state() == domain::CellState::Dead);
 }
 
 TEST(SimpleCell, DeterministicAcrossStepsWithSequence) {
@@ -43,8 +45,11 @@ TEST(SimpleCell, DeterministicAcrossStepsWithSequence) {
 
     SimpleCell cell(noise, cfg);
     EXPECT_TRUE(cell.alive());
+    EXPECT_TRUE(cell.state() == domain::CellState::Alive);
     cell.live(); // u=0.0 -> vive
     EXPECT_TRUE(cell.alive());
+    EXPECT_TRUE(cell.state() == domain::CellState::Alive);
     cell.live(); // u=0.9 -> muere
     EXPECT_FALSE(cell.alive());
+    EXPECT_TRUE(cell.state() == domain::CellState::Dead);
 }

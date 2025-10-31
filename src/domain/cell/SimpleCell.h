@@ -15,7 +15,7 @@ namespace domain {
 
         void live() override;
         bool alive() override;
-
+        CellState state() override;
     private:
         SimpleCellParams cfg_;
         INoiseSource& noise_;

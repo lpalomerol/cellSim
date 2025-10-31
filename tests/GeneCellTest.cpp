@@ -13,6 +13,7 @@ TEST(GeneCellTest, MutatesBRCA1WhenNoiseExceedsThreshold) {
     GeneCell cell(noise, params, Gene::PartiallyDisabled, Gene::Active);
 
     EXPECT_TRUE(cell.alive());
+    EXPECT_TRUE(cell.state() == CellState::Alive);
 
 }
 
@@ -25,5 +26,6 @@ TEST(GeneCellTest, DiesWhenBRCA1Disabled) {
     cell.live();
 
     EXPECT_FALSE(cell.alive());
+    EXPECT_TRUE(cell.state() == CellState::Dead);
     // EXPECT_EQ(cell.getTP53(), Gene::Active);
 }

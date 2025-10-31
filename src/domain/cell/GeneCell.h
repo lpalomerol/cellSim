@@ -25,6 +25,7 @@ namespace domain {
 
         void live() override;
         bool alive() override;
+        CellState state() override;
 
     private:
         INoiseSource& noise_;

@@ -16,7 +16,11 @@ namespace domain {
         }
     }
     bool GeneCell::alive() {
-        return is_alive_ && brca1_.getState() != Gene::Disabled;
+        return state() == CellState::Alive;
 
+    }
+
+    CellState GeneCell::state() {
+        return is_alive_ && brca1_.getState() != Gene::Disabled? CellState::Alive : CellState::Dead;
     }
 }
