@@ -17,8 +17,8 @@ namespace domain {
 
     struct GeneCellParams {
 
-        double p_mutation_brca = 0.01;
-        double p_mutation_tp53 = 0.05;
+        double p_mutation_brca = 0.001;
+        double p_mutation_tp53 = 0.005;
     };
 
     class GeneCell final : public ICell {

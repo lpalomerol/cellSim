@@ -4,7 +4,7 @@
 #include "../src/domain/cell/CellFactory.h"
 
 int main() {
-    int n_cells = 1;
+    int n_cells = 100;
     int num_simulations = 100;
     std::vector results(num_simulations, std::vector(2, 0));
     domain::CellFactory factory;
@@ -35,23 +35,22 @@ int main() {
     double ratio_minus_one = static_cast<double>(count_minus_one) / num_simulations;
     std::cout << "Ratio de -1 en First Tumoral Year: " << ratio_minus_one << "\n";
 
-    // Calcula la probabilidad empírica de tener tumor en < 20 años
-    // Calcula la probabilidad empírica de tener tumor en < 40 años
-    // Calcula la probabilidad empírica de tener tumor en < 60 años
-    int count_tumor_20 = 0;
-    int count_tumor_40 = 0;
-    int count_tumor_60 = 0;
+    // Calcula la probabilidad empírica de tener tumor en < X años
+    std::vector<int> thresholds = {10, 20, 30, 40, 50, 60, 70, 80};
+    std::vector<int> counts(thresholds.size(), 0);
+
     for (const auto& res : results) {
         if (res[1] != -1) {
-            if (res[1] < 20) ++count_tumor_20;
-            if (res[1] < 40) ++count_tumor_40;
-            if (res[1] < 60) ++count_tumor_60;
+            for (size_t i = 0; i < thresholds.size(); ++i) {
+                if (res[1] < thresholds[i]) ++counts[i];
+            }
         }
     }
-    std::cout << "Proporción de tumor en <20 años: " << static_cast<double>(count_tumor_20) / num_simulations << "\n";
-    std::cout << "Proporción de tumor en <40 años: " << static_cast<double>(count_tumor_40) / num_simulations << "\n";
-    std::cout << "Proporción de tumor en <60 años: " << static_cast<double>(count_tumor_60) / num_simulations << "\n";
 
+    for (size_t i = 0; i < thresholds.size(); ++i) {
+        std::cout << "Proporción de tumor en <" << thresholds[i] << " años: "
+                  << static_cast<double>(counts[i]) / num_simulations << "\n";
+    }
     return 0;
 }
 
