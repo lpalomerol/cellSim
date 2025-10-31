@@ -1,63 +1,47 @@
-#include <gtest/gtest.h>
 #include "../src/domain/gene/Gene.h"
+#include "FakeNoise.h"
+#include <gtest/gtest.h>
 
 using domain::Gene;
-using domain::INoiseSource;
 
-class DummyNoise : public INoiseSource {
-public:
-    double value;
-    DummyNoise(double v) : value(v) {}
-    domain::CellNoise next() override { return domain::CellNoise{value}; }
-};
-
-TEST(GeneTest, DefaultConstructorInitializesPlusPlus) {
-    DummyNoise noise(0.0);
-    Gene g(&noise);
-    EXPECT_TRUE(g.enabled());
+TEST(GeneTest, ConstructorSetsInstabilityK) {
+    FakeNoise noise({domain::CellNoise{0.5}}); // Valor arbitrario
+    Gene gene(&noise, Gene::State::PlusPlus, 0.1, 0.2);
+    EXPECT_DOUBLE_EQ(gene.getMutationInstabilityK(), 0.2);
+    EXPECT_DOUBLE_EQ(gene.getMutationThreshold(), 0.1);
 }
 
-TEST(GeneTest, ConstructorInitializesState) {
-    DummyNoise noise(0.0);
-    Gene g1(&noise, Gene::State::PlusPlus);
-    Gene g2(&noise, Gene::State::PlusMinus);
-    Gene g3(&noise, Gene::State::MinusMinus);
-    EXPECT_TRUE(g1.enabled());
-    EXPECT_TRUE(g2.enabled());
-    EXPECT_FALSE(g3.enabled());
+TEST(GeneTest, LiveMutatesWhenNoiseExceedsThresholdPlusK) {
+    FakeNoise noise({domain::CellNoise{0.31}}); // 0.31 > 0.3 (0.1 + 0.2)
+    Gene gene(&noise, Gene::State::PlusPlus, 0.1, 0.2);
+    gene.live();
+    EXPECT_EQ(gene.status(), "+/-");
+}
+
+TEST(GeneTest, LiveDoesNotMutateWhenNoiseBelowThresholdPlusK) {
+    FakeNoise noise({domain::CellNoise{0.29}}); // 0.29 < 0.3 (0.1 + 0.2)
+    Gene gene(&noise, Gene::State::PlusPlus, 0.1, 0.2);
+    gene.live();
+    EXPECT_EQ(gene.status(), "+/+");
 }
 
 TEST(GeneTest, MutateCyclesStates) {
-    DummyNoise noise(0.0);
-    Gene g(&noise, Gene::State::PlusPlus);
-    g.mutate();
-    EXPECT_TRUE(g.enabled()); // PlusMinus
-    g.mutate();
-    EXPECT_FALSE(g.enabled()); // MinusMinus
-    g.mutate();
-    EXPECT_TRUE(g.enabled()); // PlusPlus
+    FakeNoise noise({domain::CellNoise{1.0}, domain::CellNoise{1.0}, domain::CellNoise{1.0}}); // Siempre muta
+    Gene gene(&noise, Gene::State::PlusPlus, 0.0, 0.0);
+    gene.live();
+    EXPECT_EQ(gene.status(), "+/-");
+    gene.live();
+    EXPECT_EQ(gene.status(), "-/-");
+    gene.live();
+    EXPECT_EQ(gene.status(), "+/+");
 }
 
 TEST(GeneTest, EnabledReturnsCorrectValue) {
-    DummyNoise noise(0.0);
-    Gene g1(&noise, Gene::State::PlusPlus);
-    Gene g2(&noise, Gene::State::PlusMinus);
-    Gene g3(&noise, Gene::State::MinusMinus);
-    EXPECT_TRUE(g1.enabled());
-    EXPECT_TRUE(g2.enabled());
-    EXPECT_FALSE(g3.enabled());
-}
-
-TEST(GeneTest, LiveDoesNotMutateIfNoiseBelowThreshold) {
-    DummyNoise noise(0.05); // por debajo de 0.1
-    Gene g(&noise, Gene::State::PlusPlus);
-    g.live();
-    EXPECT_EQ(g.status(), "+/+");
-}
-
-TEST(GeneTest, LiveMutatesIfNoiseAboveThreshold) {
-    DummyNoise noise(0.5); // por encima de 0.1
-    Gene g(&noise, Gene::State::PlusPlus);
-    g.live();
-    EXPECT_EQ(g.status(), "+/-");
+    FakeNoise noise({domain::CellNoise{1.0}});
+    Gene gene(&noise, Gene::State::PlusPlus, 0.0, 0.0);
+    EXPECT_TRUE(gene.enabled());
+    gene.mutate();
+    EXPECT_TRUE(gene.enabled());
+    gene.mutate();
+    EXPECT_FALSE(gene.enabled());
 }

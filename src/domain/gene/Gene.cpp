@@ -35,7 +35,7 @@ namespace domain {
     }
 
     void Gene::live() {
-        if (noise_ && noise_->next().u01 > mutation_threshold_) {
+        if (noise_ && noise_->next().u01 > (mutation_threshold_ + mutation_instability_k_)) {
             mutate();
         }
     }

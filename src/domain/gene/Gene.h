@@ -11,13 +11,14 @@ namespace domain{
     public:
         enum class State { PlusPlus, PlusMinus, MinusMinus };
 
-        Gene(INoiseSource* noise, State initial = State::PlusPlus, double mutation_threshold = 0.1)
-            : state(initial), noise_(noise), mutation_threshold_(mutation_threshold) {}
+        Gene(INoiseSource* noise, State initial = State::PlusPlus, double mutation_threshold = 0.1, double mutation_instability_k = 0.0)
+            : state(initial), noise_(noise), mutation_threshold_(mutation_threshold), mutation_instability_k_(mutation_instability_k) {}
 
         std::string status() const;
         void mutate();
         void live();
         double getMutationThreshold() const { return mutation_threshold_; }
+        double getMutationInstabilityK() const { return mutation_instability_k_; }
 
         [[nodiscard]] bool enabled() const;
 
@@ -25,5 +26,6 @@ namespace domain{
         State state;
         INoiseSource* noise_;
         double mutation_threshold_;
+        double mutation_instability_k_;
     };
 }
