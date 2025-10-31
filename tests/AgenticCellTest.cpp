@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <memory>
 #include "../src/domain/cell/AgenticCell.h"
 
 using namespace domain;
@@ -15,51 +16,47 @@ public:
 };
 
 TEST(AgenticCellTest, DefaultStates) {
-    DummyNoise noise;
-    AgenticCell cell(noise);
+    AgenticCell cell(std::make_unique<DummyNoise>());
     EXPECT_EQ(cell.getTP53(), "+/+");
     EXPECT_EQ(cell.getBRCA1(), "+/-");
 }
 
 TEST(AgenticCellTest, CustomStates) {
-    DummyNoise noise;
     AgenticCellParams params;
     params.TP53 = Gene::State::MinusMinus;
     params.BRCA1 = Gene::State::PlusPlus;
-    AgenticCell cell(noise, params);
+    AgenticCell cell(std::make_unique<DummyNoise>(), params);
     EXPECT_EQ(cell.getTP53(), "-/-");
     EXPECT_EQ(cell.getBRCA1(), "+/+");
 }
 
 TEST(AgenticCellTest, AllStates) {
-    DummyNoise noise;
     AgenticCellParams params;
     params.TP53 = Gene::State::PlusMinus;
     params.BRCA1 = Gene::State::MinusMinus;
-    AgenticCell cell(noise, params);
+    AgenticCell cell(std::make_unique<DummyNoise>(), params);
     EXPECT_EQ(cell.getTP53(), "+/-");
     EXPECT_EQ(cell.getBRCA1(), "-/-");
 }
 
 TEST(AgenticCellTest, LiveMutatesGenes) {
-    HighNoise noise;
     AgenticCellParams params;
     params.TP53 = Gene::State::PlusPlus;
     params.BRCA1 = Gene::State::PlusMinus;
-    AgenticCell cell(noise, params);
+    AgenticCell cell(std::make_unique<HighNoise>(), params);
     cell.live();
     EXPECT_EQ(cell.getTP53(), "+/-"); // TP53 muta de +/+ a +/-
     EXPECT_EQ(cell.getBRCA1(), "-/-"); // BRCA1 muta de +/- a -/-
 }
 
 TEST(AgenticCellTest, LiveMutatesGenesWithCustomThreshold) {
-    HighNoise noise;
     AgenticCellParams params;
     params.TP53 = Gene::State::PlusPlus;
     params.BRCA1 = Gene::State::PlusMinus;
     // Umbral personalizado para mutación
     double threshold = 0.3;
     // Construcción manual de genes para test
+    HighNoise noise;
     Gene tp53(&noise, params.TP53, threshold);
     Gene brca1(&noise, params.BRCA1, threshold);
     // Antes de live
@@ -76,60 +73,54 @@ TEST(AgenticCellTest, LiveMutatesGenesWithCustomThreshold) {
 }
 
 TEST(AgenticCellTest, AliveWhenBRCA1IsPlusMinus) {
-    DummyNoise noise;
     AgenticCellParams params;
     params.BRCA1 = Gene::State::PlusMinus;
-    AgenticCell cell(noise, params);
+    AgenticCell cell(std::make_unique<DummyNoise>(), params);
     EXPECT_TRUE(cell.alive());
 }
 
 TEST(AgenticCellTest, DeadWhenBRCA1IsMinusMinus) {
-    DummyNoise noise;
     AgenticCellParams params;
     params.BRCA1 = Gene::State::MinusMinus;
-    AgenticCell cell(noise, params);
+    AgenticCell cell(std::make_unique<DummyNoise>(), params);
     EXPECT_FALSE(cell.alive());
 }
 
 TEST(AgenticCellTest, LiveDisablesCellWhenBRCA1Mutates) {
-    HighNoise noise;
     AgenticCellParams params;
     params.BRCA1 = Gene::State::PlusMinus; // empieza viva
     // Umbral por defecto de BRCA1 es 0.01, noise=0.5 > 0.01 -> muta a MinusMinus
-    AgenticCell cell(noise, params);
+    AgenticCell cell(std::make_unique<HighNoise>(), params);
     EXPECT_TRUE(cell.alive());
     cell.live();
     EXPECT_FALSE(cell.alive()); // ahora BRCA1 debería ser -/- y la célula está disabled (Disables)
 }
 
 TEST(AgenticCellTest, NoTumoralWhenTP53IsMinusMinusByDefault) {
-    DummyNoise noise;
     AgenticCellParams params;
     params.TP53 = Gene::State::MinusMinus;
-    AgenticCell cell(noise, params);
+    AgenticCell cell(std::make_unique<DummyNoise>(), params);
     EXPECT_EQ(cell.getTP53(), "-/-");
     EXPECT_FALSE(cell.tumoral());
 }
 
 TEST(AgenticCellTest, TumorProtectedByActiveTP53) {
-    HighNoise noise;
     AgenticCellParams params;
     params.TP53 = Gene::State::PlusPlus; // TP53 activo protege
     params.TP53_mutation_threshold = 1.0; // evitar mutación de TP53 durante live
     params.tumor_k = 1.0; // si no hubiera protección, probabilid = 1
-    AgenticCell cell(noise, params);
+    AgenticCell cell(std::make_unique<HighNoise>(), params);
     EXPECT_FALSE(cell.tumoral());
     cell.live();
     EXPECT_FALSE(cell.tumoral()); // protegido por TP53 activo
 }
 
 TEST(AgenticCellTest, TumoralWhenTP53InitiallyInactiveWithHighK) {
-    HighNoise noise;
     AgenticCellParams params;
     params.TP53 = Gene::State::MinusMinus; // TP53 inactivo
     params.TP53_mutation_threshold = 1.0; // evitar que el gen mute a activo durante live
     params.tumor_k = 1.0; // probabilidad alta
-    AgenticCell cell(noise, params);
+    AgenticCell cell(std::make_unique<HighNoise>(), params);
     EXPECT_EQ(cell.getTP53(), "-/-");
     EXPECT_FALSE(cell.tumoral());
     cell.live();
@@ -137,11 +128,10 @@ TEST(AgenticCellTest, TumoralWhenTP53InitiallyInactiveWithHighK) {
 }
 
 TEST(AgenticCellTest, LiveMakesCellTumoralWhenTP53MutatesAndKHigh) {
-    HighNoise noise;
     AgenticCellParams params;
     params.TP53 = Gene::State::PlusMinus; // una mutación lleva a MinusMinus
     params.tumor_k = 1.0; // probabilidad alta
-    AgenticCell cell(noise, params);
+    AgenticCell cell(std::make_unique<HighNoise>(), params);
     EXPECT_EQ(cell.getTP53(), "+/-");
     EXPECT_FALSE(cell.tumoral());
     cell.live();

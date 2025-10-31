@@ -11,6 +11,6 @@ namespace domain {
     public:
         virtual ~CellFactory() = default;
         virtual std::unique_ptr<ICell> createSimpleCell(adapters::RandomNoise& noise, const domain::SimpleCellParams& params);
-        virtual std::unique_ptr<ICell> createAgenticCell(adapters::RandomNoise& noise, const domain::AgenticCellParams& params);
+        virtual std::unique_ptr<ICell> createAgenticCell(unsigned seed, const domain::AgenticCellParams& params);
     };
 }

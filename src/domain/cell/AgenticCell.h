@@ -6,6 +6,7 @@
 #include "../ports/ICell.h"
 #include "../ports/INoiseSource.h"
 #include "../gene/Gene.h"
+#include <memory>
 
 namespace domain {
 
@@ -14,17 +15,17 @@ namespace domain {
         Gene::State BRCA1 = Gene::State::PlusMinus;
         double TP53_mutation_threshold = 0.05; // umbral por defecto para TP53
         double BRCA1_mutation_threshold = 0.01; // umbral por defecto para BRCA1
-        double tumor_k = 0.1; // probabilidad de degeneración a tumoral cuando TP53 está inactivo
+        double tumor_k = 0.001; // probabilidad de degeneración a tumoral cuando TP53 está inactivo (0.1%)
     };
 
     class AgenticCell final : public domain::ICell {
     public:
-        explicit AgenticCell(INoiseSource& noise, const AgenticCellParams& params = AgenticCellParams())
+        explicit AgenticCell(std::unique_ptr<INoiseSource> noise, const AgenticCellParams& params = AgenticCellParams())
         : params_(params),
-        noise_(noise),
-        gene_tp53_(&noise, params.TP53, params.TP53_mutation_threshold),
-        gene_brca1_(&noise, params.BRCA1, params.BRCA1_mutation_threshold),
-        is_tumoral_(false) {}
+          noise_(std::move(noise)),
+          gene_tp53_(noise_.get(), params_.TP53, params_.TP53_mutation_threshold),
+          gene_brca1_(noise_.get(), params_.BRCA1, params_.BRCA1_mutation_threshold),
+          is_tumoral_(false) {}
 
         void live() override;
         bool alive() override;
@@ -33,8 +34,8 @@ namespace domain {
         [[nodiscard]] std::string getBRCA1() const;
 
     private:
-        INoiseSource& noise_;
         AgenticCellParams params_;
+        std::unique_ptr<INoiseSource> noise_;
         Gene gene_tp53_;
         Gene gene_brca1_;
         bool is_tumoral_;

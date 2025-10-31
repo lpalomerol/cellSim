@@ -18,8 +18,8 @@ namespace domain {
         double p = gene_tp53_.enabled() ? 0.0 : params_.tumor_k;
         if (p <= 0.0) return;
 
-        // Muestra del ruido compartido
-        auto sample = noise_.next().u01;
+        // Muestra del ruido propio de la célula
+        auto sample = noise_->next().u01;
         if (sample < p) {
             is_tumoral_ = true;
         }

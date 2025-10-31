@@ -15,6 +15,8 @@ add_executable(cellSim app/main.cpp
         src/domain/ports/ICell.h
         src/application/simulation/Simulation.cpp
         src/application/simulation/Simulation.h
+        src/application/simulation/Simulations.cpp
+        src/application/simulation/Simulations.h
         src/domain/ports/INoiseSource.h
         src/domain/ports/CellNoise.h
         src/domain/adapters/RandomNoise.h

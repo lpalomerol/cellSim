@@ -16,9 +16,12 @@ namespace domain {
     }
 
     std::unique_ptr<ICell> CellFactory::createAgenticCell(
-        adapters::RandomNoise& noise,
+        unsigned seed,
         const domain::AgenticCellParams& params){
-        return std::make_unique<domain::AgenticCell>(noise, params);
+        return std::make_unique<domain::AgenticCell>(
+            std::make_unique<adapters::RandomNoise>(seed),
+            params
+        );
     }
 
 
