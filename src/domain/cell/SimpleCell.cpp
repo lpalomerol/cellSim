@@ -14,7 +14,7 @@ namespace domain {
         // 2) Elegir transición con una única muestra
         const auto z = noise_.next();            // trae, p.ej., z.markov_u01
         int cur  = static_cast<int>(onco_);
-        int next = sampleNextState(P, cur, z.markov_u01);
+        int next = sampleNextState(P, cur, z.u01);
         onco_ = static_cast<OncoState>(next);
 
         // 3) Mapear a fenotipo (determinista)

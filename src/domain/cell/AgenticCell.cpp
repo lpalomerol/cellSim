@@ -19,4 +19,12 @@ namespace domain {
         return false;
     }
 
+    std::string AgenticCell::getTP53() const {
+        return gene_tp53_.status();
+    }
+
+    std::string AgenticCell::getBRCA1() const {
+        return gene_brca1_.status();
+    }
+
 } // domain
