@@ -6,7 +6,8 @@
 int main() {
     int n_cells = 100;
     int num_simulations = 100;
-    std::vector results(num_simulations, std::vector(1, 0));
+    // results[k][0] reserved for future use, results[k][1] = firstTimeTumoral (initialized to -1)
+    std::vector<std::array<int, 2>> results(num_simulations, { -1, -1 });
     domain::CellFactory factory;
     for (int k = 0; k < num_simulations; ++k) {
         adapters::RandomNoise noise(k);
@@ -14,19 +15,18 @@ int main() {
         application::Simulation sim(max_t);
 
         for (int i = 0; i < n_cells; ++i) {
-            sim.addCell(factory.createSimpleCell(noise, domain::SimpleCellParams()));
-
+            // Crear AgenticCell a través de la factoría (para usar la nueva lógica genética)
+            domain::AgenticCellParams params; // usa valores por defecto (incluye tumor_k)
+            sim.addCell(factory.createAgenticCell(noise, params));
         }
         sim.run();
         results[k][1] = sim.firstTimeTumoral();
-
     }
-
 
     // Calcula el ratio de valores -1 en results[][1]
     int count_minus_one = 0;
     for (const auto& res : results) {
-        if (res[0] == -1) ++count_minus_one;
+        if (res[1] == -1) ++count_minus_one;
     }
     double ratio_minus_one = static_cast<double>(count_minus_one) / num_simulations;
     std::cout << "Ratio de -1 en First Tumoral Year: " << ratio_minus_one << "\n";
@@ -49,5 +49,3 @@ int main() {
     }
     return 0;
 }
-
-
