@@ -23,6 +23,15 @@ public:
     // Fábrica: devuelve un genoma por defecto (TP53 y BRCA1 con estados por defecto)
     static Genome makeDefaultGenome();
 
+    // Devuelve una copia profunda del genoma (clone explícito)
+    Genome clone() const;
+
+    // Inyecta una fuente de ruido a todos los genes del genoma
+    void setNoiseSourceForAll(INoiseSource* noise);
+
+    // Avanza (live) todos los genes del genoma
+    void liveAllGenes();
+
 private:
     std::unordered_map<std::string, Gene> genes_;
 };

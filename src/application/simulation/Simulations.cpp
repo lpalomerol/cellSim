@@ -17,7 +17,7 @@ void Simulations::runAll() {
             unsigned cell_seed = sim_seed * 100000u + static_cast<unsigned>(i);
             // Obtener un genoma por defecto desde la fábrica centralizada
             domain::Genome genome = domain::Genome::makeDefaultGenome();
-            sim.addCell(factory_.createAgenticCell(cell_seed, genome));
+            sim.addCell(factory_.createAgenticCell(cell_seed, std::move(genome), cfg_.neoplasm_k));
         }
         sim.run();
         results_[k][1] = sim.firstTimeNeoplastic();

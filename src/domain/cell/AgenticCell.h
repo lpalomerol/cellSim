@@ -12,7 +12,8 @@ namespace domain {
 
     class AgenticCell final : public domain::ICell {
     public:
-        AgenticCell(std::unique_ptr<INoiseSource> noise, const Genome& genome, double neoplasm_k = 0.002);
+        // Toma el Genome por valor para clarificar ownership (se copia/mueve internamente)
+        AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k = 0.002);
 
         void live() override;
         bool alive() override;

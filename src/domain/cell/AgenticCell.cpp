@@ -6,19 +6,15 @@
 
 namespace domain {
 
-    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, const Genome& genome, double neoplasm_k)
-        : noise_(std::move(noise)), genome_(genome), neoplasm_k_(neoplasm_k), is_neoplastic_(false) {
-        // Inyectar la fuente de ruido en todos los genes del genoma
-        for (auto& pair : const_cast<std::unordered_map<std::string, Gene>&>(genome_.genes())) {
-            pair.second.setNoiseSource(noise_.get());
-        }
+    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k)
+        : noise_(std::move(noise)), genome_(std::move(genome)), neoplasm_k_(neoplasm_k), is_neoplastic_(false) {
+        // Inyectar la fuente de ruido en todos los genes del genoma usando la API de Genome
+        genome_.setNoiseSourceForAll(noise_.get());
     }
 
     void AgenticCell::live() {
-        // Mutar todos los genes del genoma
-        for (auto& pair : const_cast<std::unordered_map<std::string, Gene>&>(genome_.genes())) {
-            pair.second.live();
-        }
+        // Avanzar todos los genes del genoma usando la API de Genome
+        genome_.liveAllGenes();
         // Si ya está en estado neoplásico no necesitamos evaluar
         if (is_neoplastic_) return;
         // Determinar probabilidad p: 0 si TP53 está activo (protección), usar neoplasm_k_ si inactivo

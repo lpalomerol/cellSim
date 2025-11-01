@@ -25,4 +25,23 @@ Genome Genome::makeDefaultGenome() {
     return genome_factory::makeDefaultGenome();
 }
 
+// Devuelve una copia profunda del genoma
+Genome Genome::clone() const {
+    return Genome(genes_);
+}
+
+// Inyecta una fuente de ruido en todos los genes del genoma
+void Genome::setNoiseSourceForAll(INoiseSource* noise) {
+    for (auto& kv : genes_) {
+        kv.second.setNoiseSource(noise);
+    }
+}
+
+// Avanza (live) todos los genes del genoma
+void Genome::liveAllGenes() {
+    for (auto& kv : genes_) {
+        kv.second.live();
+    }
+}
+
 } // namespace domain

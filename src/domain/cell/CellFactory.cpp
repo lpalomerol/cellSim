@@ -17,10 +17,12 @@ namespace domain {
 
     std::unique_ptr<ICell> CellFactory::createAgenticCell(
         unsigned seed,
-        const domain::Genome& genome){
+        domain::Genome genome,
+        double neoplasm_k){
         return std::make_unique<domain::AgenticCell>(
             std::make_unique<adapters::RandomNoise>(seed),
-            genome
+            std::move(genome),
+            neoplasm_k
         );
     }
 

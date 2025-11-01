@@ -14,6 +14,8 @@ struct SimulationsConfig {
     int n_cells = 100;
     int num_simulations = 100;
     int max_t = 80;
+    // Probabilidad base de neoplasia usada cuando TP53 está inactivo
+    double neoplasm_k = 0.002;
 };
 
 class Simulations {
