@@ -10,7 +10,8 @@ namespace domain{
     class Gene {
     public:
         enum class State { PlusPlus, PlusMinus, MinusMinus };
-        Gene(const std::string& name, State initial = State::PlusPlus, double mutation_threshold = 0.1, double mutation_instability_k = 0.0);
+        // Tomamos el nombre por valor y lo movemos al miembro para evitar copias innecesarias
+        Gene(std::string name, State initial = State::PlusPlus, double mutation_threshold = 0.1, double mutation_instability_k = 0.0);
         const std::string& name() const;
         std::string status() const;
         void mutate();
@@ -31,6 +32,9 @@ namespace domain{
         };
         // Ejecuta un tick para este gen y devuelve traza detallada
         LiveTrace liveWithTrace();
+
+        // Permite forzar el estado del gen (necesario para tests y fábrica)
+        void setState(State s);
 
     private:
         std::string name_;

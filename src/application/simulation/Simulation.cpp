@@ -1,7 +1,6 @@
 #include "Simulation.h"
-#include <iostream>
 #include <array>
-#include "../../domain/cell/CellState.h"
+
 namespace application {
 
     Simulation::Simulation(int max_t_years) {
@@ -15,7 +14,6 @@ namespace application {
 
     void Simulation::run() {
         int neoplastic_count = 0;
-        domain::OncoState state;
         for (int t = 0; t < max_t_; ++t) {
             neoplastic_count = 0;
             for (auto& c : cells_) {

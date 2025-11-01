@@ -1,2 +1,7 @@
 .idea/*
 build/
+/tests/results.xml
+/single_cell_trace_fixed00.csv
+/single_cell_trace_fixed00.json
+/single_cell_trace_fixed99.csv
+/single_cell_trace_fixed99.json

@@ -1,19 +1,13 @@
 #pragma once
 
 #include "Genome.h"
+#include <unordered_map>
 
-namespace domain {
-namespace genome_factory {
+namespace domain::genome_factory {
 
 // Devuelve un genoma por defecto con los genes principales (TP53, BRCA1).
-Genome makeDefaultGenome();
+// Se unifican las sobrecargas: ambos parámetros son opcionales (mapas vacíos por defecto).
+Genome makeDefaultGenome(const std::unordered_map<std::string, double>& gene_thresholds = {},
+                          const std::unordered_map<std::string, double>& gene_instability_k = {});
 
-// Devuelve un genoma por defecto pero usando thresholds de mutación por gen
-Genome makeDefaultGenome(const std::unordered_map<std::string, double>& gene_thresholds);
-
-// Devuelve un genoma por defecto usando thresholds e instability_k por gen
-Genome makeDefaultGenome(const std::unordered_map<std::string, double>& gene_thresholds,
-                          const std::unordered_map<std::string, double>& gene_instability_k);
-
-} // namespace genome_factory
-} // namespace domain
+} // namespace domain::genome_factory

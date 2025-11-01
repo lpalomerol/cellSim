@@ -5,15 +5,15 @@
 #include "AgenticCell.h"
 #include "../adapters/RandomNoise.h"
 
-namespace domain {
+namespace domain::cell_factory {
 
-    class CellFactory {
-    public:
-        virtual ~CellFactory() = default;
-        virtual std::unique_ptr<ICell> createSimpleCell(adapters::RandomNoise& noise, const domain::SimpleCellParams& params);
-        // Ahora la fábrica crea una AgenticCell recibiendo la seed para la fuente de ruido
-        // y un genoma ya inicializado que se pasará al constructor de la célula.
-        // Ahora la fábrica toma el `Genome` por valor (movable) y recibe `neoplasm_k` configurable
-        virtual std::unique_ptr<ICell> createAgenticCell(unsigned seed, domain::Genome genome, double neoplasm_k);
-    };
-}
+// Crea una SimpleCell a partir de un RandomNoise y parámetros.
+std::unique_ptr<ICell> createSimpleCell(adapters::RandomNoise& noise, const domain::SimpleCellParams& params);
+
+// Crea una AgenticCell recibiendo una seed para la fuente de ruido y un genoma movable
+std::unique_ptr<ICell> createAgenticCell(unsigned seed, domain::Genome genome, double neoplasm_k);
+
+// Sobrecarga: permite inyectar directamente la fuente de ruido
+std::unique_ptr<ICell> createAgenticCell(std::unique_ptr<INoiseSource> noise, domain::Genome genome, double neoplasm_k);
+
+} // namespace domain::cell_factory

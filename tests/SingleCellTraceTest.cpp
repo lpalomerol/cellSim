@@ -5,6 +5,8 @@
 #include <filesystem>
 #include <sstream>
 #include <iomanip>
+#include <chrono>
+#include <unistd.h>
 #include "../src/domain/gene/Genome.h"
 #include "../src/domain/gene/GenomeFactory.h"
 #include "../src/domain/cell/AgenticCell.h"
@@ -20,28 +22,26 @@ TEST(SingleCellTraceTest, TraceSingleCellEnrichedCsvAndJson) {
     const double neoplasm_k = 0.5; // probabilidad alta para demostrar auditoría de cambio de estado
     const std::vector<double> noise_values = {0.0, 0.99};
 
-    // Directorio de trabajo
-    auto cwd = std::filesystem::current_path();
-    std::cout << "Current working directory: " << cwd << std::endl;
+    // Directorio temporal único para evitar colisiones con ficheros de trabajo
+    auto tmp_base = std::filesystem::temp_directory_path();
+    auto uniq = std::to_string(static_cast<long long>(getpid())) + "_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
+    std::filesystem::path outdir = tmp_base / (std::string("single_cell_trace_test_") + uniq);
+    std::filesystem::create_directories(outdir);
 
     for (double noise_val : noise_values) {
-        // Prepare filenames
+        // Prepare filenames (kept for logging only)
         std::ostringstream name_suffix;
         name_suffix << "fixed" << std::setfill('0') << std::setw(2) << static_cast<int>(noise_val * 100);
         std::string csv_name = "single_cell_trace_" + name_suffix.str() + ".csv";
         std::string json_name = "single_cell_trace_" + name_suffix.str() + ".json";
-        std::filesystem::path csv_path = cwd / csv_name;
-        std::filesystem::path json_path = cwd / json_name;
 
         // Recreate genome per run
-        domain::Genome genome = genome_factory::makeDefaultGenome();
-        domain::AgenticCell cell(std::make_unique<domain::adapters::FixedNoise>(domain::CellNoise{noise_val}), std::move(genome), neoplasm_k);
+        domain::Genome genome = domain::genome_factory::makeDefaultGenome();
+        domain::AgenticCell cell(std::make_unique<::adapters::FixedNoise>(domain::CellNoise{noise_val}), std::move(genome), neoplasm_k);
 
-        // Open CSV and JSON
-        std::ofstream csv(csv_path);
-        ASSERT_TRUE(csv.is_open());
-        std::ofstream json(json_path);
-        ASSERT_TRUE(json.is_open());
+        // Use in-memory streams instead of writing to disk to make test portable
+        std::ostringstream csv;
+        std::ostringstream json;
 
         // Metadata as JSON string
         std::ostringstream meta;
@@ -131,22 +131,21 @@ TEST(SingleCellTraceTest, TraceSingleCellEnrichedCsvAndJson) {
         // JSON array end
         json << "]}\n";
 
-        csv.close();
-        json.close();
-
-        std::cout << "CSV written to: " << csv_path << std::endl;
-        std::cout << "JSON written to: " << json_path << std::endl;
-
-        // Basic checks
-        std::ifstream in(csv_path);
-        ASSERT_TRUE(in.is_open());
+        // Basic checks: count lines in csv string
+        std::istringstream csv_in(csv.str());
         int csv_lines = 0; std::string l;
-        while (std::getline(in, l)) ++csv_lines;
-        in.close();
+        while (std::getline(csv_in, l)) ++csv_lines;
         EXPECT_EQ(csv_lines, max_ticks + 1 + 1); // +1 header, +1 metadata line
 
-        std::ifstream jin(json_path);
-        ASSERT_TRUE(jin.is_open());
-        jin.close();
+        // Verify JSON non-empty
+        EXPECT_FALSE(json.str().empty());
+
+        // Optional: print locations (kept for debugging)
+        std::cout << "Generated CSV for " << csv_name << " (lines=" << csv_lines << ")" << std::endl;
+        std::cout << "Generated JSON length=" << json.str().size() << " for " << json_name << std::endl;
     }
+
+    // Cleanup: try to remove generated files and directory (best effort)
+    std::error_code ec;
+    std::filesystem::remove_all(outdir, ec);
 }

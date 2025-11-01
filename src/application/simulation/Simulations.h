@@ -20,7 +20,7 @@ struct SimulationsConfig {
     double neoplasm_k = 0.002;
 
     // Semilla fija para reproducibilidad; -1 = aleatoria por simulación
-    int seed = -2;
+    int seed = -1;
 
     // Umbrales de mutación por gen (probabilidad básica)
     std::unordered_map<std::string, double> gene_mutation_thresholds{
@@ -50,7 +50,6 @@ public:
 
 private:
     SimulationsConfig cfg_;
-    domain::CellFactory factory_;
     std::vector<std::array<int,2>> results_;
 };
 
