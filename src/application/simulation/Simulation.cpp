@@ -14,22 +14,22 @@ namespace application {
     }
 
     void Simulation::run() {
-        int tumors = 0;
+        int neoplastic_count = 0;
         domain::OncoState state;
         for (int t = 0; t < max_t_; ++t) {
-            tumors = 0;
+            neoplastic_count = 0;
             for (auto& c : cells_) {
                 c->live();
-                if (c->tumoral()) {
-                    tumors += 1;
+                if (c->isNeoplastic()) {
+                    neoplastic_count += 1;
                 }
             }
-            cell_state_counter_[t][2] = tumors;
+            cell_state_counter_[t][2] = neoplastic_count;
         }
     }
 
 
-    int Simulation::firstTimeTumoral() {
+    int Simulation::firstTimeNeoplastic() {
         for (int t = 0; t < max_t_; ++t) {
             if (cell_state_counter_[t][2] > 0) {
                 return t + 1;

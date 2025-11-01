@@ -11,7 +11,7 @@ namespace application {
         void addCell(std::unique_ptr<domain::ICell> cell);
         void run(); // dt=1 año, hasta max_t_
 
-        int firstTimeTumoral();
+        int firstTimeNeoplastic();
 
     private:
         int max_t_ = 0;

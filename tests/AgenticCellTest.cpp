@@ -106,7 +106,7 @@ TEST(AgenticCellTest, NoTumoralWhenTP53IsMinusMinusByDefault) {
     Genome genome(genes);
     AgenticCell cell(std::make_unique<DummyNoise>(), genome);
     EXPECT_EQ(cell.getTP53(), "-/-");
-    EXPECT_FALSE(cell.tumoral());
+    EXPECT_FALSE(cell.isNeoplastic());
 }
 
 TEST(AgenticCellTest, TumorProtectedByActiveTP53) {
@@ -115,9 +115,9 @@ TEST(AgenticCellTest, TumorProtectedByActiveTP53) {
     std::unordered_map<std::string, Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
     Genome genome(genes);
     AgenticCell cell(std::make_unique<HighNoise>(), genome);
-    EXPECT_FALSE(cell.tumoral());
+    EXPECT_FALSE(cell.isNeoplastic());
     cell.live();
-    EXPECT_FALSE(cell.tumoral()); // protegido por TP53 activo
+    EXPECT_FALSE(cell.isNeoplastic()); // protegido por TP53 activo
 }
 
 TEST(AgenticCellTest, TumoralWhenTP53InitiallyInactiveWithHighK) {
@@ -127,9 +127,9 @@ TEST(AgenticCellTest, TumoralWhenTP53InitiallyInactiveWithHighK) {
     Genome genome(genes);
     AgenticCell cell(std::make_unique<HighNoise>(), genome, 1.0);
     EXPECT_EQ(cell.getTP53(), "-/-");
-    EXPECT_FALSE(cell.tumoral());
+    EXPECT_FALSE(cell.isNeoplastic());
     cell.live();
-    EXPECT_TRUE(cell.tumoral());
+    EXPECT_TRUE(cell.isNeoplastic());
 }
 
 TEST(AgenticCellTest, LiveMakesCellTumoralWhenTP53MutatesAndKHigh) {
@@ -139,8 +139,8 @@ TEST(AgenticCellTest, LiveMakesCellTumoralWhenTP53MutatesAndKHigh) {
     Genome genome(genes);
     AgenticCell cell(std::make_unique<HighNoise>(), genome, 1.0);
     EXPECT_EQ(cell.getTP53(), "+/-");
-    EXPECT_FALSE(cell.tumoral());
+    EXPECT_FALSE(cell.isNeoplastic());
     cell.live();
     EXPECT_EQ(cell.getTP53(), "-/-");
-    EXPECT_TRUE(cell.tumoral());
+    EXPECT_TRUE(cell.isNeoplastic());
 }

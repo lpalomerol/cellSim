@@ -28,9 +28,11 @@ add_executable(unit_tests
         ../src/domain/gene/Gene.h
         ../src/domain/gene/Genome.cpp
         ../src/domain/gene/Genome.h
+        ../src/domain/gene/GenomeFactory.cpp
         GeneTest.cpp
         AgenticCellTest.cpp
         GenomeTest.cpp
+        GenomeFactoryTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales

@@ -20,9 +20,11 @@ public:
     // Acceso al mapa completo
     const std::unordered_map<std::string, Gene>& genes() const;
 
+    // Fábrica: devuelve un genoma por defecto (TP53 y BRCA1 con estados por defecto)
+    static Genome makeDefaultGenome();
+
 private:
     std::unordered_map<std::string, Gene> genes_;
 };
 
 } // namespace domain
-

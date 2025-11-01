@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "../../domain/cell/CellState.h"
@@ -10,8 +9,8 @@ namespace domain {
         virtual ~ICell() = default;
         virtual void live() = 0;
         virtual bool alive() = 0;
-        virtual bool tumoral() = 0;
+        // Indica si la célula presenta neoplasia (estado neoplásico)
+        virtual bool isNeoplastic() = 0;
 
     };
 }
-

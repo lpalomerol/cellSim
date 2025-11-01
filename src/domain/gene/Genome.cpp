@@ -1,4 +1,5 @@
 #include "Genome.h"
+#include "GenomeFactory.h"
 
 namespace domain {
 
@@ -19,5 +20,9 @@ const std::unordered_map<std::string, Gene>& Genome::genes() const {
     return genes_;
 }
 
-} // namespace domain
+// Fábrica para genoma por defecto
+Genome Genome::makeDefaultGenome() {
+    return genome_factory::makeDefaultGenome();
+}
 
+} // namespace domain

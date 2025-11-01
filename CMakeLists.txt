@@ -33,6 +33,7 @@ add_executable(cellSim app/main.cpp
         src/domain/gene/Gene.cpp
         src/domain/gene/Gene.h
         src/domain/gene/Genome.cpp
+        src/domain/gene/GenomeFactory.cpp
         src/domain/gene/Genome.h)
 target_link_libraries(cellSim PRIVATE cxxopts)
 

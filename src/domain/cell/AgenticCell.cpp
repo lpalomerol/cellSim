@@ -6,8 +6,8 @@
 
 namespace domain {
 
-    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, const Genome& genome, double tumor_k)
-        : noise_(std::move(noise)), genome_(genome), tumor_k_(tumor_k), is_tumoral_(false) {
+    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, const Genome& genome, double neoplasm_k)
+        : noise_(std::move(noise)), genome_(genome), neoplasm_k_(neoplasm_k), is_neoplastic_(false) {
         // Inyectar la fuente de ruido en todos los genes del genoma
         for (auto& pair : const_cast<std::unordered_map<std::string, Gene>&>(genome_.genes())) {
             pair.second.setNoiseSource(noise_.get());
@@ -19,15 +19,15 @@ namespace domain {
         for (auto& pair : const_cast<std::unordered_map<std::string, Gene>&>(genome_.genes())) {
             pair.second.live();
         }
-        // Si ya es tumoral no necesitamos evaluar
-        if (is_tumoral_) return;
-        // Determinar probabilidad p: 0 si TP53 está activo (protección), usar tumor_k_ si inactivo
+        // Si ya está en estado neoplásico no necesitamos evaluar
+        if (is_neoplastic_) return;
+        // Determinar probabilidad p: 0 si TP53 está activo (protección), usar neoplasm_k_ si inactivo
         const Gene* tp53 = genome_.getGene("TP53");
-        double p = (tp53 && tp53->enabled()) ? 0.0 : tumor_k_;
+        double p = (tp53 && tp53->enabled()) ? 0.0 : neoplasm_k_;
         if (p <= 0.0) return;
         auto sample = noise_->next().u01;
         if (sample < p) {
-            is_tumoral_ = true;
+            is_neoplastic_ = true;
         }
     }
 
@@ -36,8 +36,8 @@ namespace domain {
         return brca1 && brca1->enabled();
     }
 
-    bool AgenticCell::tumoral() {
-        return is_tumoral_;
+    bool AgenticCell::isNeoplastic() {
+        return is_neoplastic_;
     }
 
     std::string AgenticCell::getTP53() const {

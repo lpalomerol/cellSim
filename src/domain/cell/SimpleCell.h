@@ -21,7 +21,8 @@ namespace domain {
 
         void live() override;
         bool alive() override;
-        bool tumoral() override;
+        // Indica si la célula ha adquirido un estado neoplásico
+        bool isNeoplastic() override;
         CellState state()  { return state_;}
         OncoState getOncoState() { return onco_;}
     private:

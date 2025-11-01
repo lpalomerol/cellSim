@@ -25,7 +25,7 @@ namespace domain {
                 break;
             case OncoState::TP53_minus_minus:
                 state_ = CellState::Alive;
-                break; // si quieres “viva pero tumoral”
+                break; // si quieres "viva pero neoplásica"
             case OncoState::Apoptotic:
                 state_ = CellState::Apoptotic;
                 is_alive_ = false;
@@ -38,7 +38,7 @@ namespace domain {
 
     }
 
-    bool SimpleCell::tumoral() {
+    bool SimpleCell::isNeoplastic() {
         return onco_ == OncoState::TP53_minus_minus;
     }
 

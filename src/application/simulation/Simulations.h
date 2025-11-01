@@ -23,7 +23,7 @@ public:
     // Ejecuta todas las simulaciones (con seeds 0..num_simulations-1)
     void runAll();
 
-    // Devuelve los resultados (vector de pares, index 1 = firstTimeTumoral)
+    // Devuelve los resultados (vector de pares, index 1 = firstTimeNeoplastic)
     const std::vector<std::array<int,2>>& results() const { return results_; }
 
     // Imprime un resumen de estadísticas por consola
@@ -36,4 +36,3 @@ private:
 };
 
 } // namespace application
-
