@@ -30,7 +30,7 @@ add_executable(unit_tests
         ../src/domain/gene/Genome.h
         GeneTest.cpp
         AgenticCellTest.cpp
-
+        GenomeTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales

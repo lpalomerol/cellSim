@@ -14,9 +14,13 @@ void Simulations::runAll() {
         unsigned sim_seed = static_cast<unsigned>(k);
         Simulation sim(cfg_.max_t);
         for (int i = 0; i < cfg_.n_cells; ++i) {
-            domain::AgenticCellParams params; // defaults
             unsigned cell_seed = sim_seed * 100000u + static_cast<unsigned>(i);
-            sim.addCell(factory_.createAgenticCell(cell_seed, params));
+            // Construye un genoma por defecto y pásalo a la fábrica
+            domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
+            domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus);
+            std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
+            domain::Genome genome(genes);
+            sim.addCell(factory_.createAgenticCell(cell_seed, genome));
         }
         sim.run();
         results_[k][1] = sim.firstTimeTumoral();

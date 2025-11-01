@@ -6,30 +6,25 @@
 
 namespace domain {
 
-    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, const AgenticCellParams& params)
-        : params_(params),
-          noise_(std::move(noise)),
-          gene_tp53_("TP53", params_.TP53, params_.TP53_mutation_threshold, params_.mutation_instability_k),
-          gene_brca1_("BRCA1", params_.BRCA1, params_.BRCA1_mutation_threshold, params_.mutation_instability_k),
-          is_tumoral_(false) {
-        // Inyectar la misma fuente de ruido en ambos genes (más adelante podríamos dar fuentes independientes)
-        gene_tp53_.setNoiseSource(noise_.get());
-        gene_brca1_.setNoiseSource(noise_.get());
+    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, const Genome& genome, double tumor_k)
+        : noise_(std::move(noise)), genome_(genome), tumor_k_(tumor_k), is_tumoral_(false) {
+        // Inyectar la fuente de ruido en todos los genes del genoma
+        for (auto& pair : const_cast<std::unordered_map<std::string, Gene>&>(genome_.genes())) {
+            pair.second.setNoiseSource(noise_.get());
+        }
     }
 
     void AgenticCell::live() {
-        // Primero los genes pueden mutar
-        gene_tp53_.live();
-        gene_brca1_.live();
-
+        // Mutar todos los genes del genoma
+        for (auto& pair : const_cast<std::unordered_map<std::string, Gene>&>(genome_.genes())) {
+            pair.second.live();
+        }
         // Si ya es tumoral no necesitamos evaluar
         if (is_tumoral_) return;
-
-        // Determinar probabilidad p: 0 si TP53 está activo (protección), params_.tumor_k si inactivo
-        double p = gene_tp53_.enabled() ? 0.0 : params_.tumor_k;
+        // Determinar probabilidad p: 0 si TP53 está activo (protección), usar tumor_k_ si inactivo
+        const Gene* tp53 = genome_.getGene("TP53");
+        double p = (tp53 && tp53->enabled()) ? 0.0 : tumor_k_;
         if (p <= 0.0) return;
-
-        // Muestra del ruido propio de la célula
         auto sample = noise_->next().u01;
         if (sample < p) {
             is_tumoral_ = true;
@@ -37,9 +32,8 @@ namespace domain {
     }
 
     bool AgenticCell::alive() {
-        // La célula está viva si BRCA1 no es minusminus
-        return gene_brca1_.enabled();
-
+        const Gene* brca1 = genome_.getGene("BRCA1");
+        return brca1 && brca1->enabled();
     }
 
     bool AgenticCell::tumoral() {
@@ -47,11 +41,13 @@ namespace domain {
     }
 
     std::string AgenticCell::getTP53() const {
-        return gene_tp53_.status();
+        const Gene* tp53 = genome_.getGene("TP53");
+        return tp53 ? tp53->status() : "?";
     }
 
     std::string AgenticCell::getBRCA1() const {
-        return gene_brca1_.status();
+        const Gene* brca1 = genome_.getGene("BRCA1");
+        return brca1 ? brca1->status() : "?";
     }
 
 } // domain
