@@ -17,21 +17,21 @@ struct SimulationsConfig {
     int num_simulations = 100;
     int max_t = 80;
     // Probabilidad base de neoplasia usada cuando TP53 está inactivo
-    double neoplasm_k = 0.005;
+    double neoplasm_k = 0.002;
 
     // Semilla fija para reproducibilidad; -1 = aleatoria por simulación
     int seed = -2;
 
     // Umbrales de mutación por gen (probabilidad básica)
     std::unordered_map<std::string, double> gene_mutation_thresholds{
-        {"TP53", 0.95},
-        {"BRCA1", 0.98}
+        {"TP53", 0.995},
+        {"BRCA1", 0.995}
     };
 
     // Componentes de inestabilidad (k) que se suman al threshold en cada tick
     std::unordered_map<std::string, double> gene_mutation_instability_k{
-        {"TP53", -0.06},
-        {"BRCA1", -0.02}
+        {"TP53", -0.010},
+        {"BRCA1", -0.005}
     };
 };
 
