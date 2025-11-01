@@ -10,7 +10,7 @@
 #include "../src/domain/cell/AgenticCell.h"
 #include "../src/domain/adapters/FixedNoise.h"
 
-using namespace domain;
+// Se evita `using namespace domain;` para usar prefijos explícitos `domain::`
 
 // Test/simulación para generar una traza tick-a-tick de una única AgenticCell.
 // Implementa dos corridas (noise=0.0 y noise=0.99), exporta CSV enriquecido con metadatos
@@ -34,8 +34,8 @@ TEST(SingleCellTraceTest, TraceSingleCellEnrichedCsvAndJson) {
         std::filesystem::path json_path = cwd / json_name;
 
         // Recreate genome per run
-        Genome genome = genome_factory::makeDefaultGenome();
-        AgenticCell cell(std::make_unique<adapters::FixedNoise>(domain::CellNoise{noise_val}), std::move(genome), neoplasm_k);
+        domain::Genome genome = genome_factory::makeDefaultGenome();
+        domain::AgenticCell cell(std::make_unique<domain::adapters::FixedNoise>(domain::CellNoise{noise_val}), std::move(genome), neoplasm_k);
 
         // Open CSV and JSON
         std::ofstream csv(csv_path);
