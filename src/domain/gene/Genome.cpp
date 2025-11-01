@@ -44,4 +44,13 @@ void Genome::liveAllGenes() {
     }
 }
 
+// Avanza todos los genes y devuelve una traza por gen (nombre -> LiveTrace)
+std::unordered_map<std::string, Gene::LiveTrace> Genome::liveAllGenesWithTrace() {
+    std::unordered_map<std::string, Gene::LiveTrace> traces;
+    for (auto& kv : genes_) {
+        traces[kv.first] = kv.second.liveWithTrace();
+    }
+    return traces;
+}
+
 } // namespace domain

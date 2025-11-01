@@ -21,6 +21,17 @@ namespace domain{
 
         [[nodiscard]] bool enabled() const;
 
+        // Información de trazado cuando se ejecuta `live` (muestra, umbral y si hubo mutación)
+        struct LiveTrace {
+            double sample = -1.0;
+            double threshold = 0.0;
+            bool mutated = false;
+            std::string before;
+            std::string after;
+        };
+        // Ejecuta un tick para este gen y devuelve traza detallada
+        LiveTrace liveWithTrace();
+
     private:
         std::string name_;
         State state_;

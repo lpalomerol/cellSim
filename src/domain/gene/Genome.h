@@ -32,6 +32,9 @@ public:
     // Avanza (live) todos los genes del genoma
     void liveAllGenes();
 
+    // Avanza todos los genes y devuelve una traza por gen (nombre -> LiveTrace)
+    std::unordered_map<std::string, Gene::LiveTrace> liveAllGenesWithTrace();
+
 private:
     std::unordered_map<std::string, Gene> genes_;
 };

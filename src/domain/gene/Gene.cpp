@@ -47,6 +47,24 @@ namespace domain {
         }
     }
 
+    Gene::LiveTrace Gene::liveWithTrace() {
+        LiveTrace trace;
+        trace.before = status();
+        trace.threshold = mutation_threshold_ + mutation_instability_k_;
+        if (noise_) {
+            trace.sample = noise_->next().u01;
+            if (trace.sample > trace.threshold) {
+                mutate();
+                trace.mutated = true;
+            }
+        } else {
+            trace.sample = -1.0;
+            trace.mutated = false;
+        }
+        trace.after = status();
+        return trace;
+    }
+
     void Gene::setNoiseSource(INoiseSource* noise) {
         noise_ = noise;
     }
