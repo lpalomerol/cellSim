@@ -20,60 +20,34 @@ namespace domain {
 
     AgenticCell::TickTrace AgenticCell::liveWithTrace(int tickIndex) {
         TickTrace tt;
-        tt.tick = tickIndex;
-        tt.alive_before = alive();
-        tt.is_neoplastic_before = isNeoplastic();
+        tt.init(tickIndex, alive(), isNeoplastic());
 
         // If the cell was dead before this tick, do not advance genes or consume noise:
         // return a trace reflecting no changes to avoid any side-effects (no "revival" activity).
         if (!tt.alive_before) {
-            tt.gene_traces = {};
-            tt.alive_after = false;
-            tt.is_neoplastic_after = isNeoplastic();
-            tt.neoplasm_happened = false;
-            tt.neoplasm_threshold = 0.0;
-            tt.neoplasm_sample = -1.0;
+            tt.markDeadNoChange();
             return tt;
         }
 
-        // Advance genes with trace
+        // Advance genes with trace and set alive_after accordingly
         auto gene_traces = genome_.liveAllGenesWithTrace();
-        tt.gene_traces = std::move(gene_traces);
-
-        // Update alive after gene transitions
-        tt.alive_after = alive();
+        tt.setGeneTracesAndAliveAfter(std::move(gene_traces), alive());
 
 
         // If already neoplastic before, nothing to sample
         if (is_neoplastic_) {
-            tt.is_neoplastic_after = isNeoplastic();
-            tt.neoplasm_happened = false;
-            tt.neoplasm_threshold = 0.0;
-            tt.neoplasm_sample = -1.0;
+            tt.markAlreadyNeoplastic();
             return tt;
         }
 
         // Determine probability p for neoplasm: protected if TP53 enabled
         const Gene* tp53 = genome_.getGene("TP53");
         double p = (tp53 && tp53->enabled()) ? 0.0 : neoplasm_k_;
-        tt.neoplasm_threshold = p;
-        if (p <= 0.0) {
-            tt.neoplasm_sample = -1.0;
-            tt.neoplasm_happened = false;
-            tt.is_neoplastic_after = isNeoplastic();
-            return tt;
-        }
 
-        // Sample and decide
+        // Sample and decide (decideNeoplasm updates is_neoplastic_ by reference)
         double sample = noise_->next().u01;
-        tt.neoplasm_sample = sample;
-        if (sample < p) {
-            is_neoplastic_ = true;
-            tt.neoplasm_happened = true;
-        } else {
-            tt.neoplasm_happened = false;
-        }
-        tt.is_neoplastic_after = isNeoplastic();
+        tt.decideNeoplasm(p, sample, is_neoplastic_);
+
         return tt;
     }
 

@@ -7,7 +7,7 @@
 #include "../ports/INoiseSource.h"
 #include "../gene/Genome.h"
 #include <memory>
-#include <unordered_map>
+#include "AgenticTickTrace.h"
 
 namespace domain {
 
@@ -21,18 +21,9 @@ namespace domain {
         bool isNeoplastic() override;
         [[nodiscard]] std::string getTP53() const;
         [[nodiscard]] std::string getBRCA1() const;
-        // Estructura de trazado por tick
-        struct TickTrace {
-            int tick = 0;
-            bool alive_before = true;
-            bool alive_after = true;
-            bool is_neoplastic_before = false;
-            bool is_neoplastic_after = false;
-            double neoplasm_sample = -1.0;
-            double neoplasm_threshold = 0.0;
-            bool neoplasm_happened = false;
-            std::unordered_map<std::string, domain::Gene::LiveTrace> gene_traces;
-        };
+
+        // Usamos la clase ligera definida en AgenticTickTrace.h para evitar un struct largo aquí
+        using TickTrace = AgenticTickTrace;
 
         // Ejecuta un tick y devuelve la traza detallada para auditoría
         TickTrace liveWithTrace(int tickIndex = 0);
