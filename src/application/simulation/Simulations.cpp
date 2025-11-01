@@ -1,5 +1,6 @@
 #include "Simulations.h"
 #include <iostream>
+#include "../../domain/gene/GenomeFactory.h"
 
 namespace application {
 
@@ -10,13 +11,13 @@ void Simulations::runAll() {
     results_.assign(cfg_.num_simulations, { -1, -1 });
 
     for (int k = 0; k < cfg_.num_simulations; ++k) {
-        // seed base por simulación
-        unsigned sim_seed = static_cast<unsigned>(k);
+        // seed base por simulación: usa cfg_.seed si está fijada, si no usa k
+        unsigned sim_seed = (cfg_.seed >= 0) ? static_cast<unsigned>(cfg_.seed) : static_cast<unsigned>(k);
         Simulation sim(cfg_.max_t);
         for (int i = 0; i < cfg_.n_cells; ++i) {
             unsigned cell_seed = sim_seed * 100000u + static_cast<unsigned>(i);
-            // Obtener un genoma por defecto desde la fábrica centralizada
-            domain::Genome genome = domain::Genome::makeDefaultGenome();
+            // Obtener un genoma por defecto usando thresholds e instability_k proporcionados por la configuración
+            domain::Genome genome = domain::genome_factory::makeDefaultGenome(cfg_.gene_mutation_thresholds, cfg_.gene_mutation_instability_k);
             sim.addCell(factory_.createAgenticCell(cell_seed, std::move(genome), cfg_.neoplasm_k));
         }
         sim.run();
@@ -31,7 +32,7 @@ void Simulations::printSummary() const {
         if (res[1] == -1) ++count_minus_one;
     }
     double ratio_minus_one = static_cast<double>(count_minus_one) / num_simulations;
-    std::cout << "Proporción de -1 en Año de primera neoplasia: " << ratio_minus_one << "\n";
+    std::cout << "Proporción de casos sin neoplasia: " << ratio_minus_one << "\n";
 
     std::vector<int> thresholds = {10, 20, 30, 40, 50, 60, 70, 80};
     std::vector<int> counts(thresholds.size(), 0);
