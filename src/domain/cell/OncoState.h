@@ -1,7 +1,6 @@
 // OncoState.h
 #pragma once
 #include <array>
-#include <iostream>
 
 namespace domain {
     enum class OncoState : int { TP53_plus_plus=0, TP53_plus_minus=1, TP53_minus_minus=2, Apoptotic=3 };

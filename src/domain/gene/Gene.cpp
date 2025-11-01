@@ -3,12 +3,12 @@
 //
 
 #include "Gene.h"
-#include <iostream>
+#include <utility>
 
 namespace domain {
 
-    Gene::Gene(const std::string& name, State initial, double mutation_threshold, double mutation_instability_k)
-        : name_(name), state_(initial), mutation_threshold_(mutation_threshold), mutation_instability_k_(mutation_instability_k), noise_(nullptr) {}
+    Gene::Gene(std::string name, State initial, double mutation_threshold, double mutation_instability_k)
+        : name_(std::move(name)), state_(initial), mutation_threshold_(mutation_threshold), mutation_instability_k_(mutation_instability_k), noise_(nullptr) {}
 
     const std::string& Gene::name() const {
         return name_;
@@ -42,9 +42,9 @@ namespace domain {
     }
 
     void Gene::live() {
-        if (noise_ && noise_->next().u01 > (mutation_threshold_ + mutation_instability_k_)) {
-            mutate();
-        }
+        // Reutiliza la implementación detallada con trazas para evitar duplicación.
+        // `liveWithTrace()` consumirá la muestra y aplicará la mutación si corresponde.
+        (void) liveWithTrace();
     }
 
     Gene::LiveTrace Gene::liveWithTrace() {
@@ -67,6 +67,10 @@ namespace domain {
 
     void Gene::setNoiseSource(INoiseSource* noise) {
         noise_ = noise;
+    }
+
+    void Gene::setState(State s) {
+        state_ = s;
     }
 
 }

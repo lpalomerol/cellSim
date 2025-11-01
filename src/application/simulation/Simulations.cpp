@@ -18,12 +18,13 @@ void Simulations::runAll() {
             unsigned cell_seed = sim_seed * 100000u + static_cast<unsigned>(i);
             // Obtener un genoma por defecto usando thresholds e instability_k proporcionados por la configuración
             domain::Genome genome = domain::genome_factory::makeDefaultGenome(cfg_.gene_mutation_thresholds, cfg_.gene_mutation_instability_k);
-            sim.addCell(factory_.createAgenticCell(cell_seed, std::move(genome), cfg_.neoplasm_k));
+            sim.addCell(domain::cell_factory::createAgenticCell(cell_seed, std::move(genome), cfg_.neoplasm_k));
         }
         sim.run();
         results_[k][1] = sim.firstTimeNeoplastic();
     }
 }
+
 
 void Simulations::printSummary() const {
     int num_simulations = static_cast<int>(results_.size());

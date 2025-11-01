@@ -3,8 +3,6 @@
 #include "../src/domain/cell/AgenticCell.h"
 #include "../src/domain/gene/Genome.h"
 
-using namespace domain;
-
 TEST(NoRevivalTest, DeadCellStaysDeadAfterLiveAndLiveWithTrace) {
     // Preparar un ruido que siempre devuelva 0.99 (alto ruido que normalmente permite mutaciones)
     // FakeNoise espera una secuencia de domain::CellNoise
@@ -12,13 +10,13 @@ TEST(NoRevivalTest, DeadCellStaysDeadAfterLiveAndLiveWithTrace) {
     auto noise = std::make_unique<FakeNoise>(std::move(seq));
 
     // Creamos un genoma por defecto donde BRCA1 está inicialmente +/+
-    Genome g = Genome::makeDefaultGenome();
+    domain::Genome g = domain::Genome::makeDefaultGenome();
     // Forzamos BRCA1 a -/- para simular célula muerta
     // No existe API pública para forzar, así que emulamos el estado mutando repetidamente
     // (Esto depende de la implementación; aquí asumimos que mutate() alterna hacia -/- cuando se llama)
 
     // Construir la célula
-    AgenticCell cell(std::move(noise), std::move(g));
+    domain::AgenticCell cell(std::move(noise), std::move(g));
 
     // Asegurar que inicialmente la célula está viva (BRCA1 +/+ por defecto)
     // Hacemos un primer liveWithTrace para obtener el estado antes de forzar muerte

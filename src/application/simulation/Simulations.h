@@ -14,17 +14,17 @@ namespace application {
 
 struct SimulationsConfig {
     int n_cells = 100;
-    int num_simulations = 100;
+    int num_simulations = 200;
     int max_t = 80;
     // Probabilidad base de neoplasia usada cuando TP53 está inactivo
-    double neoplasm_k = 0.002;
+    double neoplasm_k = 0.003;
 
     // Semilla fija para reproducibilidad; -1 = aleatoria por simulación
-    int seed = -2;
+    int seed = -1;
 
     // Umbrales de mutación por gen (probabilidad básica)
     std::unordered_map<std::string, double> gene_mutation_thresholds{
-        {"TP53", 0.995},
+        {"TP53", 0.994},
         {"BRCA1", 0.995}
     };
 
@@ -50,7 +50,6 @@ public:
 
 private:
     SimulationsConfig cfg_;
-    domain::CellFactory factory_;
     std::vector<std::array<int,2>> results_;
 };
 
