@@ -57,8 +57,10 @@ TEST(AgenticCellTest, LiveMutatesGenesWithCustomThreshold) {
     double threshold = 0.3;
     // Construcción manual de genes para test
     HighNoise noise;
-    Gene tp53(&noise, params.TP53, threshold);
-    Gene brca1(&noise, params.BRCA1, threshold);
+    Gene tp53("TP53", params.TP53, threshold);
+    Gene brca1("BRCA1", params.BRCA1, threshold);
+    tp53.setNoiseSource(&noise);
+    brca1.setNoiseSource(&noise);
     // Antes de live
     EXPECT_EQ(tp53.status(), "+/+");
     EXPECT_EQ(brca1.status(), "+/-");

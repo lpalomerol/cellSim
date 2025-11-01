@@ -21,12 +21,7 @@ namespace domain {
 
     class AgenticCell final : public domain::ICell {
     public:
-        explicit AgenticCell(std::unique_ptr<INoiseSource> noise, const AgenticCellParams& params = AgenticCellParams())
-        : params_(params),
-          noise_(std::move(noise)),
-          gene_tp53_(noise_.get(), params_.TP53, params_.TP53_mutation_threshold + params_.mutation_instability_k),
-          gene_brca1_(noise_.get(), params_.BRCA1, params_.BRCA1_mutation_threshold + params_.mutation_instability_k),
-          is_tumoral_(false) {}
+        explicit AgenticCell(std::unique_ptr<INoiseSource> noise, const AgenticCellParams& params = AgenticCellParams());
 
         void live() override;
         bool alive() override;

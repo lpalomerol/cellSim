@@ -6,6 +6,17 @@
 
 namespace domain {
 
+    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, const AgenticCellParams& params)
+        : params_(params),
+          noise_(std::move(noise)),
+          gene_tp53_("TP53", params_.TP53, params_.TP53_mutation_threshold, params_.mutation_instability_k),
+          gene_brca1_("BRCA1", params_.BRCA1, params_.BRCA1_mutation_threshold, params_.mutation_instability_k),
+          is_tumoral_(false) {
+        // Inyectar la misma fuente de ruido en ambos genes (más adelante podríamos dar fuentes independientes)
+        gene_tp53_.setNoiseSource(noise_.get());
+        gene_brca1_.setNoiseSource(noise_.get());
+    }
+
     void AgenticCell::live() {
         // Primero los genes pueden mutar
         gene_tp53_.live();

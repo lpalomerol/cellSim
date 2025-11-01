@@ -10,22 +10,22 @@ namespace domain{
     class Gene {
     public:
         enum class State { PlusPlus, PlusMinus, MinusMinus };
-
-        Gene(INoiseSource* noise, State initial = State::PlusPlus, double mutation_threshold = 0.1, double mutation_instability_k = 0.0)
-            : state(initial), noise_(noise), mutation_threshold_(mutation_threshold), mutation_instability_k_(mutation_instability_k) {}
-
+        Gene(const std::string& name, State initial = State::PlusPlus, double mutation_threshold = 0.1, double mutation_instability_k = 0.0);
+        const std::string& name() const;
         std::string status() const;
         void mutate();
         void live();
         double getMutationThreshold() const { return mutation_threshold_; }
         double getMutationInstabilityK() const { return mutation_instability_k_; }
+        void setNoiseSource(INoiseSource* noise);
 
         [[nodiscard]] bool enabled() const;
 
     private:
-        State state;
-        INoiseSource* noise_;
+        std::string name_;
+        State state_;
         double mutation_threshold_;
         double mutation_instability_k_;
+        INoiseSource* noise_;
     };
 }

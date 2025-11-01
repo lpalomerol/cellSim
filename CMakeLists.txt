@@ -31,7 +31,9 @@ add_executable(cellSim app/main.cpp
         src/domain/cell/AgenticCell.cpp
         src/domain/cell/AgenticCell.h
         src/domain/gene/Gene.cpp
-        src/domain/gene/Gene.h)
+        src/domain/gene/Gene.h
+        src/domain/gene/Genome.cpp
+        src/domain/gene/Genome.h)
 target_link_libraries(cellSim PRIVATE cxxopts)
 
 enable_testing()
