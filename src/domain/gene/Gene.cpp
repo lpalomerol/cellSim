@@ -42,27 +42,14 @@ namespace domain {
     }
 
     void Gene::live() {
-        // Reutiliza la implementación detallada con trazas para evitar duplicación.
-        // `liveWithTrace()` consumirá la muestra y aplicará la mutación si corresponde.
-        (void) liveWithTrace();
-    }
-
-    Gene::LiveTrace Gene::liveWithTrace() {
-        LiveTrace trace;
-        trace.before = status();
-        trace.threshold = mutation_threshold_ + mutation_instability_k_;
+        // Consumir una muestra desde la fuente de ruido y aplicar mutación si corresponde.
+        double threshold = mutation_threshold_ + mutation_instability_k_;
         if (noise_) {
-            trace.sample = noise_->next().u01;
-            if (trace.sample > trace.threshold) {
+            double sample = noise_->next().u01;
+            if (sample > threshold) {
                 mutate();
-                trace.mutated = true;
             }
-        } else {
-            trace.sample = -1.0;
-            trace.mutated = false;
         }
-        trace.after = status();
-        return trace;
     }
 
     void Gene::setNoiseSource(INoiseSource* noise) {

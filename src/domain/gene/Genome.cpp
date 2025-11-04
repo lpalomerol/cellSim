@@ -39,19 +39,9 @@ void Genome::setNoiseSourceForAll(INoiseSource* noise) {
 
 // Avanza (live) todos los genes del genoma
 void Genome::liveAllGenes() {
-    // Evitamos duplicar la lógica: delegamos en la versión que devuelve trazas
-    // y descartamos las trazas cuando no se necesitan.
-    (void) liveAllGenesWithTrace();
-}
-
-// Avanza todos los genes y devuelve una traza por gen (nombre -> LiveTrace)
-std::unordered_map<std::string, Gene::LiveTrace> Genome::liveAllGenesWithTrace() {
-    std::unordered_map<std::string, Gene::LiveTrace> traces;
-    traces.reserve(genes_.size());
     for (auto& kv : genes_) {
-        traces.emplace(kv.first, kv.second.liveWithTrace());
+        kv.second.live();
     }
-    return traces;
 }
 
 } // namespace domain

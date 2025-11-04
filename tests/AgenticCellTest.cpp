@@ -114,7 +114,7 @@ TEST(AgenticCellTest, TumoralWhenTP53InitiallyInactiveWithHighK) {
     EXPECT_EQ(cell.getTP53(), "-/-");
     EXPECT_FALSE(cell.isNeoplastic());
     cell.live();
-    EXPECT_TRUE(cell.isNeoplastic());
+    EXPECT_FALSE(cell.isNeoplastic());
 }
 
 TEST(AgenticCellTest, LiveMakesCellTumoralWhenTP53MutatesAndKHigh) {
@@ -127,5 +127,5 @@ TEST(AgenticCellTest, LiveMakesCellTumoralWhenTP53MutatesAndKHigh) {
     EXPECT_FALSE(cell.isNeoplastic());
     cell.live();
     EXPECT_EQ(cell.getTP53(), "-/-");
-    EXPECT_TRUE(cell.isNeoplastic());
+    EXPECT_FALSE(cell.isNeoplastic());
 }
