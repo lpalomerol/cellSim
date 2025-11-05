@@ -4,7 +4,6 @@
 
 #pragma once
 #include <string>
-#include "GeneLiveTrace.h"
 #include "../ports/INoiseSource.h"
 
 namespace domain{
@@ -23,10 +22,7 @@ namespace domain{
 
         [[nodiscard]] bool enabled() const;
 
-        // Exponer el tipo de traza como alias a la clase separada
-        using LiveTrace = GeneLiveTrace;
-        // Ejecuta un tick para este gen y devuelve traza detallada
-        LiveTrace liveWithTrace();
+        // Nota: se ha eliminado la trazabilidad; el gen solo conoce el presente y provee `live()`.
 
         // Permite forzar el estado del gen (necesario para tests y fábrica)
         void setState(State s);

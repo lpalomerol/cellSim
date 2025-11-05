@@ -3,20 +3,18 @@ project(cellSim)
 
 set(CMAKE_CXX_STANDARD 20)
 
-include(FetchContent)
-FetchContent_Declare(
-        cxxopts
-        GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
-        GIT_TAG        v3.1.1
-)
-FetchContent_MakeAvailable(cxxopts)
+# Opción para evitar descargar y construir tests (googletest) en entornos offline
+option(BUILD_TESTS "Construir tests unitarios (puede descargar googletest)" OFF)
 
-add_executable(cellSim app/main.cpp
-        src/domain/ports/ICell.h
+include(FetchContent)
+
+# Fuentes comunes del núcleo de la aplicación
+set(COMMON_SOURCES
         src/application/simulation/Simulation.cpp
         src/application/simulation/Simulation.h
         src/application/simulation/Simulations.cpp
         src/application/simulation/Simulations.h
+        src/domain/ports/ICell.h
         src/domain/ports/INoiseSource.h
         src/domain/ports/CellNoise.h
         src/domain/adapters/RandomNoise.h
@@ -35,7 +33,14 @@ add_executable(cellSim app/main.cpp
         src/domain/gene/Genome.cpp
         src/domain/gene/GenomeFactory.cpp
         src/domain/gene/Genome.h)
-target_link_libraries(cellSim PRIVATE cxxopts)
 
-enable_testing()
-add_subdirectory(tests)
+add_executable(cellSim app/main.cpp ${COMMON_SOURCES})
+
+# Ejecutable interactivo: reutiliza las mismas fuentes para enlazar correctamente
+add_executable(interactive app/main_interactive.cpp ${COMMON_SOURCES})
+
+# Añadir tests solo si BUILD_TESTS=ON (tests pueden descargar googletest)
+if (BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

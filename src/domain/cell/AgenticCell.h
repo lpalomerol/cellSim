@@ -7,7 +7,7 @@
 #include "../ports/INoiseSource.h"
 #include "../gene/Genome.h"
 #include <memory>
-#include "AgenticTickTrace.h"
+
 
 namespace domain {
 
@@ -21,12 +21,6 @@ namespace domain {
         bool isNeoplastic() override;
         [[nodiscard]] std::string getTP53() const;
         [[nodiscard]] std::string getBRCA1() const;
-
-        // Usamos la clase ligera definida en AgenticTickTrace.h para evitar un struct largo aquí
-        using TickTrace = AgenticTickTrace;
-
-        // Ejecuta un tick y devuelve la traza detallada para auditoría
-        TickTrace liveWithTrace(int tickIndex = 0);
 
     private:
         std::unique_ptr<INoiseSource> noise_;
