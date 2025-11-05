@@ -41,6 +41,10 @@ namespace domain {
         }
     }
 
+    std::string Gene::details() const {
+        return name_ + " [" + status() + "]";
+    }
+
     void Gene::live() {
         // Consumir una muestra desde la fuente de ruido y aplicar mutación si corresponde.
         double threshold = mutation_threshold_ + mutation_instability_k_;

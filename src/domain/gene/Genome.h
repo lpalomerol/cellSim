@@ -32,6 +32,9 @@ public:
     // Avanza (live) todos los genes del genoma
     void liveAllGenes();
 
+    // Imprime los detalles de todos los genes (una línea por gen), usando Gene::details()
+    void details() const;
+
 private:
     std::unordered_map<std::string, Gene> genes_;
 };

@@ -60,7 +60,11 @@ namespace domain {
         std::string cell_is_alive = (alive() ? "yes" : "no");
         std::string cell_is_neoplastic = (isNeoplastic() ? "yes" : "no");
 
-        std::cout << "[Cell details] Alive: " << cell_is_alive << "| Neoplastic: " << cell_is_neoplastic << "\n";
+        std::cout << "[Cell details] Alive: [" << cell_is_alive << "] | Neoplastic: [" << cell_is_neoplastic << "]\n";
+        if (alive()) {
+            std::cout << "Genome details:\n";
+            genome_.details();
+        }
 
     }
 

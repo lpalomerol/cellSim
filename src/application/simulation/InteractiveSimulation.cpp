@@ -2,6 +2,7 @@
 #include "InteractiveSimulation.h"
 #include <iostream>
 
+
 namespace application {
 
 InteractiveSimulation::InteractiveSimulation(int max_t_years)

@@ -28,10 +28,7 @@ int main() {
         // Esperar Enter
         if (!std::getline(std::cin, line)) break; // EOF
         bool can_continue = sim.step();
-        std::cout << "Año: " << sim.currentYear() << " | Neoplásicas: " << sim.neoplasticCount() << std::endl;
-        if (sim.firstTimeNeoplastic() != -1) {
-            std::cout << "Primera neoplasia en año: " << sim.firstTimeNeoplastic() << std::endl;
-        }
+        std::cout << "Año: " << sim.currentYear() << std::endl;
         if (!can_continue) {
             std::cout << "Simulación completada (alcanzado max_t = " << sim.maxYears() << ")." << std::endl;
             break;
