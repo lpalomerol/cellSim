@@ -23,7 +23,6 @@ namespace domain {
                 state_ = State::MinusMinus;
                 break;
             case State::MinusMinus:
-                state_ = State::PlusPlus;
                 break;
         }
     }
@@ -50,7 +49,7 @@ namespace domain {
         double threshold = mutation_threshold_ + mutation_instability_k_;
         if (noise_) {
             double sample = noise_->next().u01;
-            if (sample > threshold) {
+            if (sample < threshold) {
                 mutate();
             }
         }

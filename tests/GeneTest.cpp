@@ -14,7 +14,7 @@ TEST(GeneTest, StatusIsCorrect) {
     gene.mutate();
     EXPECT_EQ(gene.status(), "-/-");
     gene.mutate();
-    EXPECT_EQ(gene.status(), "+/+");
+    EXPECT_EQ(gene.status(), "-/-");
 }
 
 TEST(GeneTest, EnabledReturnsTrueExceptMinusMinus) {

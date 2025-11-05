@@ -10,12 +10,12 @@ namespace test {
 
 class DummyNoise : public domain::INoiseSource {
 public:
-    domain::CellNoise next() override { return domain::CellNoise{0.0}; }
+    domain::CellNoise next() override { return domain::CellNoise{1.0}; }
 };
 
 class HighNoise : public domain::INoiseSource {
 public:
-    domain::CellNoise next() override { return domain::CellNoise{0.5}; }
+    domain::CellNoise next() override { return domain::CellNoise{0.0}; }
 };
 
 } // namespace test
