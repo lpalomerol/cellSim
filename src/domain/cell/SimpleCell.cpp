@@ -33,12 +33,12 @@ namespace domain {
         }
     }
 
-    bool SimpleCell::alive() {
+    bool SimpleCell::alive() const {
         return is_alive_;
 
     }
 
-    bool SimpleCell::isNeoplastic() {
+    bool SimpleCell::isNeoplastic() const {
         return onco_ == OncoState::TP53_minus_minus;
     }
 

@@ -3,6 +3,7 @@
 //
 
 #include "AgenticCell.h"
+#include <iostream>
 
 namespace domain {
     AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k)
@@ -36,12 +37,12 @@ namespace domain {
         }
     }
 
-    bool AgenticCell::alive() {
+    bool AgenticCell::alive() const {
         const Gene *brca1 = genome_.getGene("BRCA1");
         return brca1 && brca1->enabled();
     }
 
-    bool AgenticCell::isNeoplastic() {
+    bool AgenticCell::isNeoplastic() const {
         return is_neoplastic_;
     }
 
@@ -54,4 +55,13 @@ namespace domain {
         const Gene *brca1 = genome_.getGene("BRCA1");
         return brca1 ? brca1->status() : "?";
     }
+
+    void AgenticCell::details() const {
+        std::string cell_is_alive = (alive() ? "yes" : "no");
+        std::string cell_is_neoplastic = (isNeoplastic() ? "yes" : "no");
+
+        std::cout << "[Cell details] Alive: " << cell_is_alive << "| Neoplastic: " << cell_is_neoplastic << "\n";
+
+    }
+
 } // domain

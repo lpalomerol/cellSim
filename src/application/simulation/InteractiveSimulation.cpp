@@ -1,5 +1,6 @@
 // filepath: src/application/simulation/InteractiveSimulation.cpp
 #include "InteractiveSimulation.h"
+#include <iostream>
 
 namespace application {
 
@@ -15,8 +16,11 @@ bool InteractiveSimulation::step() {
 
     ++current_year_;
     int neoplastic_count = 0;
+    std::cout << "--- Year " << current_year_ << " ---" << std::endl;
     for (auto& c : cells_) {
         c->live();
+        // Mostrar detalles de la célula tras avanzar (la implementación del cell decide si imprime)
+        c->details();
         if (c->isNeoplastic()) ++neoplastic_count;
     }
     current_neoplastic_count_ = neoplastic_count;
@@ -29,4 +33,3 @@ bool InteractiveSimulation::step() {
 }
 
 } // namespace application
-

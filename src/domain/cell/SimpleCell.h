@@ -20,9 +20,9 @@ namespace domain {
             : noise_(noise), params_(params) {}
 
         void live() override;
-        bool alive() override;
+        bool alive() const override;
         // Indica si la célula ha adquirido un estado neoplásico
-        bool isNeoplastic() override;
+        bool isNeoplastic() const override;
         CellState state()  { return state_;}
         OncoState getOncoState() { return onco_;}
     private:
