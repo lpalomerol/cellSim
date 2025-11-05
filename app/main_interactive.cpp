@@ -3,6 +3,7 @@
 #include "../src/application/simulation/InteractiveSimulation.h"
 #include "../src/domain/cell/CellFactory.h"
 #include "../src/domain/gene/GenomeFactory.h"
+#include "../src/domain/adapters/FixedNoise.h" // para crear FixedNoise con valor 0
 
 
 int main() {
@@ -17,9 +18,14 @@ int main() {
 
     domain::Genome genome = domain::genome_factory::makeDefaultGenome();
 
-    // Crear una AgenticCell usando la fábrica y añadirla a la simulación
 
-    sim.addCell(domain::cell_factory::createAgenticCell(seed, std::move(genome), neoplasm_k));
+    // Crear una AgenticCell usando FixedNoise (siempre 0.0) y añadirla a la simulación
+    auto no_mutation_noise = std::make_unique<adapters::FixedNoise>(domain::CellNoise{0.0});
+    sim.addCell(domain::cell_factory::createAgenticCell(
+        std::move(no_mutation_noise),
+        std::move(genome),
+        neoplasm_k
+    ));
 
     std::cout << "Creada 1 célula. Presiona Enter para avanzar año a año (Ctrl+C para salir)." << std::endl;
     std::cout << "Año actual: " << sim.currentYear() << " / " << sim.maxYears() << std::endl;
