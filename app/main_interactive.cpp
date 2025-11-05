@@ -18,7 +18,7 @@ int main() {
 
 
     // Crear una AgenticCell usando FixedNoise (siempre 0.0) y añadirla a la simulación
-    auto no_mutation_noise = std::make_unique<adapters::FixedNoise>(domain::CellNoise{0.0});
+    auto no_mutation_noise = std::make_unique<adapters::FixedNoise>(domain::CellNoise{1.0});
     sim.addCell(domain::cell_factory::createAgenticCell(
         std::move(no_mutation_noise),
         std::move(genome),

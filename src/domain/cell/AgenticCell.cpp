@@ -59,8 +59,11 @@ namespace domain {
     void AgenticCell::details() const {
         std::string cell_is_alive = (alive() ? "yes" : "no");
         std::string cell_is_neoplastic = (isNeoplastic() ? "yes" : "no");
-
-        std::cout << "[Cell details] Alive: [" << cell_is_alive << "] | Neoplastic: [" << cell_is_neoplastic << "]\n";
+        std::string cell_is_neoplastic_protected = (isNeoplasticProtected() ? "yes" : "no");
+        std::cout << "[Cell details] "<<
+            "Alive: [" <<cell_is_alive << "] |  "<<
+            "Neoplastic protected ["<< cell_is_neoplastic_protected<< "] | "<<
+            "Neoplastic: [" << cell_is_neoplastic << "]\n";
         if (alive()) {
             std::cout << "Genome details:\n";
             genome_.details();
@@ -71,6 +74,11 @@ namespace domain {
     // Implementación de mutateGene: delega en Genome::mutate
     void AgenticCell::mutateGene(const std::string& name) {
         genome_.mutate(name);
+    }
+
+    bool AgenticCell::isNeoplasticProtected() const {
+        const Gene *tp53 = genome_.getGene("TP53");
+        return (tp53 && tp53->enabled());
     }
 
 } // domain

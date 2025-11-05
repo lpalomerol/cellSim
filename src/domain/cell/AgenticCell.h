@@ -27,6 +27,8 @@ namespace domain {
         // Permite forzar la mutación de un gen en el genoma interno
         void mutateGene(const std::string& name) override;
 
+        bool isNeoplasticProtected() const;
+
     private:
         std::unique_ptr<INoiseSource> noise_;
         Genome genome_;
