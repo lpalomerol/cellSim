@@ -3,6 +3,8 @@
 //
 
 #include "Gene.h"
+
+#include <iostream>
 #include <utility>
 
 namespace domain {
@@ -58,8 +60,11 @@ namespace domain {
         double threshold = get_mutation_threshold(apply_instability);
         if (noise_) {
             double sample = noise_->next().u01;
-            if (sample > threshold) {
+            if (sample < threshold) {
+                std::cout << "[Gene::live] Gene " << name_ << " mutating (sample=" << sample << " > threshold=" << threshold << ")\n";
                 mutate();
+            } else {
+                std::cout << "[Gene::live] Gene " << name_ << " not mutating (sample=" << sample << " <= threshold=" << threshold << ")\n";
             }
         }
     }

@@ -1,10 +1,12 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <memory>
 #include "../src/application/simulation/InteractiveSimulation.h"
 #include "../src/domain/cell/CellFactory.h"
 #include "../src/domain/gene/GenomeFactory.h"
 #include "../src/domain/adapters/FixedNoise.h" // para crear FixedNoise con valor 0
+#include "../src/domain/adapters/RandomNoise.h" // para crear RandomNoise cuando use_random_noise == true
 
 
 int main() {
@@ -22,11 +24,22 @@ int main() {
 
     domain::Genome genome = domain::genome_factory::makeDefaultGenome(gene_thresholds, gene_instability_k);
 
+    // Elegir el tipo de ruido: true = aleatorio (RandomNoise), false = fijo (FixedNoise{0.0})
+    bool use_random_noise = true; // <- cambia aquí si quieres FixedNoise
+    unsigned seed = 42u; // semilla usada si use_random_noise == true
 
-    // Crear una AgenticCell usando FixedNoise (siempre 0.0) y añadirla a la simulación
-    auto no_mutation_noise = std::make_unique<adapters::FixedNoise>(domain::CellNoise{0.0});
+    std::unique_ptr<domain::INoiseSource> noise;
+    if (use_random_noise) {
+        std::cout << "Usando ruido aleatorio: RandomNoise(seed=" << seed << ")" << std::endl;
+        noise = std::make_unique<adapters::RandomNoise>(seed);
+    } else {
+        noise = std::make_unique<adapters::FixedNoise>(domain::CellNoise{1.0});
+        std::cout << "Usando ruido fijo: FixedNoise(u01=0.0)" << std::endl;
+    }
+
+    // Crear una AgenticCell usando la fuente de ruido seleccionada y añadirla a la simulación
     sim.addCell(domain::cell_factory::createAgenticCell(
-        std::move(no_mutation_noise),
+        std::move(noise),
         std::move(genome),
         neoplasm_k
     ));
