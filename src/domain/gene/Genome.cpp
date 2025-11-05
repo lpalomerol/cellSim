@@ -53,4 +53,12 @@ void Genome::details() const {
     }
 }
 
+// Nueva implementación: aplica mutación al gen identificado por `name`.
+void Genome::mutate(const std::string& name) {
+    auto it = genes_.find(name);
+    if (it != genes_.end()) {
+        it->second.mutate();
+    }
+}
+
 } // namespace domain

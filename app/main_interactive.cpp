@@ -4,9 +4,10 @@
 #include "../src/domain/cell/CellFactory.h"
 #include "../src/domain/gene/GenomeFactory.h"
 
+
 int main() {
     std::cout << "Interactive simulation: creating one cell via builder" << std::endl;
-
+    char command;
     int max_t = 80;
     application::InteractiveSimulation sim(max_t);
 
@@ -17,6 +18,7 @@ int main() {
     domain::Genome genome = domain::genome_factory::makeDefaultGenome();
 
     // Crear una AgenticCell usando la fábrica y añadirla a la simulación
+
     sim.addCell(domain::cell_factory::createAgenticCell(seed, std::move(genome), neoplasm_k));
 
     std::cout << "Creada 1 célula. Presiona Enter para avanzar año a año (Ctrl+C para salir)." << std::endl;
@@ -25,8 +27,7 @@ int main() {
     std::string line;
     // Avanzar año a año hasta que termine
     while (true) {
-        // Esperar Enter
-        if (!std::getline(std::cin, line)) break; // EOF
+        // Delegar la lectura del comando interactivo a la simulación
         bool can_continue = sim.step();
         std::cout << "Año: " << sim.currentYear() << std::endl;
         if (!can_continue) {

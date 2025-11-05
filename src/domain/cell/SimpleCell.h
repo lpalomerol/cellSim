@@ -25,6 +25,10 @@ namespace domain {
         bool isNeoplastic() const override;
         CellState state()  { return state_;}
         OncoState getOncoState() { return onco_;}
+
+        // No-op: SimpleCell no tiene genoma interno, por tanto no puede mutar genes.
+        void mutateGene(const std::string& name) override { (void)name; }
+
     private:
         INoiseSource& noise_;
         SimpleCellParams params_;

@@ -33,6 +33,7 @@ add_executable(unit_tests
         AgenticCellTest.cpp
         GenomeTest.cpp
         GenomeFactoryTest.cpp
+        GenomeMutateTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales

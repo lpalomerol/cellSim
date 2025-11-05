@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include "../../domain/cell/CellState.h"
 #include "../cell/OncoState.h"
 
@@ -15,6 +16,10 @@ namespace domain {
         // Imprime detalles de la célula (por defecto no hace nada). Se marca const
         // porque no debería mutar el estado al mostrar información.
         virtual void details() const {}
+
+        // Nueva: permitir que la simulación o tests soliciten una mutación sobre
+        // un gen del genoma interno de la célula.
+        virtual void mutateGene(const std::string& name) = 0;
 
     };
 }

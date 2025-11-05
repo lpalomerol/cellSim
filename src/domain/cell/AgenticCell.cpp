@@ -68,4 +68,9 @@ namespace domain {
 
     }
 
+    // Implementación de mutateGene: delega en Genome::mutate
+    void AgenticCell::mutateGene(const std::string& name) {
+        genome_.mutate(name);
+    }
+
 } // domain
