@@ -23,7 +23,6 @@ namespace domain {
                 state_ = State::MinusMinus;
                 break;
             case State::MinusMinus:
-                state_ = State::PlusPlus;
                 break;
         }
     }
@@ -41,12 +40,16 @@ namespace domain {
         }
     }
 
+    std::string Gene::details() const {
+        return name_ + " [" + status() + "]";
+    }
+
     void Gene::live() {
         // Consumir una muestra desde la fuente de ruido y aplicar mutación si corresponde.
         double threshold = mutation_threshold_ + mutation_instability_k_;
         if (noise_) {
             double sample = noise_->next().u01;
-            if (sample > threshold) {
+            if (sample < threshold) {
                 mutate();
             }
         }

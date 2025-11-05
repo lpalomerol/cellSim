@@ -1,5 +1,6 @@
 #include "Genome.h"
 #include "GenomeFactory.h"
+#include <iostream>
 
 namespace domain {
 
@@ -41,6 +42,22 @@ void Genome::setNoiseSourceForAll(INoiseSource* noise) {
 void Genome::liveAllGenes() {
     for (auto& kv : genes_) {
         kv.second.live();
+    }
+}
+
+// Imprime los detalles de todos los genes (una línea por gen)
+void Genome::details() const {
+    for (const auto& kv : genes_) {
+        // Usar Gene::details() que devuelve "NAME[status]"
+        std::cout << kv.second.details() << std::endl;
+    }
+}
+
+// Nueva implementación: aplica mutación al gen identificado por `name`.
+void Genome::mutate(const std::string& name) {
+    auto it = genes_.find(name);
+    if (it != genes_.end()) {
+        it->second.mutate();
     }
 }
 

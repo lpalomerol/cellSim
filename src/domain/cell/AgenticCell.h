@@ -17,10 +17,15 @@ namespace domain {
         AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k = 0.002);
 
         void live() override;
-        bool alive() override;
-        bool isNeoplastic() override;
+        bool alive() const override;
+        bool isNeoplastic() const override;
         [[nodiscard]] std::string getTP53() const;
         [[nodiscard]] std::string getBRCA1() const;
+        // Imprime detalles de la célula y su genoma (solo si está viva). No modifica estado.
+        void details() const override;
+
+        // Permite forzar la mutación de un gen en el genoma interno
+        void mutateGene(const std::string& name) override;
 
     private:
         std::unique_ptr<INoiseSource> noise_;

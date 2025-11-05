@@ -1,31 +1,41 @@
 #include <iostream>
-#include "../src/application/simulation/Simulation.h"
+#include <string>
+#include "../src/application/simulation/InteractiveSimulation.h"
 #include "../src/domain/cell/CellFactory.h"
 #include "../src/domain/gene/GenomeFactory.h"
+#include "../src/domain/adapters/FixedNoise.h" // para crear FixedNoise con valor 0
+
 
 int main() {
     std::cout << "Interactive simulation: creating one cell via builder" << std::endl;
-
     int max_t = 80;
-    application::Simulation sim(max_t);
+    application::InteractiveSimulation sim(max_t);
 
-    // Parámetros para la célula (seed, genoma por defecto, neoplasm_k)
-    unsigned seed = 42u;
+    // Parámetros para la célula (genoma por defecto, neoplasm_k)
     double neoplasm_k = 0.003;
 
     domain::Genome genome = domain::genome_factory::makeDefaultGenome();
 
-    // Crear una AgenticCell usando el "builder"/factory y añadirla a la simulación
-    sim.addCell(domain::cell_factory::createAgenticCell(seed, std::move(genome), neoplasm_k));
 
-    // Ejecutar la simulación
-    sim.run();
+    // Crear una AgenticCell usando FixedNoise (siempre 0.0) y añadirla a la simulación
+    auto no_mutation_noise = std::make_unique<adapters::FixedNoise>(domain::CellNoise{0.0});
+    sim.addCell(domain::cell_factory::createAgenticCell(
+        std::move(no_mutation_noise),
+        std::move(genome),
+        neoplasm_k
+    ));
 
-    int first_neoplastic = sim.firstTimeNeoplastic();
-    if (first_neoplastic == -1) {
-        std::cout << "No neoplasia detected within " << max_t << " years." << std::endl;
-    } else {
-        std::cout << "First neoplastic year: " << first_neoplastic << std::endl;
+    std::cout << "Creada 1 célula. Presiona Enter para avanzar año a año (q para salir)." << std::endl;
+    std::cout << "Año actual: " << sim.currentYear() << " / " << sim.maxYears() << std::endl;
+
+    // Avanzar año a año hasta que termine o el usuario pulse 'q' en el menú
+    while (true) {
+        bool can_continue = sim.step();
+        std::cout << "Año: " << sim.currentYear() << std::endl;
+        if (!can_continue) {
+            std::cout << "Simulación completada (alcanzado = " << sim.currentYear() << ")." << std::endl;
+            break;
+        }
     }
 
     return 0;

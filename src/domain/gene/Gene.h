@@ -14,6 +14,8 @@ namespace domain{
         explicit Gene(std::string name, State initial = State::PlusPlus, double mutation_threshold = 0.1, double mutation_instability_k = 0.0);
         [[nodiscard]] const std::string& name() const;
         [[nodiscard]] std::string status() const;
+        // Devuelve un string con el detalle: "NAME[status]", por ejemplo "TP53[+/-]"
+        [[nodiscard]] std::string details() const;
         void mutate();
         void live();
         [[nodiscard]] double getMutationThreshold() const { return mutation_threshold_; }

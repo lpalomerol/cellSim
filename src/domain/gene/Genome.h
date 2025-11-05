@@ -32,6 +32,13 @@ public:
     // Avanza (live) todos los genes del genoma
     void liveAllGenes();
 
+    // Imprime los detalles de todos los genes (una línea por gen), usando Gene::details()
+    void details() const;
+
+    // Nueva: aplica la mutación al gen identificado por `name` llamando a Gene::mutate().
+    // Si el gen no existe, no hace nada.
+    void mutate(const std::string& name);
+
 private:
     std::unordered_map<std::string, Gene> genes_;
 };
