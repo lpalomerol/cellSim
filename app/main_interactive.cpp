@@ -1,5 +1,6 @@
 #include <iostream>
-#include "../src/application/simulation/Simulation.h"
+#include <string>
+#include "../src/application/simulation/InteractiveSimulation.h"
 #include "../src/domain/cell/CellFactory.h"
 #include "../src/domain/gene/GenomeFactory.h"
 
@@ -7,7 +8,7 @@ int main() {
     std::cout << "Interactive simulation: creating one cell via builder" << std::endl;
 
     int max_t = 80;
-    application::Simulation sim(max_t);
+    application::InteractiveSimulation sim(max_t);
 
     // Parámetros para la célula (seed, genoma por defecto, neoplasm_k)
     unsigned seed = 42u;
@@ -15,17 +16,27 @@ int main() {
 
     domain::Genome genome = domain::genome_factory::makeDefaultGenome();
 
-    // Crear una AgenticCell usando el "builder"/factory y añadirla a la simulación
+    // Crear una AgenticCell usando la fábrica y añadirla a la simulación
     sim.addCell(domain::cell_factory::createAgenticCell(seed, std::move(genome), neoplasm_k));
 
-    // Ejecutar la simulación
-    sim.run();
+    std::cout << "Creada 1 célula. Presiona Enter para avanzar año a año (Ctrl+C para salir)." << std::endl;
+    std::cout << "Año actual: " << sim.currentYear() << " / " << sim.maxYears() << std::endl;
 
-    int first_neoplastic = sim.firstTimeNeoplastic();
-    if (first_neoplastic == -1) {
-        std::cout << "No neoplasia detected within " << max_t << " years." << std::endl;
-    } else {
-        std::cout << "First neoplastic year: " << first_neoplastic << std::endl;
+    std::string line;
+    // Avanzar año a año hasta que termine
+    while (true) {
+        // Esperar Enter
+        if (!std::getline(std::cin, line)) break; // EOF
+        bool can_continue = sim.step();
+        std::cout << "Año: " << sim.currentYear() << " | Neoplásicas: " << sim.neoplasticCount() << std::endl;
+        if (sim.firstTimeNeoplastic() != -1) {
+            std::cout << "Primera neoplasia en año: " << sim.firstTimeNeoplastic() << std::endl;
+        }
+        if (!can_continue) {
+            std::cout << "Simulación completada (alcanzado max_t = " << sim.maxYears() << ")." << std::endl;
+            break;
+        }
+        std::cout << "Presiona Enter para avanzar al siguiente año..." << std::endl;
     }
 
     return 0;

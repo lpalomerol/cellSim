@@ -10,10 +10,6 @@ include(FetchContent)
 
 # Fuentes comunes del núcleo de la aplicación
 set(COMMON_SOURCES
-        src/application/simulation/Simulation.cpp
-        src/application/simulation/Simulation.h
-        src/application/simulation/Simulations.cpp
-        src/application/simulation/Simulations.h
         src/domain/ports/ICell.h
         src/domain/ports/INoiseSource.h
         src/domain/ports/CellNoise.h
@@ -34,10 +30,18 @@ set(COMMON_SOURCES
         src/domain/gene/GenomeFactory.cpp
         src/domain/gene/Genome.h)
 
-add_executable(cellSim app/main.cpp ${COMMON_SOURCES})
+add_executable(cellSim app/main.cpp
+        src/application/simulation/Simulation.cpp
+        src/application/simulation/Simulation.h
+        src/application/simulation/Simulations.cpp
+        src/application/simulation/Simulations.h
+        ${COMMON_SOURCES})
 
 # Ejecutable interactivo: reutiliza las mismas fuentes para enlazar correctamente
-add_executable(interactive app/main_interactive.cpp ${COMMON_SOURCES})
+add_executable(interactive app/main_interactive.cpp
+        src/application/simulation/InteractiveSimulation.cpp
+        src/application/simulation/InteractiveSimulation.h
+        ${COMMON_SOURCES})
 
 # Añadir tests solo si BUILD_TESTS=ON (tests pueden descargar googletest)
 if (BUILD_TESTS)
