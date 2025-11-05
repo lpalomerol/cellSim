@@ -21,6 +21,13 @@ void InteractiveSimulation::addCell(std::unique_ptr<domain::ICell> cell) {
 bool InteractiveSimulation::step() {
     if (current_year_ >= max_t_) return false;
     MenuOption option = menu();
+
+    // Si el usuario pidió salir, detener la simulación sin avanzar el año
+    if (option == MenuOption::Quit) {
+        std::cout << "Simulación finalizada por usuario (opción 'q')." << std::endl;
+        return false;
+    }
+
     ++current_year_;
     int neoplastic_count = 0;
     std::cout << "--- Year " << current_year_ << " ---" << std::endl;
@@ -35,7 +42,8 @@ bool InteractiveSimulation::step() {
                 std::cout << "Mutación TP53 aplicada a la célula." << std::endl;
                 break;
             case MenuOption::Nada:
-                // No hacer nada
+            case MenuOption::Quit:
+                // No hacer nada (Quit ya manejado arriba)
                 break;
         }
         c->live();
@@ -56,7 +64,7 @@ bool InteractiveSimulation::step() {
  MenuOption InteractiveSimulation::menu() {
      std::cout << "------------------------\n";
      std::cout << "Menú de mutaciones:\n";
-     std::cout << "1 -> Mutar BRCA; 2 -> Mutar TP53; otra tecla -> No mutar\n";
+     std::cout << "1 -> Mutar BRCA; 2 -> Mutar TP53; q -> Salir; otra tecla -> No mutar\n";
      std::cout << "------------------------\n";
      std::string input;
      std::getline(std::cin, input);
@@ -73,6 +81,11 @@ bool InteractiveSimulation::step() {
          case '2':
              std::cout << "Seleccionada opción 2: marcar mutación TP53 (no aplicada aquí)\n";
              return MenuOption::MutarTP53;
+             break;
+         case 'q':
+         case 'Q':
+             std::cout << "Seleccionada opción 'q': terminar la simulación.\n";
+             return MenuOption::Quit;
              break;
          default:
              std::cout << "No se seleccionó ninguna mutación.\n";

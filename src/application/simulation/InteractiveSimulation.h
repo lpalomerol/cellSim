@@ -14,7 +14,8 @@ namespace application {
     enum class MenuOption {
         MutarBRCA,
         MutarTP53,
-        Nada
+        Nada,
+        Quit // Nueva opción para detener la simulación desde el menú ('q')
     };
 
 
@@ -35,6 +36,8 @@ public:
     // Devuelve el primer año en el que apareció neoplasia (1-based), o -1 si nunca
     int firstTimeNeoplastic() const { return first_time_neoplastic_; }
 
+    // Menu público que devuelve la opción elegida
+    MenuOption menu();
 
 private:
     int max_t_;
@@ -42,9 +45,6 @@ private:
     int current_neoplastic_count_;
     int first_time_neoplastic_;
     std::vector<std::unique_ptr<domain::ICell>> cells_;
-    // Menu público que devuelve la opción elegida
-    static MenuOption menu();
-
 };
 
 } // namespace application
