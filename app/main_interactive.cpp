@@ -25,7 +25,7 @@ int main() {
     domain::Genome genome = domain::genome_factory::makeDefaultGenome(gene_thresholds, gene_instability_k);
 
     // Elegir el tipo de ruido: true = aleatorio (RandomNoise), false = fijo (FixedNoise{0.0})
-    bool use_random_noise = true; // <- cambia aquí si quieres FixedNoise
+    bool use_random_noise = false; // <- cambia aquí si quieres FixedNoise
     unsigned seed = 42u; // semilla usada si use_random_noise == true
 
     std::unique_ptr<domain::INoiseSource> noise;

@@ -34,5 +34,8 @@ namespace domain {
         Genome genome_;
         double neoplasm_k_;
         bool is_neoplastic_;
+
+        // Nueva: encapsula la lógica de desarrollar neoplasia (muestra ruido y aplica neoplasm_k_)
+        void develop_neoplasm();
     };
 } // domain

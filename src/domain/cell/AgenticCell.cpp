@@ -26,14 +26,12 @@ namespace domain {
             return;
         }
 
-        // Determinar probabilidad p para neoplasia: protegida si TP53 está activado
-        const Gene *tp53 = genome_.getGene("TP53");
-        double p = (tp53 && tp53->enabled()) ? 0.0 : neoplasm_k_;
-
-        // Muestrear ruido y decidir neoplasia
-        double sample = noise_->next().u01;
-        if (sample < p) {
-            is_neoplastic_ = true;
+        // Sólo desarrollar neoplasia si no está protegida por TP53
+        if (!isNeoplasticProtected()) {
+            develop_neoplasm();
+        } else {
+            // Trazabilidad: célula protegida por TP53, no puede volverse neoplásica
+            std::cout << "[Trace] Célula protegida " << std::endl;
         }
     }
 
@@ -74,6 +72,20 @@ namespace domain {
     // Implementación de mutateGene: delega en Genome::mutate
     void AgenticCell::mutateGene(const std::string& name) {
         genome_.mutate(name);
+    }
+
+    // Nueva función: encapsula el muestreo de ruido y la decisión de neoplasia
+    void AgenticCell::develop_neoplasm() {
+        if (!noise_) return; // seguridad
+        double sample = noise_->next().u01;
+        // Trazabilidad: mostrar sample y umbral
+        std::cout << "[Trace] muestreo para neoplasia: sample=" << sample << " threshold=" << neoplasm_k_ << "\n";
+        if (sample < neoplasm_k_) {
+            is_neoplastic_ = true;
+            std::cout << "[Trace] Resultado: la célula se vuelve NEOPLÁSICA\n";
+        } else {
+            std::cout << "[Trace] Resultado: no se desarrolla neoplasia (sample >= threshold)\n";
+        }
     }
 
     bool AgenticCell::isNeoplasticProtected() const {
