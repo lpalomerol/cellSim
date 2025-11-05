@@ -39,6 +39,9 @@ public:
     // Si el gen no existe, no hace nada.
     void mutate(const std::string& name);
 
+    // Nueva: devuelve true si el gen TP53 indica inestabilidad (TP53 == +/- o -/-)
+    bool isUnstable() const;
+
 private:
     std::unordered_map<std::string, Gene> genes_;
 };

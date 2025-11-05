@@ -41,15 +41,24 @@ namespace domain {
     }
 
     std::string Gene::details() const {
-        return name_ + " [" + status() + "]";
+        return name_ + " [" + status() + "] p(mut)=" + std::to_string(mutation_threshold_ + mutation_instability_k_);
     }
+
+    std::string Gene::details(bool unstable) const {
+        return name_ + " [" + status() + "] p(mut)=" + std::to_string(get_mutation_threshold(unstable));
+    }
+
 
     void Gene::live() {
         // Consumir una muestra desde la fuente de ruido y aplicar mutación si corresponde.
-        double threshold = mutation_threshold_ + mutation_instability_k_;
+        live(true);
+    }
+
+    void Gene::live(bool apply_instability) {
+        double threshold = get_mutation_threshold(apply_instability);
         if (noise_) {
             double sample = noise_->next().u01;
-            if (sample < threshold) {
+            if (sample > threshold) {
                 mutate();
             }
         }
@@ -63,4 +72,7 @@ namespace domain {
         state_ = s;
     }
 
+    double Gene::get_mutation_threshold(bool apply_instability) const {
+        return mutation_threshold_  + (apply_instability ? mutation_instability_k_ : 0.0);
+    }
 }

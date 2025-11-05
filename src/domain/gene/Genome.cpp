@@ -40,16 +40,19 @@ void Genome::setNoiseSourceForAll(INoiseSource* noise) {
 
 // Avanza (live) todos los genes del genoma
 void Genome::liveAllGenes() {
+    // Aplicar el componente de inestabilidad solo si el genoma está inestable (según TP53)
+    bool unstable = isUnstable();
     for (auto& kv : genes_) {
-        kv.second.live();
+        kv.second.live(unstable);
     }
 }
 
 // Imprime los detalles de todos los genes (una línea por gen)
 void Genome::details() const {
+    bool unstable = isUnstable();
     for (const auto& kv : genes_) {
         // Usar Gene::details() que devuelve "NAME[status]"
-        std::cout << kv.second.details() << std::endl;
+        std::cout << kv.second.details(unstable) << std::endl;
     }
 }
 
@@ -59,6 +62,14 @@ void Genome::mutate(const std::string& name) {
     if (it != genes_.end()) {
         it->second.mutate();
     }
+}
+
+// Nueva: devuelve true si TP53 indica inestabilidad ("+/-" o "-/-").
+bool Genome::isUnstable() const {
+    const Gene* tp53 = getGene("TP53");
+    if (!tp53) return false;
+    std::string s = tp53->status();
+    return (s == "+/-" || s == "-/-");
 }
 
 } // namespace domain

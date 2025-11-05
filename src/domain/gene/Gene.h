@@ -16,8 +16,12 @@ namespace domain{
         [[nodiscard]] std::string status() const;
         // Devuelve un string con el detalle: "NAME[status]", por ejemplo "TP53[+/-]"
         [[nodiscard]] std::string details() const;
+
+        std::string details(bool unstable) const;
+
         void mutate();
         void live();
+        void live(bool apply_instability);
         [[nodiscard]] double getMutationThreshold() const { return mutation_threshold_; }
         [[nodiscard]] double getMutationInstabilityK() const { return mutation_instability_k_; }
         void setNoiseSource(INoiseSource* noise);
@@ -28,6 +32,8 @@ namespace domain{
 
         // Permite forzar el estado del gen (necesario para tests y fábrica)
         void setState(State s);
+
+        double get_mutation_threshold(bool apply_instability) const;
 
     private:
         std::string name_;
