@@ -15,7 +15,7 @@ int main() {
     application::InteractiveSimulation sim(max_t);
 
     // Parámetros para la célula (genoma por defecto, neoplasm_k)
-    double neoplasm_k = 0.003;
+    double neoplasm_k = 0.5;
 
     // Umbrales específicos por gen solicitados: BRCA1=0.1, TP53=0.15
     std::unordered_map<std::string, double> gene_thresholds{{"BRCA1", 0.1}, {"TP53", 0.15}};
@@ -25,7 +25,7 @@ int main() {
     domain::Genome genome = domain::genome_factory::makeDefaultGenome(gene_thresholds, gene_instability_k);
 
     // Elegir el tipo de ruido: true = aleatorio (RandomNoise), false = fijo (FixedNoise{0.0})
-    bool use_random_noise = false; // <- cambia aquí si quieres FixedNoise
+    bool use_random_noise = true; // <- cambia aquí si quieres FixedNoise
     unsigned seed = 42u; // semilla usada si use_random_noise == true
 
     std::unique_ptr<domain::INoiseSource> noise;
