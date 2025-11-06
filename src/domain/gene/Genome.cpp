@@ -4,8 +4,8 @@
 
 namespace domain {
 
-Genome::Genome(std::unordered_map<std::string, Gene> genes)
-    : genes_(std::move(genes)) {}
+Genome::Genome(std::unordered_map<std::string, Gene> genes, bool verbose)
+    : genes_(std::move(genes)), verbose_(verbose) {}
 
 bool Genome::hasGene(const std::string& name) const {
     return genes_.find(name) != genes_.end();
@@ -28,7 +28,7 @@ Genome Genome::makeDefaultGenome() {
 
 // Devuelve una copia profunda del genoma
 Genome Genome::clone() const {
-    return Genome(genes_);
+    return Genome(genes_, verbose_);
 }
 
 // Inyecta una fuente de ruido en todos los genes del genoma
@@ -49,10 +49,19 @@ void Genome::liveAllGenes() {
 
 // Imprime los detalles de todos los genes (una línea por gen)
 void Genome::details() const {
+    if (!verbose_) return;
     bool unstable = isUnstable();
     for (const auto& kv : genes_) {
         // Usar Gene::details() que devuelve "NAME[status]"
         std::cout << kv.second.details(unstable) << std::endl;
+    }
+}
+
+void Genome::setVerbose(bool v) {
+    verbose_ = v;
+    // Propagar el cambio de verbose a todos los genes
+    for (auto& kv : genes_) {
+        kv.second.setVerbose(v);
     }
 }
 

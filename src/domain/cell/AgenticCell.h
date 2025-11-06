@@ -14,7 +14,7 @@ namespace domain {
     class AgenticCell final : public domain::ICell {
     public:
         // Toma el Genome por valor para clarificar ownership (se copia/mueve internamente)
-        AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k = 0.002);
+        AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k = 0.002, bool verbose = false);
 
         void live() override;
         bool alive() const override;
@@ -34,6 +34,7 @@ namespace domain {
         Genome genome_;
         double neoplasm_k_;
         bool is_neoplastic_;
+        bool verbose_ = false;
 
         // Nueva: encapsula la lógica de desarrollar neoplasia (muestra ruido y aplica neoplasm_k_)
         void develop_neoplasm();

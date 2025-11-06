@@ -11,7 +11,7 @@ namespace domain{
     public:
         enum class State { PlusPlus, PlusMinus, MinusMinus };
         // Tomamos el nombre por valor y lo movemos al miembro para evitar copias innecesarias
-        explicit Gene(std::string name, State initial = State::PlusPlus, double mutation_threshold = 0.1, double mutation_instability_k = 0.0);
+        explicit Gene(std::string name, State initial = State::PlusPlus, double mutation_threshold = 0.1, double mutation_instability_k = 0.0, bool verbose = false);
         [[nodiscard]] const std::string& name() const;
         [[nodiscard]] std::string status() const;
         // Devuelve un string con el detalle: "NAME[status]", por ejemplo "TP53[+/-]"
@@ -35,11 +35,15 @@ namespace domain{
 
         double get_mutation_threshold(bool apply_instability) const;
 
+        // Control de trazas por gen
+        void setVerbose(bool v);
+
     private:
         std::string name_;
         State state_;
         double mutation_threshold_;
         double mutation_instability_k_;
         INoiseSource* noise_;
+        bool verbose_ = false;
     };
 }

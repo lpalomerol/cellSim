@@ -22,7 +22,9 @@ int main() {
     // Inestabilidad: +0.1 para ambos en caso de inestabilidad
     std::unordered_map<std::string, double> gene_instability_k{{"BRCA1", 0.1}, {"TP53", 0.1}};
 
-    domain::Genome genome = domain::genome_factory::makeDefaultGenome(gene_thresholds, gene_instability_k);
+    // En modo interactivo activamos trazas verbose para inspección
+    bool verbose = true;
+    domain::Genome genome = domain::genome_factory::makeDefaultGenome(gene_thresholds, gene_instability_k, verbose);
 
     // Elegir el tipo de ruido: true = aleatorio (RandomNoise), false = fijo (FixedNoise{0.0})
     bool use_random_noise = true; // <- cambia aquí si quieres FixedNoise
@@ -42,7 +44,7 @@ int main() {
         std::move(noise),
         std::move(genome),
         neoplasm_k
-    ));
+    , verbose));
 
     std::cout << "Creada 1 célula. Presiona Enter para avanzar año a año (q para salir)." << std::endl;
     std::cout << "Año actual: " << sim.currentYear() << " / " << sim.maxYears() << std::endl;

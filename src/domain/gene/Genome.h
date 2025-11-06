@@ -9,7 +9,7 @@ namespace domain {
 class Genome {
 public:
     // Constructor recibe un mapa (clave -> Gene) y lo almacena internamente.
-    explicit Genome(std::unordered_map<std::string, Gene> genes = {});
+    explicit Genome(std::unordered_map<std::string, Gene> genes = {}, bool verbose = false);
 
     // Comprueba si existe un gen con la clave dada
     bool hasGene(const std::string& name) const;
@@ -35,7 +35,10 @@ public:
     // Imprime los detalles de todos los genes (una línea por gen), usando Gene::details()
     void details() const;
 
-    // Nueva: aplica la mutación al gen identificado por `name` llamando a Gene::mutate().
+    // Control de trazas verbose
+    void setVerbose(bool v);
+
+    // Nueva: aplica la mutación al gen identificado por `name`.
     // Si el gen no existe, no hace nada.
     void mutate(const std::string& name);
 
@@ -44,6 +47,7 @@ public:
 
 private:
     std::unordered_map<std::string, Gene> genes_;
+    bool verbose_ = false;
 };
 
 } // namespace domain

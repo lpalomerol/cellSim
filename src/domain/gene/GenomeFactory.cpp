@@ -5,7 +5,8 @@
 namespace domain::genome_factory {
 
 Genome makeDefaultGenome(const std::unordered_map<std::string, double>& gene_thresholds,
-                          const std::unordered_map<std::string, double>& gene_instability_k) {
+                          const std::unordered_map<std::string, double>& gene_instability_k,
+                          bool verbose) {
     double tp53_th = 0.1;
     double brca1_th = 0.1;
     double tp53_k = 0.0;
@@ -21,10 +22,10 @@ Genome makeDefaultGenome(const std::unordered_map<std::string, double>& gene_thr
     auto itk_br = gene_instability_k.find("BRCA1");
     if (itk_br != gene_instability_k.end()) brca1_k = itk_br->second;
 
-    Gene tp53("TP53", Gene::State::PlusPlus, tp53_th, tp53_k);
-    Gene brca1("BRCA1", Gene::State::PlusMinus, brca1_th, brca1_k);
+    Gene tp53("TP53", Gene::State::PlusPlus, tp53_th, tp53_k, verbose);
+    Gene brca1("BRCA1", Gene::State::PlusMinus, brca1_th, brca1_k, verbose);
     std::unordered_map<std::string, Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
-    return Genome(std::move(genes));
+    return Genome(std::move(genes), verbose);
 }
 
 } // namespace domain::genome_factory

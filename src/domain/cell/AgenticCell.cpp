@@ -6,8 +6,8 @@
 #include <iostream>
 
 namespace domain {
-    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k)
-        : noise_(std::move(noise)), genome_(std::move(genome)), neoplasm_k_(neoplasm_k), is_neoplastic_(false) {
+    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, bool verbose)
+        : noise_(std::move(noise)), genome_(std::move(genome)), neoplasm_k_(neoplasm_k), is_neoplastic_(false), verbose_(verbose) {
         // Inyectar la fuente de ruido en todos los genes del genoma usando la API de Genome
         genome_.setNoiseSourceForAll(noise_.get());
     }
@@ -31,7 +31,7 @@ namespace domain {
             develop_neoplasm();
         } else {
             // Trazabilidad: célula protegida por TP53, no puede volverse neoplásica
-            std::cout << "[Trace] Célula protegida " << std::endl;
+            if (verbose_) std::cout << "[Trace] Célula protegida " << std::endl;
         }
     }
 
@@ -58,13 +58,15 @@ namespace domain {
         std::string cell_is_alive = (alive() ? "yes" : "no");
         std::string cell_is_neoplastic = (isNeoplastic() ? "yes" : "no");
         std::string cell_is_neoplastic_protected = (isNeoplasticProtected() ? "yes" : "no");
-        std::cout << "[Cell details] "<<
-            "Alive: [" <<cell_is_alive << "] |  "<<
-            "Neoplastic protected ["<< cell_is_neoplastic_protected<< "] | "<<
-            "Neoplastic: [" << cell_is_neoplastic << "]\n";
-        if (alive()) {
-            std::cout << "Genome details:\n";
-            genome_.details();
+        if (verbose_) {
+            std::cout << "[Cell details] "<<
+                "Alive: [" <<cell_is_alive << "] |  "<<
+                "Neoplastic protected ["<< cell_is_neoplastic_protected<< "] | "<<
+                "Neoplastic: [" << cell_is_neoplastic << "]\n";
+            if (alive()) {
+                std::cout << "Genome details:\n";
+                genome_.details();
+            }
         }
 
     }
@@ -79,12 +81,12 @@ namespace domain {
         if (!noise_) return; // seguridad
         double sample = noise_->next().u01;
         // Trazabilidad: mostrar sample y umbral
-        std::cout << "[Trace] muestreo para neoplasia: sample=" << sample << " threshold=" << neoplasm_k_ << "\n";
+        if (verbose_) std::cout << "[Trace] muestreo para neoplasia: sample=" << sample << " threshold=" << neoplasm_k_ << "\n";
         if (sample < neoplasm_k_) {
             is_neoplastic_ = true;
-            std::cout << "[Trace] Resultado: la célula se vuelve NEOPLÁSICA\n";
+            if (verbose_) std::cout << "[Trace] Resultado: la célula se vuelve NEOPLÁSICA\n";
         } else {
-            std::cout << "[Trace] Resultado: no se desarrolla neoplasia (sample >= threshold)\n";
+            if (verbose_) std::cout << "[Trace] Resultado: no se desarrolla neoplasia (sample >= threshold)\n";
         }
     }
 
