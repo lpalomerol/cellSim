@@ -17,8 +17,18 @@ void Simulations::runAll() {
         for (int i = 0; i < cfg_.n_cells; ++i) {
             unsigned cell_seed = sim_seed * 100000u + static_cast<unsigned>(i);
             // Obtener un genoma por defecto usando thresholds e instability_k proporcionados por la configuración
-            domain::Genome genome = domain::genome_factory::makeDefaultGenome(cfg_.gene_mutation_thresholds, cfg_.gene_mutation_instability_k, false);
-            sim.addCell(domain::cell_factory::createAgenticCell(cell_seed, std::move(genome), cfg_.neoplasm_k, false));
+            domain::Genome genome = domain::genome_factory::makeDefaultGenome(
+                cfg_.gene_mutation_thresholds,
+                cfg_.gene_mutation_instability_k,
+                cfg_.verbose
+                );
+            sim.addCell(
+                domain::cell_factory::createAgenticCell(
+                    cell_seed,
+                    std::move(genome),
+                    cfg_.neoplasm_k,
+                    cfg_.verbose)
+            );
         }
         sim.run();
         results_[k][1] = sim.firstTimeNeoplastic();

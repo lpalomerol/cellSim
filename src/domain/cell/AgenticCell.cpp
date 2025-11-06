@@ -10,9 +10,17 @@ namespace domain {
         : noise_(std::move(noise)), genome_(std::move(genome)), neoplasm_k_(neoplasm_k), is_neoplastic_(false), verbose_(verbose) {
         // Inyectar la fuente de ruido en todos los genes del genoma usando la API de Genome
         genome_.setNoiseSourceForAll(noise_.get());
+        // Asegurar que el genoma y sus genes respeten el flag verbose
+        genome_.setVerbose(verbose_);
+
     }
 
     void AgenticCell::live() {
+        if (verbose_) {
+            std::cout << "[Trace] AgenticCell::live()\n";
+            details();
+            std::cout << "               \n";
+        }
         // Avanzar todos los genes (mutaciones/efectos) sin traza
         genome_.liveAllGenes();
 

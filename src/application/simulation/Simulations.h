@@ -33,6 +33,9 @@ struct SimulationsConfig {
         {"TP53", -0.010},
         {"BRCA1", -0.005}
     };
+
+    // Nuevo flag: activar trazas verbose para genoma/células/genes (por defecto false)
+    bool verbose = false;
 };
 
 class Simulations {
