@@ -47,8 +47,7 @@ bool InteractiveSimulation::step() {
                 break;
         }
         c->live();
-        // Mostrar detalles de la célula tras avanzar (la implementación del cell decide si imprime)
-        c->details();
+
         if (c->isNeoplastic()) ++neoplastic_count;
     }
     current_neoplastic_count_ = neoplastic_count;
