@@ -2,11 +2,12 @@
 #include "../src/domain/ports/INoiseSource.h"
 #include <vector>
 #include <cstddef>
+#include <cstdint>
 
 class FakeNoise : public domain::INoiseSource {
 public:
-    explicit FakeNoise(std::vector<domain::CellNoise> sequence)
-        : seq_(std::move(sequence)) {}
+    explicit FakeNoise(std::vector<domain::CellNoise> sequence, std::uint64_t seed = 0)
+        : seq_(std::move(sequence)), seed_(seed) {}
 
     domain::CellNoise next() override {
         if (seq_.empty()) {
@@ -18,7 +19,10 @@ public:
         return val;
     }
 
+    [[nodiscard]] std::uint64_t getSeed() const override { return seed_; }
+
 private:
     std::vector<domain::CellNoise> seq_;
     std::size_t idx_ = 0;
+    std::uint64_t seed_ = 0;
 };

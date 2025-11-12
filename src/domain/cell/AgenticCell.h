@@ -7,6 +7,7 @@
 #include "../ports/INoiseSource.h"
 #include "../gene/Genome.h"
 #include <memory>
+#include <cstdint>
 
 
 namespace domain {
@@ -29,12 +30,16 @@ namespace domain {
 
         bool isNeoplasticProtected() const;
 
+        // Exponer la semilla usada por la fuente de ruido
+        std::uint64_t getSeed() const { return seed_; }
+
     private:
         std::unique_ptr<INoiseSource> noise_;
         Genome genome_;
         double neoplasm_k_;
         bool is_neoplastic_;
         bool verbose_ = false;
+        std::uint64_t seed_ = 0; // guarda la semilla usada
 
         // Nueva: encapsula la lógica de desarrollar neoplasia (muestra ruido y aplica neoplasm_k_)
         void develop_neoplasm();

@@ -13,6 +13,16 @@ namespace domain {
         // Asegurar que el genoma y sus genes respeten el flag verbose
         genome_.setVerbose(verbose_);
 
+        // Guardar y mostrar la semilla usada (requiere INoiseSource::getSeed())
+        if (noise_) {
+            seed_ = noise_->getSeed();
+        } else {
+            seed_ = 0;
+        }
+
+        // Siempre mostrar la semilla para trazabilidad; el simulador también lo verá via details() o getSeed()
+        std::cout << "[Trace] AgenticCell seed: " << seed_ << "\n";
+
     }
 
     void AgenticCell::live() {
@@ -70,7 +80,8 @@ namespace domain {
             std::cout << "[Cell details] "<<
                 "Alive: [" <<cell_is_alive << "] |  "<<
                 "Neoplastic protected ["<< cell_is_neoplastic_protected<< "] | "<<
-                "Neoplastic: [" << cell_is_neoplastic << "]\n";
+                "Neoplastic: [" << cell_is_neoplastic << "] | " <<
+                "Seed: [" << seed_ << "]\n";
             if (alive()) {
                 std::cout << "Genome details:\n";
                 genome_.details();

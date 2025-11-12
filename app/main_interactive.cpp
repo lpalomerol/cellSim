@@ -11,16 +11,16 @@
 
 int main() {
     std::cout << "Interactive simulation: creating one cell via builder" << std::endl;
-    int max_t = 80;
+    int max_t = 15;
     application::InteractiveSimulation sim(max_t);
 
     // Parámetros para la célula (genoma por defecto, neoplasm_k)
     double neoplasm_k = 0.5;
 
     // Umbrales específicos por gen solicitados: BRCA1=0.1, TP53=0.15
-    std::unordered_map<std::string, double> gene_thresholds{{"BRCA1", 0.1}, {"TP53", 0.15}};
+    std::unordered_map<std::string, double> gene_thresholds{{"BRCA1", 0.00010}, {"TP53", 0.5}};
     // Inestabilidad: +0.1 para ambos en caso de inestabilidad
-    std::unordered_map<std::string, double> gene_instability_k{{"BRCA1", 0.1}, {"TP53", 0.1}};
+    std::unordered_map<std::string, double> gene_instability_k{{"BRCA1", 0.01}, {"TP53", 0.25}};
 
     // En modo interactivo activamos trazas verbose para inspección
     bool verbose = true;
@@ -28,7 +28,7 @@ int main() {
 
     // Elegir el tipo de ruido: true = aleatorio (RandomNoise), false = fijo (FixedNoise{0.0})
     bool use_random_noise = true; // <- cambia aquí si quieres FixedNoise
-    unsigned seed = 42u; // semilla usada si use_random_noise == true
+    unsigned seed = 4u; // semilla usada si use_random_noise == true
 
     std::unique_ptr<domain::INoiseSource> noise;
     if (use_random_noise) {

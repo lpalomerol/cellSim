@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include "../src/domain/cell/AgenticCell.h"
 
 // Pequeñas implementaciones de fuentes de ruido para las pruebas.
@@ -11,12 +12,13 @@ namespace test {
 class DummyNoise : public domain::INoiseSource {
 public:
     domain::CellNoise next() override { return domain::CellNoise{1.0}; }
+    [[nodiscard]] std::uint64_t getSeed() const override { return 0; }
 };
 
 class HighNoise : public domain::INoiseSource {
 public:
     domain::CellNoise next() override { return domain::CellNoise{0.0}; }
+    [[nodiscard]] std::uint64_t getSeed() const override { return 0; }
 };
 
 } // namespace test
-
