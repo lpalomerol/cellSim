@@ -19,7 +19,7 @@ namespace domain {
         } else {
             seed_ = 0;
         }
-        if (verbose) {
+        if (verbose_) {
             // Mostrar la semilla para trazabilidad; el simulador también lo verá via details() o getSeed()
             std::cout << "[Trace] AgenticCell seed: " << seed_ << "\n";
 
@@ -28,48 +28,60 @@ namespace domain {
     }
 
     void AgenticCell::live() {
-        // FASE 1: Revisar estado inicial (muerta o ya neoplásica)
-        if (verbose_) {
-            std::cout << "[Trace] AgenticCell::live() - fase 1: estado inicial\n";
-            details();
-            std::cout << "               \n";
-        }
+        // Ejecutar fases en secuencia; las fases lanzarán CellDeathException si la célula muere
+        try {
+            if (verbose_) {
+                details();
 
-        // Si la célula está muerta, no hacer nada
-        if (!alive()) {
-            if (verbose_) std::cout << "[Trace] AgenticCell::live() - célula muerta, terminando fase.\n";
+            }
+            phase1_initialChecks();
+            phase2_updateGenotype();
+            phase3_updateInternalStatus();
+            phase4_updatePhenotype();
+        } catch (const CellDeathException& e) {
+            if (verbose_) {
+                std::cout << "[Trace] AgenticCell::live() - fase abortada por muerte de la célula: " << e.what() << "\n";
+            }
+            // Terminar el ciclo live() silenciosamente
             return;
         }
+    }
 
-        // Si ya es neoplásica, no hacer nada
+    // Fase 1: comprobaciones iniciales (viva y no ya neoplásica)
+    void AgenticCell::phase1_initialChecks() const {
+        // Si la célula está muerta -> lanzar excepción para indicar terminación
+        if (!alive()) {
+            throw CellDeathException("dead@phase1");
+        }
+        // Si ya es neoplásica -> lanzar excepción para indicar terminación (comportamiento previo)
         if (is_neoplastic_) {
-            if (verbose_) std::cout << "[Trace] AgenticCell::live() - ya neoplásica, terminando fase.\n";
-            return;
+            throw CellDeathException("neoplastic@phase1");
         }
+    }
 
-        // FASE 2: Actualizar genes
-        if (verbose_) std::cout << "[Trace] AgenticCell::live() - fase 2: actualizar genes\n";
+    // Fase 2: actualizar genotipo (por ahora, avanzar genes)
+    void AgenticCell::phase2_updateGenotype() {
         genome_.liveAllGenes();
-
-        // Si la célula queda muerta después de avanzar genes, no hacer nada más
         if (!alive()) {
-            if (verbose_) std::cout << "[Trace] AgenticCell::live() - tras genes, la célula ha muerto.\n";
-            return;
+            throw CellDeathException("dead@phase2");
         }
+    }
 
-        // FASE 3: Posible ajuste de k (neoplasm_k_)
-        if (verbose_) std::cout << "[Trace] AgenticCell::live() - fase 3: posible ajuste de k\n";
+    // Fase 3: actualizar estado interno (ajustar parámetros internos y aumentar edad)
+    void AgenticCell::phase3_updateInternalStatus() {
         adjust_neoplasm_k();
+        // Comprobar si la celula ha muerto tras actualizar estado interno
+        if (!alive()) {
+            throw CellDeathException("dead@phase3");
+        }
+        // Incrementar edad aquí como parte del estado interno
+        increaseAge();
+    }
 
-        // FASE 4: Desarrollar neoplasia si corresponde
-        if (verbose_) std::cout << "[Trace] AgenticCell::live() - fase 4: evaluar desarrollo de neoplasia\n";
-
-        // Sólo desarrollar neoplasia si no está protegida por TP53
+    // Fase 4: actualizar fenotipo (evaluar si desarrolla tumor)
+    void AgenticCell::phase4_updatePhenotype() {
         if (!isNeoplasticProtected()) {
             develop_neoplasm();
-        } else {
-            // Trazabilidad: célula protegida por TP53, no puede volverse neoplásica
-            if (verbose_) std::cout << "[Trace] Célula protegida " << std::endl;
         }
     }
 
@@ -101,11 +113,10 @@ namespace domain {
                 "Alive: [" <<cell_is_alive << "] |  "<<
                 "Neoplastic protected ["<< cell_is_neoplastic_protected<< "] | "<<
                 "Neoplastic: [" << cell_is_neoplastic << "] | " <<
-                "Seed: [" << seed_ << "]\n";
-            if (alive()) {
-                std::cout << "Genome details:\n";
-                genome_.details();
-            }
+                "Seed: [" << seed_ << "]" << " | Age: [" << age_ << "]\n";
+            // Mostrar el estado del genoma siempre (útil para depuración aunque la célula esté muerta)
+            std::cout << "Genome details:\n";
+            genome_.details();
         }
 
     }
@@ -135,6 +146,11 @@ namespace domain {
     }
 
     void AgenticCell::adjust_neoplasm_k() {
+    }
+
+    // Nueva: incrementar edad solo si la célula está viva
+    void AgenticCell::increaseAge() {
+        ++age_;
     }
 
 } // domain
