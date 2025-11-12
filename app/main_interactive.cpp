@@ -46,13 +46,33 @@ int main() {
         neoplasm_k
     , verbose));
 
-    std::cout << "Creada 1 célula. Presiona Enter para avanzar año a año (q para salir)." << std::endl;
+    std::cout << "Creada 1 célula. Presiona Enter para avanzar año a año." << std::endl;
+    std::cout << "Opciones en cada paso: [Enter]=No mutar, 1=Mutar BRCA1, 2=Mutar TP53, q=Salir" << std::endl;
     std::cout << "Año actual: " << sim.currentYear() << " / " << sim.maxYears() << std::endl;
 
-    // Avanzar año a año hasta que termine o el usuario pulse 'q' en el menú
     while (true) {
-        bool can_continue = sim.step();
-        std::cout << "Año: " << sim.currentYear() << std::endl;
+        std::string line;
+        std::cout << "(Enter/1/2/q) > ";
+        if (!std::getline(std::cin, line)) { // EOF (Ctrl+D) o error
+            std::cout << "Entrada cerrada (EOF). Saliendo de la simulación." << std::endl;
+            break;
+        }
+
+        application::MenuOption option = application::MenuOption::Nada;
+        if (line.empty()) {
+            option = application::MenuOption::Nada;
+        } else {
+            char c = line[0];
+            if (c == '1') option = application::MenuOption::MutarBRCA;
+            else if (c == '2') option = application::MenuOption::MutarTP53;
+            else if (c == 'q' || c == 'Q') option = application::MenuOption::Quit;
+            else option = application::MenuOption::Nada;
+        }
+
+        bool can_continue = sim.step(option);
+        std::cout << "Año: " << sim.currentYear() << "\n";
+        std::cout << "Neoplásicas hasta ahora: " << sim.currentNeoplasticCount() << "\n";
+
         if (!can_continue) {
             std::cout << "Simulación completada (alcanzado max_t = " << sim.maxYears() << ")." << std::endl;
             break;
