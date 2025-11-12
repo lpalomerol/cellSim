@@ -28,23 +28,41 @@ namespace domain {
     }
 
     void AgenticCell::live() {
+        // FASE 1: Revisar estado inicial (muerta o ya neoplásica)
         if (verbose_) {
-            std::cout << "[Trace] AgenticCell::live()\n";
+            std::cout << "[Trace] AgenticCell::live() - fase 1: estado inicial\n";
             details();
             std::cout << "               \n";
         }
-        // Avanzar todos los genes (mutaciones/efectos) sin traza
+
+        // Si la célula está muerta, no hacer nada
+        if (!alive()) {
+            if (verbose_) std::cout << "[Trace] AgenticCell::live() - célula muerta, terminando fase.\n";
+            return;
+        }
+
+        // Si ya es neoplásica, no hacer nada
+        if (is_neoplastic_) {
+            if (verbose_) std::cout << "[Trace] AgenticCell::live() - ya neoplásica, terminando fase.\n";
+            return;
+        }
+
+        // FASE 2: Actualizar genes
+        if (verbose_) std::cout << "[Trace] AgenticCell::live() - fase 2: actualizar genes\n";
         genome_.liveAllGenes();
 
         // Si la célula queda muerta después de avanzar genes, no hacer nada más
         if (!alive()) {
+            if (verbose_) std::cout << "[Trace] AgenticCell::live() - tras genes, la célula ha muerto.\n";
             return;
         }
 
-        // Si ya es neoplásica, nada que muestrear
-        if (is_neoplastic_) {
-            return;
-        }
+        // FASE 3: Posible ajuste de k (neoplasm_k_)
+        if (verbose_) std::cout << "[Trace] AgenticCell::live() - fase 3: posible ajuste de k\n";
+        adjust_neoplasm_k();
+
+        // FASE 4: Desarrollar neoplasia si corresponde
+        if (verbose_) std::cout << "[Trace] AgenticCell::live() - fase 4: evaluar desarrollo de neoplasia\n";
 
         // Sólo desarrollar neoplasia si no está protegida por TP53
         if (!isNeoplasticProtected()) {
@@ -114,6 +132,9 @@ namespace domain {
     bool AgenticCell::isNeoplasticProtected() const {
         const Gene *tp53 = genome_.getGene("TP53");
         return (tp53 && tp53->enabled());
+    }
+
+    void AgenticCell::adjust_neoplasm_k() {
     }
 
 } // domain

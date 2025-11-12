@@ -43,5 +43,7 @@ namespace domain {
 
         // Nueva: encapsula la lógica de desarrollar neoplasia (muestra ruido y aplica neoplasm_k_)
         void develop_neoplasm();
+
+        static void adjust_neoplasm_k();
     };
 } // domain
