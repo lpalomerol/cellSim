@@ -19,9 +19,11 @@ namespace domain {
         } else {
             seed_ = 0;
         }
+        if (verbose) {
+            // Mostrar la semilla para trazabilidad; el simulador también lo verá via details() o getSeed()
+            std::cout << "[Trace] AgenticCell seed: " << seed_ << "\n";
 
-        // Siempre mostrar la semilla para trazabilidad; el simulador también lo verá via details() o getSeed()
-        std::cout << "[Trace] AgenticCell seed: " << seed_ << "\n";
+        }
 
     }
 
