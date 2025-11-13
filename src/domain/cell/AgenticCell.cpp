@@ -28,61 +28,77 @@ namespace domain {
     }
 
     void AgenticCell::live() {
-        // Ejecutar fases en secuencia; las fases lanzarán CellDeathException si la célula muere
+        // Ejecutar fases en secuencia; las fases lanzarán excepciones si la célula muere o es neoplásica
         try {
-            if (verbose_) {
-                details();
+            phase0_BaselineAssessment();
 
+            phase1_G1IntegrityCheckpoint();
+
+            phase2_Endocytosis();
+
+            phase3_NuclearDynamics();
+
+            phase4_CytoplasmicRemodeling();
+
+            phase5_Exocytosis();
+
+        } catch (const NeoplasticException& e) {
+            if (verbose_) {
+                std::cout << "[Trace] neoplastic@live: " << e.what() << "\n";
             }
-            phase1_initialChecks();
-            phase2_updateGenotype();
-            phase3_updateInternalStatus();
-            phase4_updatePhenotype();
+            return;
         } catch (const CellDeathException& e) {
             if (verbose_) {
-                std::cout << "[Trace] AgenticCell::live() - fase abortada por muerte de la célula: " << e.what() << "\n";
+                std::cout << "[Trace] dead@live: " << e.what() << "\n";
             }
             // Terminar el ciclo live() silenciosamente
             return;
         }
     }
 
-    // Fase 1: comprobaciones iniciales (viva y no ya neoplásica)
-    void AgenticCell::phase1_initialChecks() const {
-        // Si la célula está muerta -> lanzar excepción para indicar terminación
+    // phase0: mostrar detalles si verbose
+    void AgenticCell::phase0_BaselineAssessment() const {
+        if (verbose_) {
+            details();
+        }
+    }
+
+    // phase1: comprobaciones de integridad
+    void AgenticCell::phase1_G1IntegrityCheckpoint() const {
         if (!alive()) {
             throw CellDeathException("dead@phase1");
         }
-        // Si ya es neoplásica -> lanzar excepción para indicar terminación (comportamiento previo)
         if (is_neoplastic_) {
-            throw CellDeathException("neoplastic@phase1");
+            throw NeoplasticException("neoplastic@phase1");
         }
     }
 
-    // Fase 2: actualizar genotipo (por ahora, avanzar genes)
-    void AgenticCell::phase2_updateGenotype() {
+    // phase2: endocytosis (por ahora vacío)
+    void AgenticCell::phase2_Endocytosis() {
+
+    }
+
+    // phase3: procesos nucleares (genes + ajustes internos + aumentar edad)
+    void AgenticCell::phase3_NuclearDynamics() {
+        // por ahora usamos esto para avanzar todos los genes
         genome_.liveAllGenes();
-        if (!alive()) {
-            throw CellDeathException("dead@phase2");
-        }
-    }
-
-    // Fase 3: actualizar estado interno (ajustar parámetros internos y aumentar edad)
-    void AgenticCell::phase3_updateInternalStatus() {
         adjust_neoplasm_k();
-        // Comprobar si la celula ha muerto tras actualizar estado interno
         if (!alive()) {
             throw CellDeathException("dead@phase3");
         }
-        // Incrementar edad aquí como parte del estado interno
         increaseAge();
     }
 
-    // Fase 4: actualizar fenotipo (evaluar si desarrolla tumor)
-    void AgenticCell::phase4_updatePhenotype() {
+    // phase4: procesos citoplasmáticos / evaluación fenotípica
+    void AgenticCell::phase4_CytoplasmicRemodeling() {
         if (!isNeoplasticProtected()) {
             develop_neoplasm();
         }
+    }
+
+    // phase5: exocitosis (stub por ahora)
+    void AgenticCell::phase5_Exocytosis() {
+        // Intencionalmente vacío por ahora
     }
 
     bool AgenticCell::alive() const {
