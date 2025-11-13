@@ -7,7 +7,7 @@ int main() {
     // Parámetros de prueba - definidos aquí para pruebas mínimas y centralizar cambios
     // Cambia estos valores según necesites para experimentar rápidamente.
     int n_cells = 100;             // Número de células por simulación (default 100)
-    int num_simulations = 1;     // Número de simulaciones a ejecutar (default 200)
+    int num_simulations = 100;     // Número de simulaciones a ejecutar (default 200)
     int max_t = 80;                // Tiempo máximo por simulación (años)
     int seed = -1;                 // Semilla global (-1 = variar por simulación)
     double neoplasm_k = 0.3;    // Probabilidad base de neoplasia

@@ -129,3 +129,29 @@ TEST(AgenticCellTest, LiveMakesCellTumoralWhenTP53MutatesAndKHigh) {
     EXPECT_EQ(cell.getTP53(), "-/-");
     EXPECT_FALSE(cell.isNeoplastic());
 }
+
+// ---------- Nuevas pruebas para comprobar contador de edad ----------
+
+TEST(AgenticCellTest, AgeIncrementsWhenAlive) {
+    domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
+    domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus); // viva
+    std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
+    domain::Genome genome(genes);
+    domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome);
+    EXPECT_EQ(cell.getAge(), 0u);
+    cell.live();
+    EXPECT_EQ(cell.getAge(), 1u);
+    cell.live();
+    EXPECT_EQ(cell.getAge(), 2u);
+}
+
+TEST(AgenticCellTest, AgeDoesNotIncrementWhenDead) {
+    domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
+    domain::Gene brca1("BRCA1", domain::Gene::State::MinusMinus); // muerta
+    std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
+    domain::Genome genome(genes);
+    domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome);
+    EXPECT_EQ(cell.getAge(), 0u);
+    cell.live(); // no debe incrementar porque está muerta
+    EXPECT_EQ(cell.getAge(), 0u);
+}
