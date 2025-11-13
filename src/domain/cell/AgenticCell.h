@@ -7,8 +7,6 @@
 #include "../ports/INoiseSource.h"
 #include "../gene/Genome.h"
 #include <memory>
-#include <cstdint>
-#include <exception>
 #include <string>
 
 
@@ -55,21 +53,7 @@ namespace domain {
         // Nueva: incrementar edad (la fase que la llama decide cuando hacerlo)
         void increaseAge();
 
-        // Excepción usada para señalizar que la célula ha muerto durante una fase
-        struct CellDeathException : public std::exception {
-            explicit CellDeathException(std::string m) : msg_(std::move(m)) {}
-            const char* what() const noexcept override { return msg_.c_str(); }
-        private:
-            std::string msg_;
-        };
-
-        // Nueva excepción: señaliza que la célula es neoplásica y debe dejarse de simular
-        struct NeoplasticException : public std::exception {
-            explicit NeoplasticException(std::string m) : msg_(std::move(m)) {}
-            const char* what() const noexcept override { return msg_.c_str(); }
-        private:
-            std::string msg_;
-        };
+        // Excepciones están definidas en domain/exception y se usan como `domain::CellDeathException` y `domain::NeoplasticException`.
 
         // Nuevas: fases con nombres biológicamente más descriptivos
         void phase0_BaselineAssessment() const;

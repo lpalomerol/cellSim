@@ -4,6 +4,8 @@
 
 #include "AgenticCell.h"
 #include <iostream>
+#include "../exception/CellDeathException.h"
+#include "../exception/NeoplasticException.h"
 
 namespace domain {
     AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, bool verbose)
