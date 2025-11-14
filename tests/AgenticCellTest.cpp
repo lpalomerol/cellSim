@@ -155,3 +155,35 @@ TEST(AgenticCellTest, AgeDoesNotIncrementWhenDead) {
     cell.live(); // no debe incrementar porque está muerta
     EXPECT_EQ(cell.getAge(), 0u);
 }
+
+TEST(AgenticCellTest, ImmunosuppressionEvolutionByTP53State) {
+    // TP53 sano (+/+) -> immunosuppression stays at 1.0 (1*1)
+    domain::Gene tp53_pp("TP53", domain::Gene::State::PlusPlus);
+    domain::Gene brca1_pp("BRCA1", domain::Gene::State::PlusPlus);
+    std::unordered_map<std::string, domain::Gene> genes_pp{{tp53_pp.name(), tp53_pp}, {brca1_pp.name(), brca1_pp}};
+    domain::Genome genome_pp(genes_pp);
+    domain::AgenticCell cell_pp(std::make_unique<test::DummyNoise>(), genome_pp);
+    EXPECT_EQ(cell_pp.getImmunosuppression(), 1.0);
+    cell_pp.live();
+    EXPECT_DOUBLE_EQ(cell_pp.getImmunosuppression(), 1.0);
+
+    // TP53 heterocigótico (+/-) -> base 1.0 squared = 1.0, then +0.1 => 1.1 (minimum 1.0 allowed)
+    domain::Gene tp53_pm("TP53", domain::Gene::State::PlusMinus);
+    domain::Gene brca1_pm("BRCA1", domain::Gene::State::PlusPlus);
+    std::unordered_map<std::string, domain::Gene> genes_pm{{tp53_pm.name(), tp53_pm}, {brca1_pm.name(), brca1_pm}};
+    domain::Genome genome_pm(genes_pm);
+    domain::AgenticCell cell_pm(std::make_unique<test::DummyNoise>(), genome_pm);
+    EXPECT_EQ(cell_pm.getImmunosuppression(), 1.0);
+    cell_pm.live();
+    EXPECT_DOUBLE_EQ(cell_pm.getImmunosuppression(), 1.1);
+
+    // TP53 homocigótico (--): base 1.0 squared = 1.0, then +0.2 => 1.2
+    domain::Gene tp53_mm("TP53", domain::Gene::State::MinusMinus);
+    domain::Gene brca1_mm("BRCA1", domain::Gene::State::PlusPlus);
+    std::unordered_map<std::string, domain::Gene> genes_mm{{tp53_mm.name(), tp53_mm}, {brca1_mm.name(), brca1_mm}};
+    domain::Genome genome_mm(genes_mm);
+    domain::AgenticCell cell_mm(std::make_unique<test::DummyNoise>(), genome_mm);
+    EXPECT_EQ(cell_mm.getImmunosuppression(), 1.0);
+    cell_mm.live();
+    EXPECT_DOUBLE_EQ(cell_mm.getImmunosuppression(), 1.2);
+}

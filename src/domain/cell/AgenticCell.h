@@ -69,5 +69,20 @@ namespace domain {
 
         // Adjust neoplasm probability (placeholder for future behavior)
         static void adjust_neoplasm_k();
+
+        // Indicator of immunosuppression. Starts at 1.0 and is updated in phase4.
+        // This acts as a multiplicative degrader of the biological system: it starts at 1.0
+        // and may grow without an upper bound (values >1 represent progressive degradation).
+        double immunosuppression_ = 1.0;
+
+        // Update the immunosuppression indicator based on TP53 status and previous value.
+        // The implementation evolves the value by multiplying it by itself (squaring),
+        // then adds offsets depending on TP53 mutation state (see .cpp).
+        // Note: immunosuppression_ is clamped to a minimum of 1.0 but not capped above.
+        void updateImmunosuppression();
+
+    public:
+        // Expose the immunosuppression indicator for tests/tracing
+        [[nodiscard]] double getImmunosuppression() const { return immunosuppression_; }
     };
 } // domain

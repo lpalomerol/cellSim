@@ -96,11 +96,47 @@ namespace domain {
         if (!isNeoplasticProtected()) {
             develop_neoplasm();
         }
+        // Update immunosuppression indicator every cycle in phase4
+        updateImmunosuppression();
     }
 
     // phase5: exocytosis (stub for now)
     void AgenticCell::phase5_Exocytosis() {
         // intentionally empty for now
+    }
+
+    // Update immunosuppression indicator.
+    // Rule: immunosuppression_ evolves by squaring its previous value each iteration.
+    // Additionally, TP53 mutational state adds an offset:
+    // - "+/-" adds +0.1
+    // - "-/-" adds +0.2
+    void AgenticCell::updateImmunosuppression() {
+        const Gene *tp53 = genome_.getGene("TP53");
+
+        double previous = immunosuppression_;
+        // base evolution: square the previous value
+        double next = previous * previous;
+
+        if (tp53) {
+            std::string st = tp53->status();
+            if (st == "+/-") {
+                next += 0.001;
+            } else if (st == "-/-") {
+                next += 0.002;
+            }
+        }
+
+        // Ensure the immunosuppression acts as a multiplicative degrader starting at 1.0
+        // and unbounded above (i.e., it can grow to represent progressive degradation).
+        // Therefore we only enforce a lower bound of 1.0.
+        if (next < 1.0) next = 1.0;
+
+        immunosuppression_ = next;
+
+        if (verbose_) {
+            std::cout << "[Trace] immunosuppression update: prev=" << previous << " -> next=" << immunosuppression_
+                      << " | TP53_status=" << (tp53 ? tp53->status() : "?") << "\n";
+        }
     }
 
     bool AgenticCell::alive() const {
@@ -131,7 +167,7 @@ namespace domain {
                 "Alive: [" <<cell_is_alive << "] |  "<<
                 "Neoplastic protected ["<< cell_is_neoplastic_protected<< "] | "<<
                 "Neoplastic: [" << cell_is_neoplastic << "] | " <<
-                "Seed: [" << seed_ << "]" << " | Age: [" << age_ << "]\n";
+                "Seed: [" << seed_ << "]" << " | Age: [" << age_ << "]" << " | Immunosuppression: [" << immunosuppression_ << "]\n";
             // Always show genome state (useful for debugging even if the cell is dead)
             std::cout << "Genome details:\n";
             genome_.details();
