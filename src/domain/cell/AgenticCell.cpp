@@ -10,19 +10,19 @@
 namespace domain {
     AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, bool verbose)
         : noise_(std::move(noise)), genome_(std::move(genome)), neoplasm_k_(neoplasm_k), is_neoplastic_(false), verbose_(verbose) {
-        // Inyectar la fuente de ruido en todos los genes del genoma usando la API de Genome
+        // Inject the noise source into all genes in the genome via Genome API
         genome_.setNoiseSourceForAll(noise_.get());
-        // Asegurar que el genoma y sus genes respeten el flag verbose
+        // Ensure genome and its genes respect the verbose flag
         genome_.setVerbose(verbose_);
 
-        // Guardar y mostrar la semilla usada (requiere INoiseSource::getSeed())
+        // Store and expose the seed used (requires INoiseSource::getSeed())
         if (noise_) {
             seed_ = noise_->getSeed();
         } else {
             seed_ = 0;
         }
         if (verbose_) {
-            // Mostrar la semilla para trazabilidad; el simulador también lo verá via details() o getSeed()
+            // Print the seed for traceability; the simulator can also read it via details() or getSeed()
             std::cout << "[Trace] AgenticCell seed: " << seed_ << "\n";
 
         }
@@ -30,7 +30,7 @@ namespace domain {
     }
 
     void AgenticCell::live() {
-        // Ejecutar fases en secuencia; las fases lanzarán excepciones si la célula muere o es neoplásica
+        // Execute phases in sequence; phases throw exceptions if the cell dies or becomes neoplastic
         try {
             phase0_BaselineAssessment();
 
@@ -53,19 +53,19 @@ namespace domain {
             if (verbose_) {
                 std::cout << "[Trace] dead@live: " << e.what() << "\n";
             }
-            // Terminar el ciclo live() silenciosamente
+            // End the live() cycle silently
             return;
         }
     }
 
-    // phase0: mostrar detalles si verbose
+    // phase0: show details if verbose
     void AgenticCell::phase0_BaselineAssessment() const {
         if (verbose_) {
             details();
         }
     }
 
-    // phase1: comprobaciones de integridad
+    // phase1: integrity checks
     void AgenticCell::phase1_G1IntegrityCheckpoint() const {
         if (!alive()) {
             throw CellDeathException("dead@phase1");
@@ -75,14 +75,14 @@ namespace domain {
         }
     }
 
-    // phase2: endocytosis (por ahora vacío)
+    // phase2: endocytosis (currently stub)
     void AgenticCell::phase2_Endocytosis() {
 
     }
 
-    // phase3: procesos nucleares (genes + ajustes internos + aumentar edad)
+    // phase3: nuclear processes (genes + internal adjustments + age increment)
     void AgenticCell::phase3_NuclearDynamics() {
-        // por ahora usamos esto para avanzar todos los genes
+        // For now use this to advance all genes
         genome_.liveAllGenes();
         adjust_neoplasm_k();
         if (!alive()) {
@@ -91,16 +91,16 @@ namespace domain {
         increaseAge();
     }
 
-    // phase4: procesos citoplasmáticos / evaluación fenotípica
+    // phase4: cytoplasmic processes / phenotypic evaluation
     void AgenticCell::phase4_CytoplasmicRemodeling() {
         if (!isNeoplasticProtected()) {
             develop_neoplasm();
         }
     }
 
-    // phase5: exocitosis (stub por ahora)
+    // phase5: exocytosis (stub for now)
     void AgenticCell::phase5_Exocytosis() {
-        // Intencionalmente vacío por ahora
+        // intentionally empty for now
     }
 
     bool AgenticCell::alive() const {
@@ -132,29 +132,29 @@ namespace domain {
                 "Neoplastic protected ["<< cell_is_neoplastic_protected<< "] | "<<
                 "Neoplastic: [" << cell_is_neoplastic << "] | " <<
                 "Seed: [" << seed_ << "]" << " | Age: [" << age_ << "]\n";
-            // Mostrar el estado del genoma siempre (útil para depuración aunque la célula esté muerta)
+            // Always show genome state (useful for debugging even if the cell is dead)
             std::cout << "Genome details:\n";
             genome_.details();
         }
 
     }
 
-    // Implementación de mutateGene: delega en Genome::mutate
+    // Implement mutateGene: delegate to Genome::mutate
     void AgenticCell::mutateGene(const std::string& name) {
         genome_.mutate(name);
     }
 
-    // Nueva función: encapsula el muestreo de ruido y la decisión de neoplasia
+    // Encapsulate sampling the noise and deciding neoplasm
     void AgenticCell::develop_neoplasm() {
-        if (!noise_) return; // seguridad
+        if (!noise_) return; // safety
         double sample = noise_->next().u01;
-        // Trazabilidad: mostrar sample y umbral
-        if (verbose_) std::cout << "[Trace] muestreo para neoplasia: sample=" << sample << " threshold=" << neoplasm_k_ << "\n";
+        // Trace: show sample and threshold
+        if (verbose_) std::cout << "[Trace] sampling for neoplasm: sample=" << sample << " threshold=" << neoplasm_k_ << "\n";
         if (sample < neoplasm_k_) {
             is_neoplastic_ = true;
-            if (verbose_) std::cout << "[Trace] Resultado: la célula se vuelve NEOPLÁSICA\n";
+            if (verbose_) std::cout << "[Trace] Result: cell becomes NEOPLASTIC\n";
         } else {
-            if (verbose_) std::cout << "[Trace] Resultado: no se desarrolla neoplasia (sample >= threshold)\n";
+            if (verbose_) std::cout << "[Trace] Result: no neoplasm developed (sample >= threshold)\n";
         }
     }
 
@@ -166,9 +166,11 @@ namespace domain {
     void AgenticCell::adjust_neoplasm_k() {
     }
 
-    // Nueva: incrementar edad solo si la célula está viva
+    // Increment age only if the cell is alive (defensive)
     void AgenticCell::increaseAge() {
-        ++age_;
+        if (alive()) {
+            ++age_;
+        }
     }
 
 } // domain

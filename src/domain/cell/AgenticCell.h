@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include <cstdint>
 #include "../ports/ICell.h"
 #include "../ports/INoiseSource.h"
 #include "../gene/Genome.h"
@@ -12,28 +13,33 @@
 
 namespace domain {
 
-    class AgenticCell final : public domain::ICell {
+    class AgenticCell final : public ICell {
     public:
-        // Toma el Genome por valor para clarificar ownership (se copia/mueve internamente)
+        // Construct an AgenticCell. Genome is taken by value to make ownership explicit
+        // and allow move-semantics from caller. Noise source is owned via unique_ptr.
         AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k = 0.002, bool verbose = false);
 
+        // Run a single lifecycle tick for the cell
         void live() override;
+        // Query liveness
         bool alive() const override;
+        // Query whether the cell has become neoplastic
         bool isNeoplastic() const override;
         [[nodiscard]] std::string getTP53() const;
         [[nodiscard]] std::string getBRCA1() const;
-        // Imprime detalles de la célula y su genoma (solo si está viva). No modifica estado.
+        // Print cell and genome details (read-only). Implementation may be verbose-controlled.
         void details() const override;
 
-        // Permite forzar la mutación de un gen en el genoma interno
+        // Force a gene mutation in the internal genome
         void mutateGene(const std::string& name) override;
 
+        // Check whether TP53 protects the cell from neoplasm (i.e., TP53 enabled)
         bool isNeoplasticProtected() const;
 
-        // Exponer la semilla usada por la fuente de ruido
+        // Expose the seed used by the noise source for traceability
         std::uint64_t getSeed() const { return seed_; }
 
-        // Nuevo: obtener la edad (necesario para tests y trazabilidad)
+        // Expose cell age (useful for tests and tracing)
         std::uint64_t getAge() const { return age_; }
 
     private:
@@ -42,20 +48,18 @@ namespace domain {
         double neoplasm_k_;
         bool is_neoplastic_;
         bool verbose_ = false;
-        std::uint64_t seed_ = 0; // guarda la semilla usada
+        std::uint64_t seed_ = 0; // records the RNG seed used by the noise source
 
-        // Nueva: contador de edad de la célula (incrementa 1 por iteración)
+        // Age counter incremented each tick when the cell is alive
         std::uint64_t age_ = 0;
 
-        // Nueva: encapsula la lógica de desarrollar neoplasia (muestra ruido y aplica neoplasm_k_)
+        // Encapsulate neoplasm development logic (samples noise and applies threshold)
         void develop_neoplasm();
 
-        // Nueva: incrementar edad (la fase que la llama decide cuando hacerlo)
+        // Increment age by one tick (defensive: only increments if the cell remains alive)
         void increaseAge();
 
-        // Excepciones están definidas en domain/exception y se usan como `domain::CellDeathException` y `domain::NeoplasticException`.
-
-        // Nuevas: fases con nombres biológicamente más descriptivos
+        // Lifecycle phases (keeps live() method small and testable)
         void phase0_BaselineAssessment() const;
         void phase1_G1IntegrityCheckpoint() const;
         void phase2_Endocytosis();
@@ -63,6 +67,7 @@ namespace domain {
         void phase4_CytoplasmicRemodeling();
         void phase5_Exocytosis();
 
+        // Adjust neoplasm probability (placeholder for future behavior)
         static void adjust_neoplasm_k();
     };
 } // domain
