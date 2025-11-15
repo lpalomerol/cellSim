@@ -43,7 +43,8 @@ namespace domain {
     }
 
     std::string Gene::details() const {
-        return name_ + " [" + status() + "] p(mut)=" + std::to_string(mutation_threshold_ + mutation_instability_k_);
+        // Mostrar el threshold efectivo considerando inestabilidad (clamped internamente)
+        return name_ + " [" + status() + "] p(mut)=" + std::to_string(get_mutation_threshold(true));
     }
 
     std::string Gene::details(bool unstable) const {
@@ -69,6 +70,24 @@ namespace domain {
         }
     }
 
+    void Gene::live(bool apply_instability, double immunosuppression) {
+        // immunosuppression acts as a multiplicative degrader: values >1 increase effective mutation probability
+        double base_threshold = get_mutation_threshold(apply_instability);
+        double threshold = base_threshold * immunosuppression;
+        // Clamp to the valid probability range [0,1]
+        if (threshold > 1.0) threshold = 1.0;
+        if (threshold < 0.0) threshold = 0.0;
+        if (noise_) {
+            double sample = noise_->next().u01;
+            if (sample < threshold) {
+                if (verbose_) std::cout << "[Gene::live] Gene " << name_ << " mutating (sample=" << sample << " < threshold=" << threshold << ")\n";
+                mutate();
+            } else {
+                if (verbose_) std::cout << "[Gene::live] Gene " << name_ << " not mutating (sample=" << sample << " >= threshold=" << threshold << ")\n";
+            }
+        }
+    }
+
     void Gene::setNoiseSource(INoiseSource* noise) {
         noise_ = noise;
     }
@@ -80,6 +99,9 @@ namespace domain {
     void Gene::setVerbose(bool v) { verbose_ = v; }
 
     double Gene::get_mutation_threshold(bool apply_instability) const {
-        return mutation_threshold_  + (apply_instability ? mutation_instability_k_ : 0.0);
+        // Use the Threshold value object to apply instability and keep limits enforced by Threshold itself.
+        domain::shared::Threshold t = mutation_threshold_; // copy
+        if (apply_instability) t += mutation_instability_k_;
+        return t.value();
     }
 }

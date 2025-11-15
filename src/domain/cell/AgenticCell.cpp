@@ -83,7 +83,8 @@ namespace domain {
     // phase3: nuclear processes (genes + internal adjustments + age increment)
     void AgenticCell::phase3_NuclearDynamics() {
         // For now use this to advance all genes
-        genome_.liveAllGenes();
+        // Pass current immunosuppression as a multiplicative factor to gene mutation thresholds
+        genome_.liveAllGenes(immunosuppression_);
         adjust_neoplasm_k();
         if (!alive()) {
             throw CellDeathException("dead@phase3");
@@ -118,13 +119,13 @@ namespace domain {
         double next = previous * previous;
 
         if (tp53) {
-            std::string st = tp53->status();
-            if (st == "+/-") {
-                next += 0.001;
-            } else if (st == "-/-") {
-                next += 0.002;
-            }
-        }
+             std::string st = tp53->status();
+             if (st == "+/-") {
+                next += 0.1;
+             } else if (st == "-/-") {
+                next += 0.2;
+             }
+         }
 
         // Ensure the immunosuppression acts as a multiplicative degrader starting at 1.0
         // and unbounded above (i.e., it can grow to represent progressive degradation).

@@ -39,11 +39,12 @@ void Genome::setNoiseSourceForAll(INoiseSource* noise) {
 }
 
 // Avanza (live) todos los genes del genoma
-void Genome::liveAllGenes() {
+void Genome::liveAllGenes(double immunosuppression) {
     // Aplicar el componente de inestabilidad solo si el genoma está inestable (según TP53)
     bool unstable = isUnstable();
     for (auto& kv : genes_) {
-        kv.second.live(unstable);
+        // Propagar immunosuppression a cada gen (por defecto 1.0 = sin efecto)
+        kv.second.live(unstable, immunosuppression);
     }
 }
 

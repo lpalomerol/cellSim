@@ -30,7 +30,8 @@ public:
     void setNoiseSourceForAll(INoiseSource* noise);
 
     // Avanza (live) todos los genes del genoma
-    void liveAllGenes();
+    // immunosuppression: multiplicative factor applied to gene mutation thresholds (default 1.0 = no effect)
+    void liveAllGenes(double immunosuppression = 1.0);
 
     // Imprime los detalles de todos los genes (una línea por gen), usando Gene::details()
     void details() const;

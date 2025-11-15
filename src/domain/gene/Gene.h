@@ -5,6 +5,7 @@
 #pragma once
 #include <string>
 #include "../ports/INoiseSource.h"
+#include "../shared/Threshold.h"
 
 namespace domain{
     class Gene {
@@ -22,7 +23,9 @@ namespace domain{
         void mutate();
         void live();
         void live(bool apply_instability);
-        [[nodiscard]] double getMutationThreshold() const { return mutation_threshold_; }
+        // Nueva sobrecarga: permite pasar un factor de inmunosupresión (>1 aumenta la probabilidad de mutación)
+        void live(bool apply_instability, double immunosuppression);
+        [[nodiscard]] double getMutationThreshold() const { return mutation_threshold_.value(); }
         [[nodiscard]] double getMutationInstabilityK() const { return mutation_instability_k_; }
         void setNoiseSource(INoiseSource* noise);
 
@@ -41,7 +44,7 @@ namespace domain{
     private:
         std::string name_;
         State state_;
-        double mutation_threshold_;
+        domain::shared::Threshold mutation_threshold_;
         double mutation_instability_k_;
         INoiseSource* noise_;
         bool verbose_ = false;
