@@ -6,10 +6,11 @@
 #include <iostream>
 #include "../exception/CellDeathException.h"
 #include "../exception/NeoplasticException.h"
+#include "../shared/Threshold.h"
 
 namespace domain {
     AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, bool verbose)
-        : noise_(std::move(noise)), genome_(std::move(genome)), neoplasm_k_(neoplasm_k), is_neoplastic_(false), verbose_(verbose) {
+        : noise_(std::move(noise)), genome_(std::move(genome)), neoplasm_k_(domain::shared::Threshold(neoplasm_k)), is_neoplastic_(false), verbose_(verbose) {
         // Inject the noise source into all genes in the genome via Genome API
         genome_.setNoiseSourceForAll(noise_.get());
         // Ensure genome and its genes respect the verbose flag
@@ -186,8 +187,8 @@ namespace domain {
         if (!noise_) return; // safety
         double sample = noise_->next().u01;
         // Trace: show sample and threshold
-        if (verbose_) std::cout << "[Trace] sampling for neoplasm: sample=" << sample << " threshold=" << neoplasm_k_ << "\n";
-        if (sample < neoplasm_k_) {
+        if (verbose_) std::cout << "[Trace] sampling for neoplasm: sample=" << sample << " threshold=" << neoplasm_k_.value() << "\n";
+        if (sample < neoplasm_k_.value()) {
             is_neoplastic_ = true;
             if (verbose_) std::cout << "[Trace] Result: cell becomes NEOPLASTIC\n";
         } else {

@@ -9,6 +9,7 @@
 #include "../gene/Genome.h"
 #include <memory>
 #include <string>
+#include "../shared/Threshold.h"
 
 
 namespace domain {
@@ -45,7 +46,7 @@ namespace domain {
     private:
         std::unique_ptr<INoiseSource> noise_;
         Genome genome_;
-        double neoplasm_k_;
+        domain::shared::Threshold neoplasm_k_;
         bool is_neoplastic_;
         bool verbose_ = false;
         std::uint64_t seed_ = 0; // records the RNG seed used by the noise source

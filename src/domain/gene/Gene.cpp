@@ -72,11 +72,11 @@ namespace domain {
 
     void Gene::live(bool apply_instability, double immunosuppression) {
         // immunosuppression acts as a multiplicative degrader: values >1 increase effective mutation probability
-        double base_threshold = get_mutation_threshold(apply_instability);
-        double threshold = base_threshold * immunosuppression;
-        // Clamp to the valid probability range [0,1]
-        if (threshold > 1.0) threshold = 1.0;
-        if (threshold < 0.0) threshold = 0.0;
+        domain::shared::Threshold t = mutation_threshold_; // copy
+        if (apply_instability) t += mutation_instability_k_;
+        t *= immunosuppression; // Threshold clamps internally
+        double threshold = t.value();
+
         if (noise_) {
             double sample = noise_->next().u01;
             if (sample < threshold) {
