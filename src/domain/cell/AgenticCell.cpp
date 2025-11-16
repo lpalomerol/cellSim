@@ -1,71 +1,72 @@
 //
-// Created by luis on 31/10/25.
 //
 
 #include "AgenticCell.h"
 #include <iostream>
 #include "../exception/CellDeathException.h"
 #include "../exception/NeoplasticException.h"
+#include "../shared/Threshold.h"
 
 namespace domain {
+
+    /**
+     * Construct an AgenticCell.
+     * - Injects the provided noise source into all genes.
+     * - Sets genome verbosity and captures the RNG seed (if available).
+     */
     AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, bool verbose)
-        : noise_(std::move(noise)), genome_(std::move(genome)), neoplasm_k_(neoplasm_k), is_neoplastic_(false), verbose_(verbose) {
-        // Inyectar la fuente de ruido en todos los genes del genoma usando la API de Genome
+        : noise_(std::move(noise)), genome_(std::move(genome)), neoplasm_k_(domain::shared::Threshold(neoplasm_k)), is_neoplastic_(false), verbose_(verbose) {
+        // Inject the noise source into all genes via the Genome API
         genome_.setNoiseSourceForAll(noise_.get());
-        // Asegurar que el genoma y sus genes respeten el flag verbose
+        // Propagate verbose flag to the genome and genes
         genome_.setVerbose(verbose_);
 
-        // Guardar y mostrar la semilla usada (requiere INoiseSource::getSeed())
+        // Store the RNG seed (if the noise source provides one)
         if (noise_) {
             seed_ = noise_->getSeed();
         } else {
             seed_ = 0;
         }
         if (verbose_) {
-            // Mostrar la semilla para trazabilidad; el simulador también lo verá via details() o getSeed()
             std::cout << "[Trace] AgenticCell seed: " << seed_ << "\n";
-
         }
-
     }
 
+    /**
+     * Run a single cell cycle. Phases are executed in order; exceptions are
+     * used to signal cell death or neoplastic conversion and stop further work.
+     */
     void AgenticCell::live() {
-        // Ejecutar fases en secuencia; las fases lanzarán excepciones si la célula muere o es neoplásica
         try {
             phase0_BaselineAssessment();
-
             phase1_G1IntegrityCheckpoint();
-
             phase2_Endocytosis();
-
             phase3_NuclearDynamics();
-
             phase4_CytoplasmicRemodeling();
-
             phase5_Exocytosis();
-
         } catch (const NeoplasticException& e) {
             if (verbose_) {
-                std::cout << "[Trace] neoplastic@live: " << e.what() << "\n";
+                std::cout << "[Trace] Neoplastic during live(): " << e.what() << "\n";
             }
             return;
         } catch (const CellDeathException& e) {
             if (verbose_) {
-                std::cout << "[Trace] dead@live: " << e.what() << "\n";
+                std::cout << "[Trace] Cell death during live(): " << e.what() << "\n";
             }
-            // Terminar el ciclo live() silenciosamente
             return;
         }
     }
 
-    // phase0: mostrar detalles si verbose
+    /** Show details when verbose */
     void AgenticCell::phase0_BaselineAssessment() const {
         if (verbose_) {
             details();
         }
     }
 
-    // phase1: comprobaciones de integridad
+    /**
+     * G1 integrity checkpoint: throws if the cell is dead or already neoplastic.
+     */
     void AgenticCell::phase1_G1IntegrityCheckpoint() const {
         if (!alive()) {
             throw CellDeathException("dead@phase1");
@@ -75,15 +76,17 @@ namespace domain {
         }
     }
 
-    // phase2: endocytosis (por ahora vacío)
+    /** Endocytosis phase (placeholder) */
     void AgenticCell::phase2_Endocytosis() {
-
     }
 
-    // phase3: procesos nucleares (genes + ajustes internos + aumentar edad)
+    /**
+     * Nuclear dynamics: advance all genes and update neoplasm threshold.
+     * Also checks for death and increments age for living cells.
+     */
     void AgenticCell::phase3_NuclearDynamics() {
-        // por ahora usamos esto para avanzar todos los genes
-        genome_.liveAllGenes();
+        // Advance genes using the current immunosuppression modifier
+        genome_.liveAllGenes(immunosuppression_);
         adjust_neoplasm_k();
         if (!alive()) {
             throw CellDeathException("dead@phase3");
@@ -91,18 +94,56 @@ namespace domain {
         increaseAge();
     }
 
-    // phase4: procesos citoplasmáticos / evaluación fenotípica
+    /**
+     * Cytoplasmic remodeling: attempt neoplasm development (unless protected)
+     * and update immunosuppression for the next cycle.
+     */
     void AgenticCell::phase4_CytoplasmicRemodeling() {
         if (!isNeoplasticProtected()) {
             develop_neoplasm();
         }
+        // Update immunosuppression every cycle
+        updateImmunosuppression();
     }
 
-    // phase5: exocitosis (stub por ahora)
+    /** Exocytosis phase (placeholder) */
     void AgenticCell::phase5_Exocytosis() {
-        // Intencionalmente vacío por ahora
+        // intentionally empty
     }
 
+    /**
+     * Update immunosuppression metric.
+     * Rules:
+     * - The base progression squares the previous value each iteration.
+     * - TP53 contributes an additive offset: "+/-" => +0.1, "-/-" => +0.2.
+     * - The metric is bounded below by 1.0 (acts as a multiplicative degrader).
+     */
+    void AgenticCell::updateImmunosuppression() {
+        const Gene *tp53 = genome_.getGene("TP53");
+
+        double previous = immunosuppression_;
+        double next = previous * previous;
+
+        if (tp53) {
+             std::string st = tp53->status();
+             if (st == "+/-") {
+                next += 0.1;
+             } else if (st == "-/-") {
+                next += 0.2;
+             }
+         }
+
+        if (next < 1.0) next = 1.0;
+
+        immunosuppression_ = next;
+
+        if (verbose_) {
+            std::cout << "[Trace] immunosuppression: prev=" << previous << " -> next=" << immunosuppression_
+                      << " | TP53=" << (tp53 ? tp53->status() : "?") << "\n";
+        }
+    }
+
+    /** Return whether the cell is alive (BRCA1 must be enabled). */
     bool AgenticCell::alive() const {
         const Gene *brca1 = genome_.getGene("BRCA1");
         return brca1 && brca1->enabled();
@@ -122,42 +163,42 @@ namespace domain {
         return brca1 ? brca1->status() : "?";
     }
 
+    /** Print concise cell state and genome when verbose. */
     void AgenticCell::details() const {
         std::string cell_is_alive = (alive() ? "yes" : "no");
         std::string cell_is_neoplastic = (isNeoplastic() ? "yes" : "no");
         std::string cell_is_neoplastic_protected = (isNeoplasticProtected() ? "yes" : "no");
         if (verbose_) {
-            std::cout << "[Cell details] "<<
-                "Alive: [" <<cell_is_alive << "] |  "<<
-                "Neoplastic protected ["<< cell_is_neoplastic_protected<< "] | "<<
-                "Neoplastic: [" << cell_is_neoplastic << "] | " <<
-                "Seed: [" << seed_ << "]" << " | Age: [" << age_ << "]\n";
-            // Mostrar el estado del genoma siempre (útil para depuración aunque la célula esté muerta)
+            std::cout << "[Cell details] "
+                << "Alive: [" << cell_is_alive << "] | "
+                << "Neoplastic protected: ["<< cell_is_neoplastic_protected<< "] | "
+                << "Neoplastic: [" << cell_is_neoplastic << "] | "
+                << "Seed: [" << seed_ << "] | Age: [" << age_ << "] | Immunosuppression: [" << immunosuppression_ << "]\n";
             std::cout << "Genome details:\n";
             genome_.details();
         }
 
     }
 
-    // Implementación de mutateGene: delega en Genome::mutate
+    /** Delegate mutation to the Genome. */
     void AgenticCell::mutateGene(const std::string& name) {
         genome_.mutate(name);
     }
 
-    // Nueva función: encapsula el muestreo de ruido y la decisión de neoplasia
+    /** Sample the noise source and set neoplastic flag if threshold crossed. */
     void AgenticCell::develop_neoplasm() {
-        if (!noise_) return; // seguridad
+        if (!noise_) return;
         double sample = noise_->next().u01;
-        // Trazabilidad: mostrar sample y umbral
-        if (verbose_) std::cout << "[Trace] muestreo para neoplasia: sample=" << sample << " threshold=" << neoplasm_k_ << "\n";
-        if (sample < neoplasm_k_) {
+        if (verbose_) std::cout << "[Trace] neoplasm sample=" << sample << " threshold=" << neoplasm_k_.value() << "\n";
+        if (sample < neoplasm_k_.value()) {
             is_neoplastic_ = true;
-            if (verbose_) std::cout << "[Trace] Resultado: la célula se vuelve NEOPLÁSICA\n";
+            if (verbose_) std::cout << "[Trace] Cell converted to neoplastic state\n";
         } else {
-            if (verbose_) std::cout << "[Trace] Resultado: no se desarrolla neoplasia (sample >= threshold)\n";
+            if (verbose_) std::cout << "[Trace] No neoplasm (sample >= threshold)\n";
         }
     }
 
+    /** Return true if TP53 is present and enabled. */
     bool AgenticCell::isNeoplasticProtected() const {
         const Gene *tp53 = genome_.getGene("TP53");
         return (tp53 && tp53->enabled());
@@ -166,9 +207,11 @@ namespace domain {
     void AgenticCell::adjust_neoplasm_k() {
     }
 
-    // Nueva: incrementar edad solo si la célula está viva
+    /** Increment age only when cell is alive. */
     void AgenticCell::increaseAge() {
-        ++age_;
+        if (alive()) {
+            ++age_;
+        }
     }
 
-} // domain
+} // namespace domain

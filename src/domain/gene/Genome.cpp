@@ -21,51 +21,52 @@ const std::unordered_map<std::string, Gene>& Genome::genes() const {
     return genes_;
 }
 
-// Fábrica para genoma por defecto
+// Factory: return the default genome
 Genome Genome::makeDefaultGenome() {
     return genome_factory::makeDefaultGenome();
 }
 
-// Devuelve una copia profunda del genoma
+// Return a deep copy of the genome
 Genome Genome::clone() const {
     return Genome(genes_, verbose_);
 }
 
-// Inyecta una fuente de ruido en todos los genes del genoma
+// Inject a noise source into every gene in the genome
 void Genome::setNoiseSourceForAll(INoiseSource* noise) {
     for (auto& kv : genes_) {
         kv.second.setNoiseSource(noise);
     }
 }
 
-// Avanza (live) todos los genes del genoma
-void Genome::liveAllGenes() {
-    // Aplicar el componente de inestabilidad solo si el genoma está inestable (según TP53)
+// Advance (live) all genes in the genome
+void Genome::liveAllGenes(double immunosuppression) {
+    // Apply instability component only if the genome is unstable (TP53)
     bool unstable = isUnstable();
     for (auto& kv : genes_) {
-        kv.second.live(unstable);
+        // Propagate immunosuppression to each gene (default 1.0 = no effect)
+        kv.second.live(unstable, immunosuppression);
     }
 }
 
-// Imprime los detalles de todos los genes (una línea por gen)
+// Print details of all genes (one line per gene)
 void Genome::details() const {
     if (!verbose_) return;
     bool unstable = isUnstable();
     for (const auto& kv : genes_) {
-        // Usar Gene::details() que devuelve "NAME[status]"
+        // Use Gene::details() which returns "NAME[status]"
         std::cout << kv.second.details(unstable) << std::endl;
     }
 }
 
 void Genome::setVerbose(bool v) {
     verbose_ = v;
-    // Propagar el cambio de verbose a todos los genes
+    // Propagate verbose setting to all genes
     for (auto& kv : genes_) {
         kv.second.setVerbose(v);
     }
 }
 
-// Nueva implementación: aplica mutación al gen identificado por `name`.
+// Apply mutation to the gene identified by `name`.
 void Genome::mutate(const std::string& name) {
     auto it = genes_.find(name);
     if (it != genes_.end()) {
@@ -73,7 +74,7 @@ void Genome::mutate(const std::string& name) {
     }
 }
 
-// Nueva: devuelve true si TP53 indica inestabilidad ("+/-" o "-/-").
+// Return true if TP53 indicates instability (TP53 == +/- or -/-)
 bool Genome::isUnstable() const {
     const Gene* tp53 = getGene("TP53");
     if (!tp53) return false;

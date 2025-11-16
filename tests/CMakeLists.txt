@@ -34,6 +34,7 @@ add_executable(unit_tests
         GenomeTest.cpp
         GenomeFactoryTest.cpp
         GenomeMutateTest.cpp
+        ThresholdTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales

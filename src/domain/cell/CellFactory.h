@@ -7,13 +7,13 @@
 
 namespace domain::cell_factory {
 
-// Crea una SimpleCell a partir de un RandomNoise y parámetros.
+// Create a SimpleCell from a RandomNoise and parameters.
 std::unique_ptr<ICell> createSimpleCell(adapters::RandomNoise& noise, const domain::SimpleCellParams& params);
 
-// Crea una AgenticCell recibiendo una seed para la fuente de ruido y un genoma movable
+// Create an AgenticCell accepting a seed for the noise source and a movable genome
 std::unique_ptr<ICell> createAgenticCell(unsigned seed, domain::Genome genome, double neoplasm_k, bool verbose = false);
 
-// Sobrecarga: permite inyectar directamente la fuente de ruido
+// Overload: allows directly injecting the noise source
 std::unique_ptr<ICell> createAgenticCell(std::unique_ptr<INoiseSource> noise, domain::Genome genome, double neoplasm_k, bool verbose = false);
 
 } // namespace domain::cell_factory

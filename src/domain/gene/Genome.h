@@ -8,41 +8,42 @@ namespace domain {
 
 class Genome {
 public:
-    // Constructor recibe un mapa (clave -> Gene) y lo almacena internamente.
+    // Constructor accepts a map (name -> Gene) and stores it internally.
     explicit Genome(std::unordered_map<std::string, Gene> genes = {}, bool verbose = false);
 
-    // Comprueba si existe un gen con la clave dada
+    // Check whether a gene with the given name exists
     bool hasGene(const std::string& name) const;
 
-    // Devuelve puntero const al gen; nullptr si no existe
+    // Return const pointer to the gene; nullptr if not found
     const Gene* getGene(const std::string& name) const;
 
-    // Acceso al mapa completo
+    // Access the full map
     const std::unordered_map<std::string, Gene>& genes() const;
 
-    // Fábrica: devuelve un genoma por defecto (TP53 y BRCA1 con estados por defecto)
+    // Factory: returns a default genome (TP53 and BRCA1 with standard states)
     static Genome makeDefaultGenome();
 
-    // Devuelve una copia profunda del genoma (clone explícito)
+    // Return a deep copy of the genome
     Genome clone() const;
 
-    // Inyecta una fuente de ruido a todos los genes del genoma
+    // Inject a noise source to every gene in the genome
     void setNoiseSourceForAll(INoiseSource* noise);
 
-    // Avanza (live) todos los genes del genoma
-    void liveAllGenes();
+    // Advance (live) all genes in the genome
+    // immunosuppression: multiplicative factor applied to gene mutation thresholds (default 1.0 = no effect)
+    void liveAllGenes(double immunosuppression = 1.0);
 
-    // Imprime los detalles de todos los genes (una línea por gen), usando Gene::details()
+    // Print details of all genes (one line per gene), using Gene::details()
     void details() const;
 
-    // Control de trazas verbose
+    // Verbose trace control
     void setVerbose(bool v);
 
-    // Nueva: aplica la mutación al gen identificado por `name`.
-    // Si el gen no existe, no hace nada.
+    // Apply mutation to the gene identified by `name`.
+    // If the gene does not exist, do nothing.
     void mutate(const std::string& name);
 
-    // Nueva: devuelve true si el gen TP53 indica inestabilidad (TP53 == +/- o -/-)
+    // Return true if TP53 indicates instability (TP53 == +/- or -/-)
     bool isUnstable() const;
 
 private:
