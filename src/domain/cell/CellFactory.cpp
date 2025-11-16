@@ -19,11 +19,11 @@ namespace domain::cell_factory {
         unsigned seed,
         domain::Genome genome,
         double neoplasm_k, bool verbose){
-        // Delegar en la nueva sobrecarga que acepta una fuente de ruido inyectada
+        // Delegate to overload that accepts an injected noise source
         return createAgenticCell(std::make_unique<adapters::RandomNoise>(seed), std::move(genome), neoplasm_k, verbose);
     }
 
-    // Sobrecarga: permite inyectar directamente la fuente de ruido
+    // Overload: allows directly injecting a noise source
     std::unique_ptr<ICell> createAgenticCell(std::unique_ptr<INoiseSource> noise, domain::Genome genome, double neoplasm_k, bool verbose) {
         return std::make_unique<domain::AgenticCell>(std::move(noise), std::move(genome), neoplasm_k, verbose);
     }

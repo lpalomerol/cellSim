@@ -20,13 +20,13 @@ namespace domain {
             : noise_(noise), params_(params) {}
 
         void live() override;
-        bool alive() const override;
-        // Indica si la célula ha adquirido un estado neoplásico
-        bool isNeoplastic() const override;
+        [[nodiscard]] bool alive() const override;
+        // Returns true if the cell has acquired a neoplastic onco-state
+        [[nodiscard]] bool isNeoplastic() const override;
         CellState state()  { return state_;}
         OncoState getOncoState() { return onco_;}
 
-        // No-op: SimpleCell no tiene genoma interno, por tanto no puede mutar genes.
+        // No-op: SimpleCell has no internal genome and cannot mutate genes.
         void mutateGene(const std::string& name) override { (void)name; }
 
     private:
