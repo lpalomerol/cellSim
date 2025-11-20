@@ -18,14 +18,16 @@ namespace domain::cell_factory {
     std::unique_ptr<ICell> createAgenticCell(
         unsigned seed,
         domain::Genome genome,
-        double neoplasm_k, bool verbose){
+        double neoplasm_k, double low_delta_instability, double high_delta_instability, bool verbose){
         // Delegate to overload that accepts an injected noise source
-        return createAgenticCell(std::make_unique<adapters::RandomNoise>(seed), std::move(genome), neoplasm_k, verbose);
+        return createAgenticCell(std::make_unique<adapters::RandomNoise>(seed), std::move(genome), neoplasm_k,
+
+        low_delta_instability, high_delta_instability, verbose);
     }
 
     // Overload: allows directly injecting a noise source
-    std::unique_ptr<ICell> createAgenticCell(std::unique_ptr<INoiseSource> noise, domain::Genome genome, double neoplasm_k, bool verbose) {
-        return std::make_unique<domain::AgenticCell>(std::move(noise), std::move(genome), neoplasm_k, verbose);
+    std::unique_ptr<ICell> createAgenticCell(std::unique_ptr<INoiseSource> noise, domain::Genome genome, double neoplasm_k, double low_delta_instability, double high_delta_instability,  bool verbose) {
+        return std::make_unique<domain::AgenticCell>(std::move(noise), std::move(genome), neoplasm_k, low_delta_instability, high_delta_instability, verbose);
     }
 
 } // namespace domain::cell_factory

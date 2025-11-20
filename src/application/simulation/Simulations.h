@@ -34,6 +34,10 @@ struct SimulationsConfig {
         {"BRCA1", -0.005}
     };
 
+    // Deltas iniciales para genomic instability que se pasan a AgenticCell (por defecto)
+    double low_delta_instability = 0.0001;
+    double high_delta_instability = 0.0002;
+
     // Nuevo flag: activar trazas verbose para genoma/células/genes (por defecto false)
     bool verbose = false;
 };

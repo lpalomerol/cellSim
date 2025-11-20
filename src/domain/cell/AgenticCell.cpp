@@ -14,8 +14,8 @@ namespace domain {
      * - Injects the provided noise source into all genes.
      * - Sets genome verbosity and captures the RNG seed (if available).
      */
-    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, bool verbose)
-        : noise_(std::move(noise)), genome_(std::move(genome)), neoplasm_k_(domain::shared::Threshold(neoplasm_k)), is_neoplastic_(false), verbose_(verbose) {
+    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, double low_delta_instability, double high_delta_instability, bool verbose)
+        : noise_(std::move(noise)), genome_(std::move(genome)), neoplasm_k_(domain::shared::Threshold(neoplasm_k)), is_neoplastic_(false), verbose_(verbose), low_delta_instability_(low_delta_instability), high_delta_instability_(high_delta_instability) {
         // Inject the noise source into all genes via the Genome API
         genome_.setNoiseSourceForAll(noise_.get());
         // Propagate verbose flag to the genome and genes

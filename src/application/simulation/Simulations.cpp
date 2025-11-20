@@ -20,7 +20,7 @@ void Simulations::runAll() {
         for (int i = 0; i < cfg_.n_cells; ++i) {
             // construir la seed de la célula usando 64 bits para evitar overflow
             std::uint64_t cell_seed64 = static_cast<std::uint64_t>(sim_seed) * 100000ull + static_cast<std::uint64_t>(i);
-            unsigned cell_seed = static_cast<unsigned>(cell_seed64 & 0xFFFFFFFFull);
+            auto cell_seed = static_cast<unsigned>(cell_seed64 & 0xFFFFFFFFull);
              // Obtener un genoma por defecto usando thresholds e instability_k proporcionados por la configuración
              domain::Genome genome = domain::genome_factory::makeDefaultGenome(
                  cfg_.gene_mutation_thresholds,
@@ -32,6 +32,8 @@ void Simulations::runAll() {
                      cell_seed,
                      std::move(genome),
                      cfg_.neoplasm_k,
+                     cfg_.low_delta_instability,
+                     cfg_.high_delta_instability,
                      cfg_.verbose)
              );
          }

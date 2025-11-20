@@ -18,7 +18,13 @@ namespace domain {
     public:
         // Construct an AgenticCell. Genome is taken by value to make ownership explicit
         // and allow move-semantics from caller. Noise source is owned via unique_ptr.
-        AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k = 0.002, bool verbose = false);
+        // Added optional low/high genomic instability deltas (defaults kept for backward compatibility)
+        AgenticCell(std::unique_ptr<INoiseSource> noise,
+                    Genome genome,
+                    double neoplasm_k = 0.002,
+                    double low_delta_instability = 0.0001,
+                    double high_delta_instability = 0.0002,
+                    bool verbose = false);
 
         // Run a single lifecycle tick for the cell
         void live() override;

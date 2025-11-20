@@ -6,22 +6,22 @@
 int main() {
     // Parámetros de prueba - definidos aquí para pruebas mínimas y centralizar cambios
     // Cambia estos valores según necesites para experimentar rápidamente.
-    int n_cells = 100;             // Número de células por simulación (default 100)
+    int n_cells = 1000;             // Número de células por simulación (default 100)
     int num_simulations = 100;     // Número de simulaciones a ejecutar (default 200)
     int max_t = 80;                // Tiempo máximo por simulación (años)
     int seed = -1;                 // Semilla global (-1 = variar por simulación)
-    double neoplasm_k = 0.3;    // Probabilidad base de neoplasia
+    double neoplasm_k = 0.03;    // Probabilidad base de neoplasia
     bool verbose = false;          // Activar trazas verbose (true/false)
 
     // Mutational parameters: thresholds y componentes de inestabilidad por gen
     // Define aquí todos los genes que usa el genoma por defecto
     std::unordered_map<std::string, double> gene_thresholds{
-            {"TP53", 0.010},
-            {"BRCA1", 0.015}
+            {"TP53", 0.0010},
+            {"BRCA1", 0.0015}
     };
     std::unordered_map<std::string, double> gene_instability_k{
-            {"TP53", 0.010},
-            {"BRCA1", 0.015}
+            {"TP53", 0.0010},
+            {"BRCA1", 0.0015}
     };
 
     // --- Imprimir descripción inicial de la simulación ---

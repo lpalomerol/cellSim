@@ -18,9 +18,9 @@ int main() {
     double neoplasm_k = 0.5;
 
     // Umbrales específicos por gen solicitados: BRCA1=0.1, TP53=0.15
-    std::unordered_map<std::string, double> gene_thresholds{{"BRCA1", 0.00010}, {"TP53", 0.5}};
+    std::unordered_map<std::string, double> gene_thresholds{{"BRCA1", 0.01}, {"TP53", 0.001}};
     // Inestabilidad: +0.1 para ambos en caso de inestabilidad
-    std::unordered_map<std::string, double> gene_instability_k{{"BRCA1", 0.01}, {"TP53", 0.25}};
+    std::unordered_map<std::string, double> gene_instability_k{{"BRCA1", 0.01}, {"TP53", 0.005}};
 
     // En modo interactivo activamos trazas verbose para inspección
     bool verbose = true;
@@ -40,11 +40,15 @@ int main() {
     }
 
     // Crear una AgenticCell usando la fuente de ruido seleccionada y añadirla a la simulación
-    sim.addCell(domain::cell_factory::createAgenticCell(
+    sim.addCell(
+        domain::cell_factory::createAgenticCell(
         std::move(noise),
         std::move(genome),
-        neoplasm_k
-    , verbose));
+        neoplasm_k,
+        0.0001,
+        0.0002,
+        verbose)
+    );
 
     std::cout << "Creada 1 célula. Presiona Enter para avanzar año a año." << std::endl;
     std::cout << "Opciones en cada paso: [Enter]=No mutar, 1=Mutar BRCA1, 2=Mutar TP53, q=Salir" << std::endl;
