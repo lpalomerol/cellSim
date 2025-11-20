@@ -76,6 +76,11 @@ namespace domain {
         // and may grow without an upper bound (values >1 represent progressive instability).
         double genomic_instability_ = 1.0;
 
+        // Small configurable deltas applied based on TP53 state when updating genomic instability.
+        // Defaults updated: heterozygous adds 0.0001, homozygous adds 0.0002.
+        double low_delta_instability_ = 0.0001;
+        double high_delta_instability_ = 0.0002;
+
         // Update the genomic instability indicator based on TP53 status and previous value.
         // The implementation evolves the value by multiplying it by itself (squaring),
         // then adds offsets depending on TP53 mutation state (see .cpp).
@@ -85,5 +90,8 @@ namespace domain {
     public:
         // Expose the genomic instability indicator for tests/tracing
         [[nodiscard]] double getGenomicInstability() const { return genomic_instability_; }
+        // Expose the configured deltas for tests or external observation
+        [[nodiscard]] double getLowDeltaInstability() const { return low_delta_instability_; }
+        [[nodiscard]] double getHighDeltaInstability() const { return high_delta_instability_; }
     };
 } // domain

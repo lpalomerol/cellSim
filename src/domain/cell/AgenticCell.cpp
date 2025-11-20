@@ -112,10 +112,10 @@ namespace domain {
     }
 
     /**
-     * Update immunosuppression metric.
+     * Update genomic instability metric.
      * Rules:
      * - The base progression squares the previous value each iteration.
-     * - TP53 contributes an additive offset: "+/-" => +0.1, "-/-" => +0.2.
+     * - TP53 contributes an additive offset: "+/-" => low_delta_instability_, "-/-" => high_delta_instability_.
      * - The metric is bounded below by 1.0 (acts as a multiplicative degrader).
      */
     void AgenticCell::updateGenomicInstability() {
@@ -127,9 +127,9 @@ namespace domain {
         if (tp53) {
              std::string st = tp53->status();
              if (st == "+/-") {
-                next += 0.1;
+                next += low_delta_instability_;
              } else if (st == "-/-") {
-                next += 0.2;
+                next += high_delta_instability_;
              }
          }
 

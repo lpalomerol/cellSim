@@ -175,7 +175,7 @@ TEST(AgenticCellTest, GenomicInstabilityEvolutionByTP53State) {
     domain::AgenticCell cell_pm(std::make_unique<test::DummyNoise>(), genome_pm);
     EXPECT_EQ(cell_pm.getGenomicInstability(), 1.0);
     cell_pm.live();
-    EXPECT_DOUBLE_EQ(cell_pm.getGenomicInstability(), 1.1);
+    EXPECT_DOUBLE_EQ(cell_pm.getGenomicInstability(), 1.0001);
 
     // TP53 homozygous (--): base 1.0 squared = 1.0, then +0.2 => 1.2
     domain::Gene tp53_mm("TP53", domain::Gene::State::MinusMinus);
@@ -185,5 +185,5 @@ TEST(AgenticCellTest, GenomicInstabilityEvolutionByTP53State) {
     domain::AgenticCell cell_mm(std::make_unique<test::DummyNoise>(), genome_mm);
     EXPECT_EQ(cell_mm.getGenomicInstability(), 1.0);
     cell_mm.live();
-    EXPECT_DOUBLE_EQ(cell_mm.getGenomicInstability(), 1.2);
+    EXPECT_DOUBLE_EQ(cell_mm.getGenomicInstability(), 1.0002);
 }
