@@ -85,8 +85,8 @@ namespace domain {
      * Also checks for death and increments age for living cells.
      */
     void AgenticCell::phase3_NuclearDynamics() {
-        // Advance genes using the current immunosuppression modifier
-        genome_.liveAllGenes(immunosuppression_);
+        // Advance genes using the current genomic instability modifier
+        genome_.liveAllGenes(genomic_instability_);
         adjust_neoplasm_k();
         if (!alive()) {
             throw CellDeathException("dead@phase3");
@@ -102,8 +102,8 @@ namespace domain {
         if (!isNeoplasticProtected()) {
             develop_neoplasm();
         }
-        // Update immunosuppression every cycle
-        updateImmunosuppression();
+        // Update genomic instability every cycle
+        updateGenomicInstability();
     }
 
     /** Exocytosis phase (placeholder) */
@@ -118,10 +118,10 @@ namespace domain {
      * - TP53 contributes an additive offset: "+/-" => +0.1, "-/-" => +0.2.
      * - The metric is bounded below by 1.0 (acts as a multiplicative degrader).
      */
-    void AgenticCell::updateImmunosuppression() {
+    void AgenticCell::updateGenomicInstability() {
         const Gene *tp53 = genome_.getGene("TP53");
 
-        double previous = immunosuppression_;
+        double previous = genomic_instability_;
         double next = previous * previous;
 
         if (tp53) {
@@ -135,10 +135,10 @@ namespace domain {
 
         if (next < 1.0) next = 1.0;
 
-        immunosuppression_ = next;
+        genomic_instability_ = next;
 
         if (verbose_) {
-            std::cout << "[Trace] immunosuppression: prev=" << previous << " -> next=" << immunosuppression_
+            std::cout << "[Trace] genomic_instability: prev=" << previous << " -> next=" << genomic_instability_
                       << " | TP53=" << (tp53 ? tp53->status() : "?") << "\n";
         }
     }
@@ -173,7 +173,7 @@ namespace domain {
                 << "Alive: [" << cell_is_alive << "] | "
                 << "Neoplastic protected: ["<< cell_is_neoplastic_protected<< "] | "
                 << "Neoplastic: [" << cell_is_neoplastic << "] | "
-                << "Seed: [" << seed_ << "] | Age: [" << age_ << "] | Immunosuppression: [" << immunosuppression_ << "]\n";
+                << "Seed: [" << seed_ << "] | Age: [" << age_ << "] | Genomic instability: [" << genomic_instability_ << "]\n";
             std::cout << "Genome details:\n";
             genome_.details();
         }

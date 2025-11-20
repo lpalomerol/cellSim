@@ -43,7 +43,7 @@ namespace domain {
     }
 
     std::string Gene::details() const {
-        // Mostrar el threshold efectivo considerando inestabilidad (clamped internamente)
+        // Show effective mutation threshold considering instability (clamped internally)
         return name_ + " [" + status() + "] p(mut)=" + std::to_string(get_mutation_threshold(true));
     }
 
@@ -70,11 +70,11 @@ namespace domain {
         }
     }
 
-    void Gene::live(bool apply_instability, double immunosuppression) {
-        // immunosuppression acts as a multiplicative degrader: values >1 increase effective mutation probability
+    void Gene::live(bool apply_instability, double genomic_instability) {
+        // genomic_instability acts as a multiplicative degrader: values >1 increase effective mutation probability
         domain::shared::Threshold t = mutation_threshold_; // copy
         if (apply_instability) t += mutation_instability_k_;
-        t *= immunosuppression; // Threshold clamps internally
+        t *= genomic_instability; // Threshold clamps internally
         double threshold = t.value();
 
         if (noise_) {

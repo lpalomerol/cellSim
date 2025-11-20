@@ -23,8 +23,8 @@ namespace domain{
         void mutate();
         void live();
         void live(bool apply_instability);
-        // Overload: accepts an immunosuppression factor (>1 increases mutation probability)
-        void live(bool apply_instability, double immunosuppression);
+        // Overload: accepts a genomic_instability factor (>1 increases mutation probability)
+        void live(bool apply_instability, double genomic_instability);
         [[nodiscard]] double getMutationThreshold() const { return mutation_threshold_.value(); }
         [[nodiscard]] double getMutationInstabilityK() const { return mutation_instability_k_; }
         void setNoiseSource(INoiseSource* noise);
