@@ -15,7 +15,7 @@ namespace domain {
      * - Sets genome verbosity and captures the RNG seed (if available).
      */
     AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, double low_delta_instability, double high_delta_instability, bool verbose)
-        : noise_(std::move(noise)), genome_(std::move(genome)), neoplasm_k_(domain::shared::Threshold(neoplasm_k)), is_neoplastic_(false), verbose_(verbose), low_delta_instability_(low_delta_instability), high_delta_instability_(high_delta_instability) {
+        : noise_(std::move(noise)), genome_(std::move(genome)), base_neoplasm_k_(neoplasm_k), neoplasm_k_(domain::shared::Threshold(neoplasm_k)), is_neoplastic_(false), verbose_(verbose), low_delta_instability_(low_delta_instability), high_delta_instability_(high_delta_instability) {
         // Inject the noise source into all genes via the Genome API
         genome_.setNoiseSourceForAll(noise_.get());
         // Propagate verbose flag to the genome and genes
@@ -205,6 +205,30 @@ namespace domain {
     }
 
     void AgenticCell::adjust_neoplasm_k() {
+        // Compute neoplasm threshold as base_k multiplied by genomic instability.
+        // Additionally apply small additive deltas depending on TP53 state (same notion as genomic instability).
+        const Gene *tp53 = genome_.getGene("TP53");
+
+        double previous = neoplasm_k_.value();
+        double next = base_neoplasm_k_ * genomic_instability_;
+
+        if (tp53) {
+            std::string st = tp53->status();
+            if (st == "+/-") {
+                next += low_delta_instability_;
+            } else if (st == "-/-") {
+                next += high_delta_instability_;
+            }
+        }
+
+        // Assign back using Threshold to ensure clamping to [0,1]
+        neoplasm_k_ = domain::shared::Threshold(next);
+
+        if (verbose_) {
+            std::cout << "[Trace] neoplasm_k: base=" << base_neoplasm_k_ << " instability=" << genomic_instability_
+                      << " prev=" << previous << " -> next=" << neoplasm_k_.value()
+                      << " | TP53=" << (tp53 ? tp53->status() : "?") << "\n";
+        }
     }
 
     /** Increment age only when cell is alive. */

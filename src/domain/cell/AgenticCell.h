@@ -52,6 +52,8 @@ namespace domain {
     private:
         std::unique_ptr<INoiseSource> noise_;
         Genome genome_;
+        // Base (inalterable) neoplasm k provided at construction — used as baseline
+        double base_neoplasm_k_ = 0.002;
         domain::shared::Threshold neoplasm_k_;
         bool is_neoplastic_;
         bool verbose_ = false;
@@ -75,7 +77,7 @@ namespace domain {
         void phase5_Exocytosis();
 
         // Adjust neoplasm probability (placeholder for future behavior)
-        static void adjust_neoplasm_k();
+        void adjust_neoplasm_k();
 
         // Indicator of genomic instability. Starts at 1.0 and is updated in phase4.
         // This acts as a multiplicative degrader of the biological system: it starts at 1.0
