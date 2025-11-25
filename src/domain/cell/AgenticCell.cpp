@@ -238,4 +238,12 @@ namespace domain {
         }
     }
 
+    void AgenticCell::setId(std::uint64_t id) {
+        cell_id_ = id;
+    }
+
+    std::uint64_t AgenticCell::id() const {
+        return cell_id_;
+    }
+
 } // namespace domain

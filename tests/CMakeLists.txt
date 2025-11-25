@@ -29,6 +29,7 @@ add_executable(unit_tests
         ../src/domain/gene/Genome.cpp
         ../src/domain/gene/Genome.h
         ../src/domain/gene/GenomeFactory.cpp
+        ../src/domain/tissue/Tissue.cpp
         GeneTest.cpp
         ExperimentalTrackingTest.cpp
         AgenticCellTest.cpp
@@ -36,6 +37,8 @@ add_executable(unit_tests
         GenomeFactoryTest.cpp
         GenomeMutateTest.cpp
         ThresholdTest.cpp
+        TissueTest.cpp
+        TissueIdTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales

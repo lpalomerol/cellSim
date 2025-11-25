@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <cstdint>
 #include "../../domain/cell/CellState.h"
 #include "../cell/OncoState.h"
 
@@ -20,6 +21,11 @@ namespace domain {
         // Nueva: permitir que la simulación o tests soliciten una mutación sobre
         // un gen del genoma interno de la célula.
         virtual void mutateGene(const std::string& name) = 0;
+
+        // Identificador estable de la célula. Por defecto no hace nada para mantener
+        // compatibilidad con implementaciones existentes.
+        virtual void setId(std::uint64_t /*id*/) {}
+        virtual std::uint64_t id() const { return static_cast<std::uint64_t>(-1); }
 
     };
 }

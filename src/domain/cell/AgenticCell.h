@@ -49,6 +49,10 @@ namespace domain {
         // Expose cell age (useful for tests and tracing)
         std::uint64_t getAge() const { return age_; }
 
+        // ID management (implements ICell contract)
+        void setId(std::uint64_t id) override;
+        std::uint64_t id() const override;
+
     private:
         std::unique_ptr<INoiseSource> noise_;
         Genome genome_;
@@ -61,6 +65,9 @@ namespace domain {
 
         // Age counter incremented each tick when the cell is alive
         std::uint64_t age_ = 0;
+
+        // Stable id for the cell (default -1 meaning unassigned)
+        std::uint64_t cell_id_ = static_cast<std::uint64_t>(-1);
 
         // Encapsulate neoplasm development logic (samples noise and applies threshold)
         void develop_neoplasm();

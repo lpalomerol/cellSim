@@ -28,25 +28,29 @@ set(COMMON_SOURCES
         src/domain/gene/Gene.h
         src/domain/gene/Genome.cpp
         src/domain/gene/GenomeFactory.cpp
-        src/domain/gene/Genome.h)
+        src/domain/gene/Genome.h
+        src/domain/tissue/Tissue.cpp)
 
 add_executable(cellSim app/main.cpp
         src/application/simulation/Simulation.cpp
         src/application/simulation/Simulation.h
         src/application/simulation/Simulations.cpp
         src/application/simulation/Simulations.h
-        ${COMMON_SOURCES})
+        ${COMMON_SOURCES}
+        src/domain/tissue/Tissue.cpp)
 
 # Ejecutable interactivo: reutiliza las mismas fuentes para enlazar correctamente
 add_executable(interactive app/main_interactive.cpp
         src/application/simulation/InteractiveSimulation.cpp
         src/application/simulation/InteractiveSimulation.h
-        ${COMMON_SOURCES})
+        ${COMMON_SOURCES}
+        src/domain/tissue/Tissue.cpp)
 
 # Ejecutable que ejecuta una población de células aleatorias y avanza año a año
 add_executable(random_cells app/main_random_cells.cpp
         ${COMMON_SOURCES}
-        app/main_random_cells.cpp)
+        app/main_random_cells.cpp
+        src/domain/tissue/Tissue.cpp)
 
 # Añadir tests solo si BUILD_TESTS=ON (tests pueden descargar googletest)
 if (BUILD_TESTS)
