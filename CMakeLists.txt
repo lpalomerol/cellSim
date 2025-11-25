@@ -43,6 +43,11 @@ add_executable(interactive app/main_interactive.cpp
         src/application/simulation/InteractiveSimulation.h
         ${COMMON_SOURCES})
 
+# Ejecutable que ejecuta una población de células aleatorias y avanza año a año
+add_executable(random_cells app/main_random_cells.cpp
+        ${COMMON_SOURCES}
+        app/main_random_cells.cpp)
+
 # Añadir tests solo si BUILD_TESTS=ON (tests pueden descargar googletest)
 if (BUILD_TESTS)
     enable_testing()
