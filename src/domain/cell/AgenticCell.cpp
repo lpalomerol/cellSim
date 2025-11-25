@@ -3,6 +3,7 @@
 
 #include "AgenticCell.h"
 #include <iostream>
+#include "../signal/NeoplasmSignal.h"
 #include "../exception/CellDeathException.h"
 #include "../exception/NeoplasticException.h"
 #include "../shared/Threshold.h"
@@ -185,14 +186,23 @@ namespace domain {
         genome_.mutate(name);
     }
 
+    void AgenticCell::setSignalEmitter(std::function<void(std::unique_ptr<domain::ISignal>)> emitter) {
+        signal_emitter_ = std::move(emitter);
+    }
+
     /** Sample the noise source and set neoplastic flag if threshold crossed. */
     void AgenticCell::develop_neoplasm() {
         if (!noise_) return;
         double sample = noise_->next().u01;
         if (verbose_) std::cout << "[Trace] neoplasm sample=" << sample << " threshold=" << neoplasm_k_.value() << "\n";
         if (sample < neoplasm_k_.value()) {
+            bool transitioned = !is_neoplastic_;
             is_neoplastic_ = true;
             if (verbose_) std::cout << "[Trace] Cell converted to neoplastic state\n";
+            if (transitioned && signal_emitter_) {
+                auto sig = std::make_unique<NeoplasmSignal>(id(), std::string("neoplasm"));
+                signal_emitter_(std::move(sig));
+            }
         } else {
             if (verbose_) std::cout << "[Trace] No neoplasm (sample >= threshold)\n";
         }

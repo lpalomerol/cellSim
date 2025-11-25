@@ -2,10 +2,13 @@
 
 #include <string>
 #include <cstdint>
+#include <functional>
+#include <memory>
 #include "../../domain/cell/CellState.h"
 #include "../cell/OncoState.h"
 
 namespace domain {
+    struct ISignal; // forward
 
     struct ICell {
         virtual ~ICell() = default;
@@ -26,6 +29,10 @@ namespace domain {
         // compatibilidad con implementaciones existentes.
         virtual void setId(std::uint64_t /*id*/) {}
         virtual std::uint64_t id() const { return static_cast<std::uint64_t>(-1); }
+
+        // Nuevo: inyectar un emisor de señales para que la célula pueda enviar
+        // eventos al Tissue. Por defecto es un no-op para compatibilidad.
+        virtual void setSignalEmitter(std::function<void(std::unique_ptr<ISignal>)> /*emitter*/) {}
 
     };
 }

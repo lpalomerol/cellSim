@@ -25,6 +25,13 @@ namespace domain {
         // Assign a stable id to the cell before storing it
         std::uint64_t id = next_cell_id_.fetch_add(1, std::memory_order_relaxed);
         cell->setId(id);
+
+        // Inject a signal emitter that enqueues signals into signals_new_
+        cell->setSignalEmitter([this](std::unique_ptr<ISignal> sig){
+            std::lock_guard<std::mutex> lk(signals_mutex_);
+            signals_new_.push_back(std::move(sig));
+        });
+
         cells_.push_back(std::move(cell));
     }
 
@@ -44,6 +51,15 @@ namespace domain {
 
     void Tissue::clear() {
         cells_.clear();
+        std::lock_guard<std::mutex> lk(signals_mutex_);
+        signals_new_.clear();
+    }
+
+    std::vector<std::unique_ptr<ISignal>> Tissue::stealEmittedSignals() {
+        std::lock_guard<std::mutex> lk(signals_mutex_);
+        std::vector<std::unique_ptr<ISignal>> out;
+        out.swap(signals_new_);
+        return out;
     }
 
 } // namespace domain

@@ -8,7 +8,9 @@
 #include <memory>
 #include <cstddef>
 #include <atomic>
+#include <mutex>
 #include "../ports/ICell.h"
+#include "../signal/ISignal.h"
 
 namespace domain {
 
@@ -41,10 +43,17 @@ namespace domain {
         void setId(std::uint64_t id) { tissue_id_ = id; }
         std::uint64_t id() const { return tissue_id_; }
 
+        // Access signals emitted by cells during the last live() (thread-safe read)
+        std::vector<std::unique_ptr<ISignal>> stealEmittedSignals();
+
     private:
         std::vector<std::unique_ptr<ICell>> cells_;
         std::atomic<std::uint64_t> next_cell_id_{0};
         std::uint64_t tissue_id_ = static_cast<std::uint64_t>(-1);
+
+        // Signals emitted by cells during the current turn; protected by mutex
+        std::vector<std::unique_ptr<ISignal>> signals_new_;
+        std::mutex signals_mutex_;
     };
 
 } // namespace domain

@@ -39,6 +39,9 @@ add_executable(unit_tests
         ThresholdTest.cpp
         TissueTest.cpp
         TissueIdTest.cpp
+        NeoplasmSignalTest.cpp
+        AgenticCellSignalTest.cpp
+        TissueIntegrationSignalTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales
