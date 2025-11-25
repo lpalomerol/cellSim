@@ -13,8 +13,22 @@
 #include "../src/domain/gene/GenomeFactory.h"
 #include "../src/domain/adapters/RandomNoise.h"
 #include "../src/domain/cell/AgenticCell.h"
-#include <cstdlib>
+#include "../src/application/ExperimentalTracking.h"
 #include <sstream>
+
+static void parseArgs(int argc, char** argv, int &n_cells, int &max_t, long &seed) {
+    if (argc > 1) {
+        std::string arg1(argv[1]);
+        if (arg1 == "--help" || arg1 == "-h") {
+            std::cout << "Uso: random_cells [n_cells] [max_t] [seed]\n";
+            std::cout << " Ejemplo: random_cells 20 100 42\n";
+            std::exit(0);
+        }
+        n_cells = std::stoi(arg1);
+    }
+    if (argc > 2) max_t = std::stoi(argv[2]);
+    if (argc > 3) seed = std::stol(argv[3]);
+}
 
 int main(int argc, char** argv) {
     std::cout << "Simulación: array de células generadas aleatoriamente\n";
@@ -25,27 +39,14 @@ int main(int argc, char** argv) {
     long seed = -1;    // semilla base (-1 = usar semilla aleatoria por cell)
     bool verbose = false; // trazas por célula
 
-    // Parsear argumentos opcionales: <n_cells> <max_t> <seed> [-v]
-    if (argc > 1) {
-        if (std::string(argv[1]) == "--help" || std::string(argv[1]) == "-h") {
-            std::cout << "Uso: random_cells [n_cells] [max_t] [seed] [-v]\n";
-            std::cout << " Ejemplo: random_cells 20 100 42 -v\n";
-            return 0;
-        }
-        try { n_cells = std::stoi(argv[1]); } catch (...) { /* keep default */ }
-    }
-    if (argc > 2) {
-        try { max_t = std::stoi(argv[2]); } catch (...) { /* keep default */ }
-    }
-    if (argc > 3) {
-        try { seed = std::stol(argv[3]); } catch (...) { /* keep default */ }
-    }
-    // flag -v en cualquier posición posterior a argv[1]
-    for (int i = 1; i < argc; ++i) {
-        if (std::string(argv[i]) == "-v" || std::string(argv[i]) == "--verbose") {
-            verbose = true;
-        }
-    }
+    // Para ejecuciones locales rápidas: descomenta y ajusta estas líneas para fijar parámetros manualmente.
+    // (Si las dejas comentadas, el programa seguirá usando los valores por defecto o los que pases por argv.)
+    // n_cells = 100; // ejemplo: descomenta y cambia según necesites
+    // max_t = 100;   // ejemplo
+    // seed = 42;     // ejemplo: usa -1 para semillas aleatorias
+    //
+    // Parsing posicional ligero (la función hará lo mínimo necesario).
+    parseArgs(argc, argv, n_cells, max_t, seed);
 
     if (n_cells <= 0) n_cells = 1;
     if (max_t <= 0) max_t = 1;
@@ -108,112 +109,22 @@ int main(int argc, char** argv) {
         }
 
         // Mostrar resumen compacto
-        std::cout << "Año " << current_year << " / " << max_t << " | Neoplásicas: " << neoplastic_count << " / " << cells.size() << "\n";
+        // std::cout << "Año " << current_year << " / " << max_t << " | Neoplásicas: " << neoplastic_count << " / " << cells.size() << "\n";
 
         // Contadores por combinaciones solicitadas:
-        int brca_het_tp53_hom_plus = 0; // BRCA1 "+/-"  y TP53 "+/+"
-        int brca_het_tp53_het = 0;      // BRCA1 "+/-"  y TP53 "+/-"
-        int brca_het_tp53_hom_minus = 0;// BRCA1 "+/-"  y TP53 "-/-"
-        int brca_hom_minus = 0;         // BRCA1 "-/-" (cualquier TP53)
-
-        // Neoplasias por categoría (solo para BRCA1 +/- categories solicitadas)
-        int neo_brca_het_tp53_hom_plus = 0;
-        int neo_brca_het_tp53_het = 0;
-        int neo_brca_het_tp53_hom_minus = 0;
-
-        // Min/max de genomic instability para las categorías con TP53 +/- y -/-
-        double min_inst_tp53_het = std::numeric_limits<double>::infinity();
-        double max_inst_tp53_het = -std::numeric_limits<double>::infinity();
-        double min_inst_tp53_hom_minus = std::numeric_limits<double>::infinity();
-        double max_inst_tp53_hom_minus = -std::numeric_limits<double>::infinity();
+        app::ExperimentalTracking track; // agrupa todos los contadores y estadísticas
 
         for (auto &c : cells) {
             // Intentar downcast para leer los estados de genes. Si no es AgenticCell, omitir.
-            domain::AgenticCell* ac = dynamic_cast<domain::AgenticCell*>(c.get());
+            auto* ac = dynamic_cast<domain::AgenticCell*>(c.get());
             if (!ac) continue;
-            std::string brca = ac->getBRCA1();
-            std::string tp53 = ac->getTP53();
-            double instability = ac->getGenomicInstability();
-            bool isNeo = ac->isNeoplastic();
 
-            if (brca == "+/-") {
-                if (tp53 == "+/+") { ++brca_het_tp53_hom_plus; if (isNeo) ++neo_brca_het_tp53_hom_plus; }
-                else if (tp53 == "+/-") { ++brca_het_tp53_het; if (isNeo) ++neo_brca_het_tp53_het;
-                    if (instability < min_inst_tp53_het) min_inst_tp53_het = instability;
-                    if (instability > max_inst_tp53_het) max_inst_tp53_het = instability;
-                }
-                else if (tp53 == "-/-") { ++brca_het_tp53_hom_minus; if (isNeo) ++neo_brca_het_tp53_hom_minus;
-                    if (instability < min_inst_tp53_hom_minus) min_inst_tp53_hom_minus = instability;
-                    if (instability > max_inst_tp53_hom_minus) max_inst_tp53_hom_minus = instability;
-                }
-            } else if (brca == "-/-") {
-                ++brca_hom_minus;
-            }
-        }
-
-
-        // Imprimir resumen por categorías pedido por el usuario
-        // Imprimir una sola línea con 4 casillas: | val1(neos) | val2(neos) | val3(neos) | val4 |
-        const int boxWidth = 9; // ancho interior para incluir cuenta y (neos)
-        auto makeBox = [&](int count, int neos){
-            std::ostringstream ss;
-            ss << count;
-            if (neos >= 0) ss << "(" << neos << ")"; // mostrar (neoplasias)
-            return ss.str();
-        };
-        std::string b1 = makeBox(brca_het_tp53_hom_plus, neo_brca_het_tp53_hom_plus);
-        std::string b2 = makeBox(brca_het_tp53_het, neo_brca_het_tp53_het);
-        std::string b3 = makeBox(brca_het_tp53_hom_minus, neo_brca_het_tp53_hom_minus);
-        std::string b4 = makeBox(brca_hom_minus, -1);
-
-        std::cout << "  Resumen genético: |"
-                  << std::setw(boxWidth) << b1 << " |"
-                  << std::setw(boxWidth) << b2 << " |"
-                  << std::setw(boxWidth) << b3 << " |"
-                  << std::setw(boxWidth) << b4 << " |\n";
-         // Leyenda compacta impresa solo si verbose para no ensuciar la salida
-         if (verbose) {
-             std::cout << "    [BRCA+/- TP53+/+] [BRCA+/- TP53+/-] [BRCA+/- TP53-/-] [BRCA-/-]\n";
+            track.observeCell(ac);
          }
 
-         // Añadir min/max de genomic instability para TP53 +/- y TP53 -/- (2 decimales)
-         std::cout << std::fixed << std::setprecision(2);
-         if (brca_het_tp53_het > 0) {
-             std::cout << "    TP53(+/-) instability: min=" << min_inst_tp53_het << " max=" << max_inst_tp53_het << "\n";
-         } else {
-             std::cout << "    TP53(+/-) instability: min=N/A max=N/A\n";
-         }
-         if (brca_het_tp53_hom_minus > 0) {
-             std::cout << "    TP53(-/-) instability: min=" << min_inst_tp53_hom_minus << " max=" << max_inst_tp53_hom_minus << "\n";
-         } else {
-             std::cout << "    TP53(-/-) instability: min=N/A max=N/A\n";
-         }
-         // Restaurar formato por si verbose necesita imprimir doubles con otro formato
-         std::cout << std::defaultfloat;
 
-         // (Opcional) mantener la salida detallada por célula si verbose
-         if (verbose) {
-            for (size_t i = 0; i < cells.size(); ++i) {
-                domain::ICell* ic = cells[i].get();
-                domain::AgenticCell* ac = dynamic_cast<domain::AgenticCell*>(ic);
-                if (ac) {
-                    std::cout << "  Cell[" << i << "] seed=" << ac->getSeed()
-                              << " alive=" << (ac->alive() ? "yes" : "no")
-                              << " neoplastic=" << (ac->isNeoplastic() ? "yes" : "no")
-                              << " TP53=" << ac->getTP53()
-                              << " BRCA1=" << ac->getBRCA1()
-                              << " age=" << ac->getAge()
-                              << " instability=" << ac->getGenomicInstability()
-                              << "\n";
-                } else {
-                    std::cout << "  Cell[" << i << "] <no-agentic-info> neoplastic=" << (ic->isNeoplastic() ? "yes" : "no") << "\n";
-                }
-            }
-        }
-
-        if (neoplastic_count > 0) {
-            std::cout << "! Hay neoplasia(s) detectadas en la población en el año " << current_year << "\n";
-        }
+         // Delegar la impresión al tracker
+         track.printSummary(current_year, max_t, neoplastic_count, cells, verbose);
 
         if (current_year >= max_t) {
             std::cout << "Alcanzado año máximo. Fin de la simulación.\n";

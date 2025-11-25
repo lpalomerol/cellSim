@@ -30,6 +30,7 @@ add_executable(unit_tests
         ../src/domain/gene/Genome.h
         ../src/domain/gene/GenomeFactory.cpp
         GeneTest.cpp
+        ExperimentalTrackingTest.cpp
         AgenticCellTest.cpp
         GenomeTest.cpp
         GenomeFactoryTest.cpp
