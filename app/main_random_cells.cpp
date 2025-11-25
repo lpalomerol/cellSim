@@ -14,6 +14,8 @@
 #include "../src/domain/adapters/RandomNoise.h"
 #include "../src/domain/cell/AgenticCell.h"
 #include "../src/application/ExperimentalTracking.h"
+#include "../src/domain/tissue/Tissue.h"
+#include "../src/domain/signal/NeoplasmSignal.h"
 #include <sstream>
 
 static void parseArgs(int argc, char** argv, int &n_cells, int &max_t, long &seed) {
@@ -61,9 +63,11 @@ int main(int argc, char** argv) {
     std::mt19937 seed_gen(static_cast<unsigned>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
     std::uniform_int_distribution<unsigned> seed_dist(1, 0xFFFFFFFEu);
 
-    std::vector<std::unique_ptr<domain::ICell>> cells;
-    cells.reserve(static_cast<size_t>(n_cells));
+    // Usar Tissue para agrupar y gestionar las células
+    domain::Tissue tissue;
+    tissue.setId(0);
 
+    // Vamos a crear y añadir las células al tissue
     for (int i = 0; i < n_cells; ++i) {
         unsigned cell_seed;
         if (seed >= 0) {
@@ -80,11 +84,10 @@ int main(int argc, char** argv) {
 
         // Construir la célula mediante la factoría (inyecta noise y genome)
         auto cell = domain::cell_factory::createAgenticCell(std::move(noise), std::move(genome), 0.02, 0.01, 0.02, verbose);
-
-        cells.emplace_back(std::move(cell));
+        tissue.addCell(std::move(cell));
     }
 
-    std::cout << "Creadas " << cells.size() << " células. Presiona Enter para avanzar 1 año (q + Enter para salir).\n";
+    std::cout << "Creadas " << tissue.size() << " células. Presiona Enter para avanzar 1 año (q + Enter para salir).\n";
     int current_year = 0;
 
     while (current_year < max_t) {
@@ -101,11 +104,27 @@ int main(int argc, char** argv) {
 
         // Avanzar un año
         ++current_year;
+        // ejecutar un tick del tejido (las células harán live() internamente)
+        tissue.live();
+
+        // recoger señales emitidas por las células durante el live()
+        auto emitted = tissue.stealEmittedSignals();
+        size_t neoplasm_signals = 0;
+        for (auto &s : emitted) {
+            if (!s) continue;
+            if (s->type() == domain::ISignal::Type::Neoplasm) {
+                ++neoplasm_signals;
+                auto* ns = dynamic_cast<domain::NeoplasmSignal*>(s.get());
+                if (ns) {
+                    std::cout << "[Signal] Neoplasm from cell id=" << ns->sourceId() << " message='" << ns->message() << "'\n";
+                }
+            }
+        }
+
         int neoplastic_count = 0;
-        for (auto &c : cells) {
-            // cada célula ejecuta su ciclo de vida
-            c->live();
-            if (c->isNeoplastic()) ++neoplastic_count;
+        for (std::size_t i = 0; i < tissue.size(); ++i) {
+            auto* c = tissue.getCell(i);
+            if (c && c->isNeoplastic()) ++neoplastic_count;
         }
 
         // Mostrar resumen compacto
@@ -114,23 +133,25 @@ int main(int argc, char** argv) {
         // Contadores por combinaciones solicitadas:
         app::ExperimentalTracking track; // agrupa todos los contadores y estadísticas
 
-        for (auto &c : cells) {
-            // Intentar downcast para leer los estados de genes. Si no es AgenticCell, omitir.
-            auto* ac = dynamic_cast<domain::AgenticCell*>(c.get());
+        for (std::size_t i = 0; i < tissue.size(); ++i) {
+            auto* c = tissue.getCell(i);
+            auto* ac = dynamic_cast<domain::AgenticCell*>(c);
             if (!ac) continue;
-
             track.observeCell(ac);
          }
 
 
-         // Delegar la impresión al tracker
-         track.printSummary(current_year, max_t, neoplastic_count, cells, verbose);
+         // Delegar la impresión al tracker: crear una vista de punteros a las células en el tissue
+         std::vector<domain::ICell*> cell_ptrs;
+         cell_ptrs.reserve(tissue.size());
+         for (std::size_t i = 0; i < tissue.size(); ++i) cell_ptrs.push_back(tissue.getCell(i));
+         track.printSummary(current_year, max_t, neoplastic_count, cell_ptrs, verbose);
 
         if (current_year >= max_t) {
-            std::cout << "Alcanzado año máximo. Fin de la simulación.\n";
-            break;
-        }
-    }
+             std::cout << "Alcanzado año máximo. Fin de la simulación.\n";
+             break;
+         }
+     }
 
     std::cout << "Simulación finalizada.\n";
     return 0;

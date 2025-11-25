@@ -28,6 +28,11 @@ namespace domain {
 
         // Inject a signal emitter that enqueues signals into signals_new_
         cell->setSignalEmitter([this](std::unique_ptr<ISignal> sig){
+            if (!sig) return;
+            // If it's a neoplasm signal, print a message immediately
+            if (sig->type() == ISignal::Type::Neoplasm) {
+                std::cout << "[Tissue] Neoplasm signal detected from cell id=" << sig->sourceId() << " message='" << sig->message() << "'\n";
+            }
             std::lock_guard<std::mutex> lk(signals_mutex_);
             signals_new_.push_back(std::move(sig));
         });
