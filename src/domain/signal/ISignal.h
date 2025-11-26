@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace domain {
 
@@ -25,6 +26,11 @@ namespace domain {
 
         // Optional textual message
         virtual const std::string& message() const noexcept = 0;
+
+        // Target identifiers for directed signals
+        // - Empty vector: broadcast to all cells
+        // - Non-empty: only cells in this list should process the signal
+        virtual const std::vector<std::uint64_t>& targetIds() const noexcept = 0;
     };
 
 } // namespace domain

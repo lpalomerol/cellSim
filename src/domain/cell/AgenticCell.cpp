@@ -77,8 +77,41 @@ namespace domain {
         }
     }
 
-    /** Endocytosis phase (placeholder) */
+    /**
+     * Endocytosis phase: process all incoming messages.
+     * - Validates destination
+     * - Displays message details when verbose
+     * - Future: handle message types (apoptosis, stress, etc.)
+     */
     void AgenticCell::phase2_Endocytosis() {
+        while (!incoming_messages_.empty()) {
+            auto msg = std::move(incoming_messages_.front());
+            incoming_messages_.pop();
+
+            if (msg && verbose_) {
+                std::cout << "[Endocytosis] Cell [" << cell_id_ << "] processing message\n";
+                std::cout << "  - Type: " << static_cast<int>(msg->type()) << "\n";
+                std::cout << "  - Source: " << msg->sourceId() << "\n";
+                std::cout << "  - Message: " << msg->message() << "\n";
+
+                const auto& targets = msg->targetIds();
+                std::cout << "  - Targets: ";
+                if (targets.empty()) {
+                    std::cout << "(broadcast)\n";
+                } else {
+                    for (size_t i = 0; i < targets.size(); ++i) {
+                        if (i > 0) std::cout << ", ";
+                        std::cout << targets[i];
+                    }
+                    std::cout << "\n";
+                }
+            }
+
+            // Future: handle specific message types
+            // if (msg->type() == ISignal::Type::Apoptosis) {
+            //     attemptApoptosis();
+            // }
+        }
     }
 
     /**
@@ -188,6 +221,44 @@ namespace domain {
 
     void AgenticCell::setSignalEmitter(std::function<void(std::unique_ptr<domain::ISignal>)> emitter) {
         signal_emitter_ = std::move(emitter);
+    }
+
+    /**
+     * Receive a directed message or broadcast signal.
+     * - If targetIds is empty: it's a broadcast, accept it.
+     * - If targetIds is non-empty: only accept if this cell's ID is in the list.
+     */
+    void AgenticCell::receiveMessage(std::unique_ptr<domain::ISignal> signal) {
+        if (!signal) return;
+
+        const auto& targets = signal->targetIds();
+
+        // Validate if this message is for us
+        bool should_accept = false;
+        if (targets.empty()) {
+            // Broadcast: everyone receives
+            should_accept = true;
+        } else {
+            // Directed: check if our ID is in the list
+            for (auto target_id : targets) {
+                if (target_id == cell_id_) {
+                    should_accept = true;
+                    break;
+                }
+            }
+        }
+
+        if (should_accept) {
+            incoming_messages_.push(std::move(signal));
+            if (verbose_) {
+                std::cout << "[Trace] Cell [" << cell_id_ << "] received message: "
+                          << (incoming_messages_.back() ? incoming_messages_.back()->message() : "?") << "\n";
+            }
+        } else {
+            if (verbose_) {
+                std::cout << "[Trace] Cell [" << cell_id_ << "] ignored message (not in targetIds)\n";
+            }
+        }
     }
 
     /** Sample the noise source and set neoplastic flag if threshold crossed. */

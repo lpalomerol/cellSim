@@ -6,9 +6,11 @@
 #include <cstdint>
 #include "../ports/ICell.h"
 #include "../ports/INoiseSource.h"
+#include "../signal/ISignal.h"
 #include "../gene/Genome.h"
 #include <memory>
 #include <string>
+#include <queue>
 #include "../shared/Threshold.h"
 
 
@@ -61,10 +63,16 @@ namespace domain {
         // Allow Tissue to inject a signal emitter callback
         void setSignalEmitter(std::function<void(std::unique_ptr<domain::ISignal>)> emitter) override;
 
+        // Receive a directed message (or broadcast). The cell validates if the message
+        // is intended for it by checking targetIds(). If empty, it's a broadcast.
+        void receiveMessage(std::unique_ptr<domain::ISignal> signal) override;
+
     private:
         std::unique_ptr<INoiseSource> noise_;
         // callback to emit signals to the owning tissue; default empty
         std::function<void(std::unique_ptr<domain::ISignal>)> signal_emitter_;
+        // Queue of incoming messages (directed or broadcast)
+        std::queue<std::unique_ptr<domain::ISignal>> incoming_messages_;
         Genome genome_;
         // Base (inalterable) neoplasm k provided at construction — used as baseline
         double base_neoplasm_k_ = 0.002;

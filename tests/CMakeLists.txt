@@ -42,6 +42,7 @@ add_executable(unit_tests
         NeoplasmSignalTest.cpp
         AgenticCellSignalTest.cpp
         TissueIntegrationSignalTest.cpp
+        AgenticCellReceiveMessageTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales

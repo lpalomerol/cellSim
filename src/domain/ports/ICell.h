@@ -35,5 +35,9 @@ namespace domain {
         // eventos al Tissue. Por defecto es un no-op para compatibilidad.
         virtual void setSignalEmitter(std::function<void(std::unique_ptr<ISignal>)> /*emitter*/) {}
 
+        // Nuevo: recibir un mensaje dirigido (o broadcast). La célula validará
+        // si el mensaje es para ella comparando targetIds.
+        virtual void receiveMessage(std::unique_ptr<ISignal> /*signal*/) {}
+
     };
 }
