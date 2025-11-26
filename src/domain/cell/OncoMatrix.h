@@ -1,32 +1,35 @@
-// OncoMatrix.h
+// OncoMatrix.h - REMOVED
 #pragma once
-#include "OncoState.h"
-#include <algorithm>
+#include <array>
 
 namespace domain {
+    constexpr int N_ONCO_STATES = 4;
+    using TransitionMatrix = std::array<std::array<double, N_ONCO_STATES>, N_ONCO_STATES>;
 
-    inline TransitionMatrix build_onco_matrix(double p_brca, double p_tp53) {
-        auto clamp01 = [](double x){ return std::max(0.0, std::min(1.0, x)); };
-        p_brca = clamp01(p_brca);
-        p_tp53 = clamp01(p_tp53);
+    enum class OncoState : int {
+        TP53_plus_plus = 0,
+        TP53_plus_minus = 1,
+        TP53_minus_minus = 2,
+        Apoptotic = 3
+    };
 
-        TransitionMatrix P{{
-            // from S0: to S0, S1, Tumoral, Apoptotic
-            {{ 1.0 - (p_tp53 + p_brca),  p_tp53,                0.0,      p_brca }},
-            // from S1: to S1, S0, Tumoral, Apoptotic  (columna S0=0)
-            {{ 0.0,                      1.0 - (p_tp53 + p_brca), p_tp53,  p_brca }},
-            // Tumoral (absorbing)
-            {{ 0.0,                      0.0,                   1.0,       0.0 }},
-            // Apoptotic (absorbing)
-            {{ 0.0,                      0.0,                   0.0,       1.0 }},
-        }};
-        // Normalizaciones por si p_tp53+p_brca > 1 (redundante si clamp)
-        for (int i = 0; i < N_ONCO_STATES; ++i) {
-            double sum = 0.0; for (double v : P[i]) sum += v;
-            if (sum > 0.0 && std::abs(sum - 1.0) > 1e-12)
-                for (auto& v : P[i]) v /= sum;
-        }
+    // Stub functions used previously by SimpleCell; removed implementation.
+    inline TransitionMatrix build_onco_matrix(double /*p_brca*/, double /*p_tp53*/) {
+        TransitionMatrix P{};
+        // identity-like default to avoid UB if called
+        for (int i = 0; i < N_ONCO_STATES; ++i) for (int j = 0; j < N_ONCO_STATES; ++j) P[i][j] = (i==j) ? 1.0 : 0.0;
         return P;
     }
 
-} // namespace domain
+    inline int sampleNextState(const TransitionMatrix& P, int cur, double u01) {
+        // deterministic fallback: find first j where cumulative >= u01
+        double cum = 0.0;
+        for (int j = 0; j < N_ONCO_STATES; ++j) {
+            cum += P[cur][j];
+            if (u01 <= cum) return j;
+        }
+        return N_ONCO_STATES - 1;
+    }
+}
+
+// Nota: la implementación completa de la matriz de transición fue eliminada.

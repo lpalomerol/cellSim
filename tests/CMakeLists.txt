@@ -10,16 +10,12 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 add_executable(unit_tests
-        ../src/domain/cell/SimpleCell.cpp
-        ../src/domain/cell/SimpleCell.h
         ../src/domain/ports/ICell.h
         ../src/domain/ports/INoiseSource.h
         ../src/domain/ports/CellNoise.h
         ../src/domain/adapters/RandomNoise.h
         ../src/domain/adapters/FixedNoise.h
 
-        SimpleCellTest.cpp
-        ../src/domain/cell/CellState.h
         ../src/domain/cell/CellFactory.cpp
         ../src/domain/cell/CellFactory.h
         ../src/domain/cell/AgenticCell.cpp

@@ -15,13 +15,9 @@ set(COMMON_SOURCES
         src/domain/ports/CellNoise.h
         src/domain/adapters/RandomNoise.h
         src/domain/adapters/FixedNoise.h
-        src/domain/cell/SimpleCell.cpp
-        src/domain/cell/SimpleCell.h
-        src/domain/cell/CellState.h
         src/domain/cell/CellFactory.cpp
         src/domain/cell/CellFactory.h
         src/domain/cell/OncoState.h
-        src/domain/cell/OncoMatrix.h
         src/domain/cell/AgenticCell.cpp
         src/domain/cell/AgenticCell.h
         src/domain/gene/Gene.cpp
