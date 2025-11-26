@@ -5,18 +5,12 @@
 #include <string>
 #include <unordered_map>
 #include <random>
-#include <chrono>
-#include <iomanip> // para formateo de casillas
-#include <limits>
 
 #include "../src/domain/cell/CellFactory.h"
 #include "../src/domain/gene/GenomeFactory.h"
 #include "../src/domain/adapters/RandomNoise.h"
 #include "../src/domain/cell/AgenticCell.h"
-#include "../src/application/ExperimentalTracking.h"
 #include "../src/domain/tissue/Tissue.h"
-#include "../src/domain/signal/NeoplasmSignal.h"
-#include <sstream>
 
 static void parseArgs(int argc, char** argv, int &n_cells, int &max_t, long &seed) {
     if (argc > 1) {
@@ -64,7 +58,7 @@ int main(int argc, char** argv) {
     std::uniform_int_distribution<unsigned> seed_dist(1, 0xFFFFFFFEu);
 
     // Usar Tissue para agrupar y gestionar las células
-    domain::Tissue tissue;
+    domain::Tissue tissue(true); // verbose=true para imprimir descripción en cada live()
     tissue.setId(0);
 
     // Vamos a crear y añadir las células al tissue
@@ -105,47 +99,12 @@ int main(int argc, char** argv) {
         // Avanzar un año
         ++current_year;
         // ejecutar un tick del tejido (las células harán live() internamente)
+        // Tissue.live() con verbose=true imprime:
+        // - Descripción del tejido (id, número de células, neoplasias identificadas)
+        // - Resumen genético por categoría
+        // - Señales de neoplasma detectadas
         tissue.live();
 
-        // recoger señales emitidas por las células durante el live()
-        auto emitted = tissue.stealEmittedSignals();
-        size_t neoplasm_signals = 0;
-        for (auto &s : emitted) {
-            if (!s) continue;
-            if (s->type() == domain::ISignal::Type::Neoplasm) {
-                ++neoplasm_signals;
-                auto* ns = dynamic_cast<domain::NeoplasmSignal*>(s.get());
-                if (ns) {
-                    std::cout << "[Signal] Neoplasm from cell id=" << ns->sourceId() << " message='" << ns->message() << "'\n";
-                }
-            }
-        }
-
-        int neoplastic_count = 0;
-        for (std::size_t i = 0; i < tissue.size(); ++i) {
-            auto* c = tissue.getCell(i);
-            if (c && c->isNeoplastic()) ++neoplastic_count;
-        }
-
-        // Mostrar resumen compacto
-        // std::cout << "Año " << current_year << " / " << max_t << " | Neoplásicas: " << neoplastic_count << " / " << cells.size() << "\n";
-
-        // Contadores por combinaciones solicitadas:
-        app::ExperimentalTracking track; // agrupa todos los contadores y estadísticas
-
-        for (std::size_t i = 0; i < tissue.size(); ++i) {
-            auto* c = tissue.getCell(i);
-            auto* ac = dynamic_cast<domain::AgenticCell*>(c);
-            if (!ac) continue;
-            track.observeCell(ac);
-         }
-
-
-         // Delegar la impresión al tracker: crear una vista de punteros a las células en el tissue
-         std::vector<domain::ICell*> cell_ptrs;
-         cell_ptrs.reserve(tissue.size());
-         for (std::size_t i = 0; i < tissue.size(); ++i) cell_ptrs.push_back(tissue.getCell(i));
-         track.printSummary(current_year, max_t, neoplastic_count, cell_ptrs, verbose);
 
         if (current_year >= max_t) {
              std::cout << "Alcanzado año máximo. Fin de la simulación.\n";
