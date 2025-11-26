@@ -9,8 +9,13 @@
 #include <cstddef>
 #include <atomic>
 #include <mutex>
+#include <set>
+#include <functional>
+#include <string>
+#include <iomanip>
 #include "../ports/ICell.h"
 #include "../signal/ISignal.h"
+#include "GeneticTrackingData.h"
 
 namespace domain {
 
@@ -20,6 +25,7 @@ namespace domain {
     class Tissue {
     public:
         Tissue() = default;
+        explicit Tissue(bool verbose) : verbose_(verbose) {}
 
         // Run a lifecycle tick for every contained cell. Exceptions thrown by
         // individual cells are caught and logged (if desired) so other cells
@@ -30,30 +36,53 @@ namespace domain {
         void addCell(std::unique_ptr<ICell> cell);
 
         // Number of cells currently stored
-        std::size_t size() const;
+        [[nodiscard]] std::size_t size() const;
 
         // Access cell by index. Returns nullptr if out-of-range.
         ICell* getCell(std::size_t idx);
-        const ICell* getCell(std::size_t idx) const;
+        [[nodiscard]] const ICell* getCell(std::size_t idx) const;
 
         // Clear all cells
         void clear();
 
         // Tissue id management
         void setId(std::uint64_t id) { tissue_id_ = id; }
-        std::uint64_t id() const { return tissue_id_; }
+        [[nodiscard]] std::uint64_t id() const { return tissue_id_; }
 
         // Access signals emitted by cells during the last live() (thread-safe read)
-        std::vector<std::unique_ptr<ISignal>> stealEmittedSignals();
+        [[nodiscard]] std::vector<std::unique_ptr<ISignal>> stealEmittedSignals();
+
+        // Set a callback listener for neoplasm detection events
+        void setNeoplasmListener(std::function<void(std::uint64_t, const std::string&)> listener) {
+            neoplasm_listener_ = std::move(listener);
+        }
+
+        // Get the list of identified neoplasms (cell IDs)
+        [[nodiscard]] std::set<std::uint64_t> getIdentifiedNeoplasms() const {
+            return identified_neoplasms_;
+        }
 
     private:
         std::vector<std::unique_ptr<ICell>> cells_;
         std::atomic<std::uint64_t> next_cell_id_{0};
         std::uint64_t tissue_id_ = static_cast<std::uint64_t>(-1);
+        bool verbose_ = false;
 
         // Signals emitted by cells during the current turn; protected by mutex
         std::vector<std::unique_ptr<ISignal>> signals_new_;
         std::mutex signals_mutex_;
+
+        // Neoplasm tracking
+        std::set<std::uint64_t> identified_neoplasms_;
+        std::function<void(std::uint64_t, const std::string&)> neoplasm_listener_;
+
+        // Helper method to collect genetic tracking data using domain service
+        [[nodiscard]] GeneticTrackingData getGeneticTracking() const;
+
+        // Phase methods for live() lifecycle
+        void phase0_Description() const;
+        void phase1_SignalIntegration();
+        void phase2_ExecuteCellCycles();
     };
 
 } // namespace domain

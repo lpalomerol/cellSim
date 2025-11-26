@@ -24,7 +24,11 @@ namespace domain {
         // Returns true if the cell has acquired a neoplastic onco-state
         [[nodiscard]] bool isNeoplastic() const override;
         CellState state()  { return state_;}
-        OncoState getOncoState() { return onco_;}
+        OncoState getOncoState() { return onco_; }
+
+        // IGeneticProfile implementation - SimpleCell has no genes, returns default values
+        [[nodiscard]] std::string getBRCA1Status() const override { return "?"; }
+        [[nodiscard]] std::string getTP53Status() const override { return "?"; }
 
         // No-op: SimpleCell has no internal genome and cannot mutate genes.
         void mutateGene(const std::string& name) override { (void)name; }

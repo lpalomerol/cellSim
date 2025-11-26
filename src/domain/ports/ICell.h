@@ -6,11 +6,12 @@
 #include <memory>
 #include "../../domain/cell/CellState.h"
 #include "../cell/OncoState.h"
+#include "IGeneticProfile.h"
 
 namespace domain {
     struct ISignal; // forward
 
-    struct ICell {
+    struct ICell : public IGeneticProfile {
         virtual ~ICell() = default;
         virtual void live() = 0;
         virtual bool alive() const = 0 ;

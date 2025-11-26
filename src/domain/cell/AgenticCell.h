@@ -34,6 +34,11 @@ namespace domain {
         bool isNeoplastic() const override;
         [[nodiscard]] std::string getTP53() const;
         [[nodiscard]] std::string getBRCA1() const;
+
+        // IGeneticProfile implementation
+        [[nodiscard]] std::string getBRCA1Status() const override { return getBRCA1(); }
+        [[nodiscard]] std::string getTP53Status() const override { return getTP53(); }
+
         // Print cell and genome details (read-only). Implementation may be verbose-controlled.
         void details() const override;
 

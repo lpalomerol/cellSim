@@ -17,6 +17,10 @@ struct TestCell : public ICell {
     void mutateGene(const std::string& name) override {}
     void setId(std::uint64_t id) override { cell_id_ = id; }
     std::uint64_t id() const override { return cell_id_; }
+
+    // IGeneticProfile implementation
+    [[nodiscard]] std::string getBRCA1Status() const override { return "+/-"; }
+    [[nodiscard]] std::string getTP53Status() const override { return "+/+"; }
 };
 
 TEST(TissueIdTest, AssignsIncrementalIds) {

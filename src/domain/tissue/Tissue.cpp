@@ -3,10 +3,54 @@
 
 #include "Tissue.h"
 #include <iostream>
+#include <sstream>
+#include "GeneticTrackingService.h"
 
 namespace domain {
 
     void Tissue::live() {
+        phase0_Description();
+        phase1_SignalIntegration();
+        phase2_ExecuteCellCycles();
+    }
+
+    void Tissue::phase0_Description() const {
+        if (verbose_) {
+            auto tracking = getGeneticTracking();
+
+            std::cout << "[Tissue Description] id=" << tissue_id_
+                      << " | cells=" << cells_.size()
+                      << " | identified_neoplasms=" << identified_neoplasms_.size() << "\n";
+
+            // Print genetic summary similar to ExperimentalTracking
+            const int boxWidth = 9;
+            auto makeBox = [&](int count, int neos) {
+                std::ostringstream ss;
+                ss << count;
+                if (neos >= 0) ss << "(" << neos << ")";
+                return ss.str();
+            };
+
+            std::string b1 = makeBox(tracking.brca_het_tp53_hom_plus, tracking.neo_brca_het_tp53_hom_plus);
+            std::string b2 = makeBox(tracking.brca_het_tp53_het, tracking.neo_brca_het_tp53_het);
+            std::string b3 = makeBox(tracking.brca_het_tp53_hom_minus, tracking.neo_brca_het_tp53_hom_minus);
+            std::string b4 = makeBox(tracking.brca_hom_minus, -1);
+
+            std::cout << "  Resumen genético: |"
+                      << std::setw(boxWidth) << b1 << " |"
+                      << std::setw(boxWidth) << b2 << " |"
+                      << std::setw(boxWidth) << b3 << " |"
+                      << std::setw(boxWidth) << b4 << " |\n";
+
+            std::cout << "    [BRCA+/- TP53+/+] [BRCA+/- TP53+/-] [BRCA+/- TP53-/-] [BRCA-/-]\n";
+        }
+    }
+
+    void Tissue::phase1_SignalIntegration() {
+        // Currently placeholder for future signal processing logic
+    }
+
+    void Tissue::phase2_ExecuteCellCycles() {
         for (std::size_t i = 0; i < cells_.size(); ++i) {
             ICell* c = cells_[i].get();
             if (!c) continue;
@@ -31,7 +75,18 @@ namespace domain {
             if (!sig) return;
             // If it's a neoplasm signal, print a message immediately
             if (sig->type() == ISignal::Type::Neoplasm) {
-                std::cout << "[Tissue] Neoplasm signal detected from cell id=" << sig->sourceId() << " message='" << sig->message() << "'\n";
+                std::uint64_t source_id = sig->sourceId();
+                std::string message = sig->message();
+
+                std::cout << "[Tissue] Neoplasm signal detected from cell id=" << source_id << " message='" << message << "'\n";
+
+                // Track the neoplasm
+                identified_neoplasms_.insert(source_id);
+
+                // Invoke listener callback if set
+                if (neoplasm_listener_) {
+                    neoplasm_listener_(source_id, message);
+                }
             }
             std::lock_guard<std::mutex> lk(signals_mutex_);
             signals_new_.push_back(std::move(sig));
@@ -65,6 +120,11 @@ namespace domain {
         std::vector<std::unique_ptr<ISignal>> out;
         out.swap(signals_new_);
         return out;
+    }
+
+    GeneticTrackingData Tissue::getGeneticTracking() const {
+        // Use domain service to analyze genetic profiles - polymorphism replaces dynamic_cast
+        return GeneticTrackingService::analyze(cells_);
     }
 
 } // namespace domain

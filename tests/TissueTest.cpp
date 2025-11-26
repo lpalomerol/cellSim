@@ -12,6 +12,10 @@ struct FakeCell : public ICell {
     bool alive() const override { return true; }
     bool isNeoplastic() const override { return false; }
     void mutateGene(const std::string& name) override {}
+
+    // IGeneticProfile implementation
+    [[nodiscard]] std::string getBRCA1Status() const override { return "+/-"; }
+    [[nodiscard]] std::string getTP53Status() const override { return "+/+"; }
 };
 
 // Fake that throws in live()
@@ -20,6 +24,10 @@ struct ThrowingCell : public ICell {
     bool alive() const override { return true; }
     bool isNeoplastic() const override { return false; }
     void mutateGene(const std::string& name) override {}
+
+    // IGeneticProfile implementation
+    [[nodiscard]] std::string getBRCA1Status() const override { return "+/-"; }
+    [[nodiscard]] std::string getTP53Status() const override { return "+/+"; }
 };
 
 TEST(TissueTest, AddAndSize) {
