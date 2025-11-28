@@ -15,8 +15,8 @@ namespace domain {
      * - Injects the provided noise source into all genes.
      * - Sets genome verbosity and captures the RNG seed (if available).
      */
-    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, double low_delta_instability, double high_delta_instability, bool verbose)
-        : noise_(std::move(noise)), genome_(std::move(genome)), base_neoplasm_k_(neoplasm_k), neoplasm_k_(domain::shared::Threshold(neoplasm_k)), is_neoplastic_(false), verbose_(verbose), low_delta_instability_(low_delta_instability), high_delta_instability_(high_delta_instability) {
+    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, double low_delta_instability, double high_delta_instability, double division_rate, bool verbose)
+        : noise_(std::move(noise)), genome_(std::move(genome)), base_neoplasm_k_(neoplasm_k), neoplasm_k_(domain::shared::Threshold(neoplasm_k)), is_neoplastic_(false), verbose_(verbose), low_delta_instability_(low_delta_instability), high_delta_instability_(high_delta_instability), division_rate_(division_rate) {
         // Inject the noise source into all genes via the Genome API
         genome_.setNoiseSourceForAll(noise_.get());
         // Propagate verbose flag to the genome and genes
@@ -138,6 +138,8 @@ namespace domain {
         }
         // Update genomic instability every cycle
         updateGenomicInstability();
+        // Attempt cell division
+        attemptDivision();
     }
 
     /** Exocytosis phase (placeholder) */
@@ -333,6 +335,27 @@ namespace domain {
 
     std::uint64_t AgenticCell::id() const {
         return cell_id_;
+    }
+
+    /**
+     * Attempt cell division: sample noise and compare with division_rate.
+     * If random value < division_rate, the cell attempts to divide.
+     * For now, this is a placeholder that only logs when verbose.
+     * Later: will create daughter cell and emit signal to tissue.
+     */
+    void AgenticCell::attemptDivision() {
+        if (division_rate_ <= 0.0) {
+            return; // Division disabled
+        }
+
+        double random_value = noise_->next().u01;
+        if (random_value < division_rate_) {
+            if (verbose_) {
+                std::cout << "[Division] Cell [" << cell_id_ << "] attempting division "
+                          << "(random=" << random_value << " < division_rate=" << division_rate_ << ")\n";
+            }
+            // TODO: Create daughter cell, emit signal to tissue
+        }
     }
 
 } // namespace domain

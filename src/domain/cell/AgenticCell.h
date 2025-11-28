@@ -21,11 +21,13 @@ namespace domain {
         // Construct an AgenticCell. Genome is taken by value to make ownership explicit
         // and allow move-semantics from caller. Noise source is owned via unique_ptr.
         // Added optional low/high genomic instability deltas (defaults kept for backward compatibility)
+        // division_rate: probability that the cell divides during phase4 (default 0.001)
         AgenticCell(std::unique_ptr<INoiseSource> noise,
                     Genome genome,
                     double neoplasm_k = 0.002,
                     double low_delta_instability = 0.0001,
                     double high_delta_instability = 0.0002,
+                    double division_rate = 0.001,
                     bool verbose = false);
 
         // Run a single lifecycle tick for the cell
@@ -90,6 +92,9 @@ namespace domain {
         // Stable id for the cell (default -1 meaning unassigned)
         std::uint64_t cell_id_ = static_cast<std::uint64_t>(-1);
 
+        // Division rate: probability that the cell divides during phase4 (default 0.001)
+        double division_rate_ = 0.001;
+
         // Encapsulate neoplasm development logic (samples noise and applies threshold)
         void develop_neoplasm();
 
@@ -106,6 +111,9 @@ namespace domain {
 
         // Adjust neoplasm probability (placeholder for future behavior)
         void adjust_neoplasm_k();
+
+        // Attempt cell division if random value is below division_rate (called in phase4)
+        void attemptDivision();
 
         // Indicator of genomic instability. Starts at 1.0 and is updated in phase4.
         // This acts as a multiplicative degrader of the biological system: it starts at 1.0

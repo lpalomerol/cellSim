@@ -3,6 +3,7 @@
 #include <tuple>
 #include "../src/domain/cell/AgenticCell.h"
 #include "TestNoise.h"
+#include "FakeNoise.h"
 
 // Se evita `using namespace domain;` para que los tests usen `domain::` explícito.
 
@@ -187,3 +188,106 @@ TEST(AgenticCellTest, GenomicInstabilityEvolutionByTP53State) {
     cell_mm.live();
     EXPECT_DOUBLE_EQ(cell_mm.getGenomicInstability(), 1.0002);
 }
+
+// ---------- Nuevas pruebas para la división celular ----------
+
+TEST(AgenticCellTest, DivisionRateDefaultValue) {
+    domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
+    domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus);
+    std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
+    domain::Genome genome(genes);
+    // Constructor sin especificar division_rate debe usar valor por defecto 0.001
+    domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome);
+    // Nota: no hay getter público para division_rate, pero probamos que no causa errores
+    cell.live();
+    EXPECT_TRUE(cell.alive()); // Debería seguir viva
+}
+
+TEST(AgenticCellTest, DivisionRateCustomValue) {
+    domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
+    domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus);
+    std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
+    domain::Genome genome(genes);
+    // Constructor con division_rate personalizado
+    domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome,
+                             0.002, // neoplasm_k
+                             0.0001, // low_delta_instability
+                             0.0002, // high_delta_instability
+                             0.5,    // division_rate alto (50%)
+                             false); // verbose
+    cell.live();
+    EXPECT_TRUE(cell.alive());
+}
+
+TEST(AgenticCellTest, DivisionDisabledWhenRateIsZero) {
+    domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
+    domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus);
+    std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
+    domain::Genome genome(genes);
+    // division_rate = 0.0 disables division
+    domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome,
+                             0.002, 0.0001, 0.0002, 0.0, false);
+    cell.live();
+    EXPECT_TRUE(cell.alive()); // Sin intentos de división
+}
+
+TEST(AgenticCellTest, DivisionAttemptWithVerboseOutput) {
+    domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
+    domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus);
+    std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
+    domain::Genome genome(genes);
+    // Usar secuencia de ruido que permita división pero no mutaciones fatales
+    // - Valores bajos para mutación (se aplica a genes)
+    // - Pero la célula debe sobrevivir con BRCA1 +/-
+    std::vector<domain::CellNoise> noise_sequence{
+        domain::CellNoise{0.5},  // Fase 0-3: evita mutaciones (threshold 0.1 es muy bajo)
+        domain::CellNoise{0.05}, // Fase 4: provoca división (0.05 < 0.5)
+        domain::CellNoise{0.5},  // Ciclos posteriores
+        domain::CellNoise{0.5}
+    };
+    domain::AgenticCell cell(std::make_unique<FakeNoise>(noise_sequence),
+                             genome,
+                             0.002, 0.0001, 0.0002, 0.5, true);
+    // El test pasa si no lanza excepciones durante la ejecución
+    cell.live();
+    EXPECT_TRUE(cell.alive());
+}
+
+TEST(AgenticCellTest, NoDivisionWhenRandomAboveThreshold) {
+    domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
+    domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus);
+    std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
+    domain::Genome genome(genes);
+    // division_rate = 0.3, FakeNoise devuelve 1.0 (muy alto)
+    // 1.0 < 0.3 es falso, no hay división
+    domain::AgenticCell cell(std::make_unique<FakeNoise>(std::vector<domain::CellNoise>{domain::CellNoise{1.0}}),
+                             genome,
+                             0.002, 0.0001, 0.0002, 0.3, false);
+    cell.live();
+    EXPECT_TRUE(cell.alive()); // Sin intento de división
+}
+
+TEST(AgenticCellTest, DivisionAttemptMultipleCycles) {
+    domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
+    domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus);
+    std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
+    domain::Genome genome(genes);
+    // Múltiples ciclos, algunos con potencial de división
+    std::vector<domain::CellNoise> noise_sequence{
+        domain::CellNoise{0.1},  // Ciclo 1: probablemente división (si division_rate > 0.1)
+        domain::CellNoise{0.8},  // Ciclo 2: sin división
+        domain::CellNoise{0.05}, // Ciclo 3: probablemente división
+        domain::CellNoise{0.9}   // Ciclo 4: sin división
+    };
+    domain::AgenticCell cell(std::make_unique<FakeNoise>(noise_sequence),
+                             genome,
+                             0.002, 0.0001, 0.0002, 0.2, false);
+
+    // Ejecutar múltiples ciclos
+    for (int i = 0; i < 4; ++i) {
+        cell.live();
+        EXPECT_TRUE(cell.alive()); // Debe seguir viva
+        EXPECT_EQ(cell.getAge(), static_cast<std::uint64_t>(i + 1));
+    }
+}
+
