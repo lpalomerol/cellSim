@@ -190,6 +190,159 @@ Neoplasias|
           0 5 10 15 20 (años)
 ```
 
+---
+
+### 5. `cell_division_healthy` (División Celular - Crecimiento Saludable)
+
+**Descripción:**
+Escenario donde NO hay mutaciones genéticas pero SÍ hay división celular activa. Las células se dividen con una tasa del 10% por año, permitiendo crecimiento exponencial de la población.
+
+**Configuración:**
+```
+BRCA1: threshold=0.0, k=0.0
+TP53:  threshold=0.0, k=0.0
+Division rate: 0.1 (10%)
+Neoplasm k: 0.02
+```
+
+**Uso:**
+```bash
+./random_cells 20 5 42 --scenario cell_division_healthy
+```
+
+**Características:**
+- ✅ Sin mutaciones genéticas (todas las células permanecen normales)
+- 📈 División celular activa a tasa del 10% por año
+- 🧬 Genoma estable (no hay neoplasias)
+- 📊 Crecimiento exponencial de la población
+- ⚠️ TASA DE DIVISIÓN MUY ALTA para visualización clara
+
+**Caso de uso:**
+- Validar mecánica de división celular
+- Estudiar crecimiento exponencial en tejidos sin mutaciones
+- Testing del sistema de señales de división
+- Visualizar dinámicas de proliferación
+
+**Resultado esperado (10 células iniciales, 5 años):**
+```
+Año 0: 10 células [BRCA+/- TP53+/+]
+Año 1: 11 células (1 división)
+Año 2: 14 células (3 divisiones)
+Año 3: 17 células (3 divisiones adicionales)
+Año 4: 21 células (4 divisiones adicionales)
+Año 5: 27 células (6 divisiones adicionales)
+```
+
+**Gráfica de crecimiento esperada:**
+```
+Células|
+   30  |              ●
+   28  |            ●
+   26  |          ●
+   24  |        ●
+   22  |      ●
+   20  |    ●
+   18  |  ●
+   16  |●
+   14  |
+   12  |●
+   10  |●──────────────────
+       0 1 2 3 4 5 (años)
+```
+
+**Mensajes del tissue esperados:**
+```
+[Tissue] Cell division signal detected from cell id=0; adding daughter cell
+[Tissue] Cell division signal detected from cell id=1; adding daughter cell
+[Tissue] Cell division signal detected from cell id=7; adding daughter cell
+```
+
+---
+
+### 6. `realistic_division` (Realista con División Celular - 50 años)
+
+**Descripción:**
+Escenario realista que combina mutaciones (BRCA1 con threshold=0.01) y división celular (rate=0.01, 1% por año). Simula un tejido normal que crece mientras algunas células eventualmente mueren por apoptosis. Pensado para correr 50 años y observar dinámicas complejas a largo plazo.
+
+**Configuración:**
+```
+BRCA1: threshold=0.01, k=0.01
+TP53:  threshold=0.01, k=0.01
+Division rate: 0.01 (1%)
+Neoplasm k: 0.02
+```
+
+**Uso:**
+```bash
+./random_cells 100 50 42 --scenario realistic_division
+```
+
+**Características:**
+- ✅ Mutaciones realistas en BRCA1 y TP53 (1% por año)
+- 📈 División celular realista (1% por año, similar a BRCA1)
+- 💀 Apoptosis ocasional cuando BRCA1 -> -/-
+- 🧬 Posible desarrollo de neoplasias a largo plazo
+- ⏱️ Simulación larga (50 años) para ver dinámicas complejas
+- ⚖️ Balance entre crecimiento, muerte y transformación
+
+**Caso de uso:**
+- Simulaciones realistas de tejidos normales en crecimiento
+- Estudiar interacción entre división, mutación y apoptosis a largo plazo
+- Entender dinámica a largo plazo (50 años) de poblaciones celulares
+- Análisis de competencia clonal en presencia de división celular
+- Estudios de envejecimiento tisular y transformación neoplástica
+
+**Resultado esperado (100 células iniciales, 50 años):**
+```
+Año 0:  100 células [BRCA+/- TP53+/+]
+Año 10: 110-120 células (crecimiento lento, algunas muertas)
+Año 20: 120-150 células (balance entre división y muerte)
+Año 30: 140-180 células (crecimiento gradual se mantiene)
+Año 40: 160-200 células (población se estabiliza con divisiones y muertes)
+Año 50: 180-240 células (crecimiento neto moderado, neoplasias visibles)
+```
+
+**Gráfica de dinámica esperada:**
+```
+Células|
+  250  |              ●───●───●
+  200  |          ●───          
+  150  |      ●───                
+  100  |  ●───                    
+   50  |●                         
+    0  |____________________________
+      0  10  20  30  40  50 (años)
+```
+
+**Indicadores de validación:**
+- ✅ Población nunca decrece a 0 (división > muerte en promedio)
+- ✅ Crecimiento es lento pero sostenido (balance entre procesos)
+- ✅ Algunas neoplasias pueden detectarse (~5-15% en 50 años)
+- ✅ Resumen genético muestra distribución en varias categorías
+- ✅ Algunas células en estado BRCA-/- (muertas pero contadas)
+
+**Dinámicas esperadas a diferentes puntos de tiempo:**
+
+*Año 10:*
+```
+[Tissue Description] id=0  cells=112  identified_neoplasms=0-2
+  Resumen genético:     90(0)      15(0)      5(0-2)         2
+```
+
+*Año 30:*
+```
+[Tissue Description] id=0  cells=155  identified_neoplasms=5-8
+  Resumen genético:    120(0)      20(0)      12(5-8)         3
+```
+
+*Año 50:*
+```
+[Tissue Description] id=0  cells=210  identified_neoplasms=12-20
+  Resumen genético:    170(0)      25(0)      10(12-20)       5
+```
+
+---
+
 ## Parámetros Comunes
 
 Todos los escenarios aceptan los mismos parámetros posicionales:
@@ -209,17 +362,20 @@ Todos los escenarios aceptan los mismos parámetros posicionales:
 
 ## Comparación de Escenarios
 
-| Aspecto | Default | No Mutations | High BRCA Apoptosis | High TP53 Mutation |
-|--------|---------|--------------|---------------------|---------------------|
-| Mutaciones BRCA1 | ✅ 0.01 | ❌ 0.0 | ⚠️ 0.5 (ALTO) | ✅ 0.001 (BAJO) |
-| Mutaciones TP53 | ✅ 0.01 | ❌ 0.0 | ✅ 0.01 | ⚠️ 0.3 (ALTO) |
-| Inestabilidad | ✅ Posible | ❌ No | ✅ Normal | 🔴 MUY Alta |
-| Cambios genómicos | ✅ Frecuentes | ❌ Ninguno | ⚠️ Solo BRCA1 | 🔴 Muy frecuentes |
-| Neoplasias | ✅ Posibles | ❌ Solo azar | ✅ Posibles | 🎯 MUCHAS |
-| Apoptosis | ✅ Ocasional | ❌ Nunca | 💀 Masiva | ✅ Rara |
-| Supervivencia celular | Intermedia | Máxima | Mínima | Intermedia-Alta |
-| % Neoplasias en 20 años | 10-20% | ~0% | N/A (mueren) | 60-70% |
-| Casos de uso | Realista | Control | Testing BRCA1 | Testing TP53 |
+| Aspecto | Default | No Mutations | High BRCA Apoptosis | High TP53 Mutation | Cell Division | Realistic Division |
+|--------|---------|--------------|---------------------|---------------------|----------------|---------------------|
+| Mutaciones BRCA1 | ✅ 0.01 | ❌ 0.0 | ⚠️ 0.5 (ALTO) | ✅ 0.001 (BAJO) | ❌ 0.0 | ✅ 0.01 |
+| Mutaciones TP53 | ✅ 0.01 | ❌ 0.0 | ✅ 0.01 | ⚠️ 0.3 (ALTO) | ❌ 0.0 | ✅ 0.01 |
+| División celular | ❌ 0% | ❌ 0% | ❌ 0% | ❌ 0% | ✅ 10% (ALTA) | ✅ 1% |
+| Inestabilidad | ✅ Posible | ❌ No | ✅ Normal | 🔴 MUY Alta | ❌ No | ✅ Posible |
+| Cambios genómicos | ✅ Frecuentes | ❌ Ninguno | ⚠️ Solo BRCA1 | 🔴 Muy frecuentes | ❌ Ninguno | ✅ Graduales |
+| Neoplasias | ✅ Posibles | ❌ Solo azar | ✅ Posibles | 🎯 MUCHAS | ❌ No (sin mutaciones) | ✅ Gradualmente |
+| Apoptosis | ✅ Ocasional | ❌ Nunca | 💀 Masiva | ✅ Rara | ❌ Nunca | ✅ Ocasional |
+| Crecimiento poblacional | Estable | Estable | Decreciente | Estable | 📈 Exponencial | 📈 Lento pero sostenido |
+| Supervivencia celular | Intermedia | Máxima | Mínima | Intermedia-Alta | Máxima | Alta |
+| % Neoplasias en 20 años | 10-20% | ~0% | N/A (mueren) | 60-70% | ~0% | 5-10% |
+| Duración típica | 50 años | 50 años | 10 años | 50 años | 5-10 años | 50 años (larga) |
+| Casos de uso | Realista base | Control | Testing BRCA1 | Testing TP53 | Testing división | Realista completo |
 
 ---
 
@@ -280,6 +436,41 @@ cd /home/luis/CLionProjects/cellSim/cmake-build-debug
 - Año 10: ~35 neoplasias detectadas
 - Año 20: ~60-70 neoplasias detectadas
 - Gráfica de transformación: curva sigmoidea creciente
+
+### Ejemplo 6: Simulación con división celular (sin mutaciones)
+
+```bash
+./random_cells 20 5 42 --scenario cell_division_healthy
+```
+
+**Esperado:**
+- 20 células iniciales, todas normales
+- División celular a tasa del 10% por año
+- Año 1: 21 células
+- Año 2: 24 células
+- Año 3: 27 células
+- Año 4: 31 células
+- Año 5: 35+ células
+- Mensajes: `[Tissue] Cell division signal detected from cell id=X; adding daughter cell`
+- Resumen genético: todas las células en [BRCA+/- TP53+/+]
+
+### Ejemplo 7: Simulación realista con división (50 años)
+
+```bash
+./random_cells 100 50 42 --scenario realistic_division
+```
+
+**Esperado:**
+- 100 células iniciales
+- División celular a tasa del 1% (similar a mutación de BRCA1)
+- Año 10: ~110-120 células
+- Año 20: ~120-150 células
+- Año 30: ~140-180 células
+- Año 40: ~160-200 células
+- Año 50: ~180-240 células
+- Neoplasias detectadas: 5-20 en 50 años
+- Gráfica de crecimiento: lenta pero sostenida
+- Balance entre mutaciones, divisiones y muertes
 
 ## Archivos de Configuración (Próximos Pasos)
 
@@ -365,6 +556,56 @@ Indicadores:
 - ✅ Población celular se mantiene (~100 células)
 - ✅ A los 20 años: ~60-70% de células son neoplásticas
 
+### `cell_division_healthy`: Crecimiento exponencial esperado
+
+```
+Año 0: [Tissue Description] id=0  cells=10  identified_neoplasms=0
+         Resumen genético:     10(0)      0(0)      0(0)         0 
+
+Año 1: [Tissue Description] id=0  cells=11  identified_neoplasms=0
+         Resumen genético:     11(0)      0(0)      0(0)         0 
+         [Tissue] Cell division signal detected from cell id=2; adding daughter cell
+
+Año 2: [Tissue Description] id=0  cells=14  identified_neoplasms=0
+         Resumen genético:     14(0)      0(0)      0(0)         0 
+         [Tissue] Cell division signal detected from cell id=0; adding daughter cell
+         [Tissue] Cell division signal detected from cell id=5; adding daughter cell
+
+Año 5: [Tissue Description] id=0  cells=27  identified_neoplasms=0
+         Resumen genético:     27(0)      0(0)      0(0)         0 
+```
+
+Indicadores:
+- ✅ Mensajes de división detectables en cada año
+- ✅ Todas las células en [BRCA+/- TP53+/+] (sin cambios genómicos)
+- ✅ Crecimiento exponencial (10 → 27 en 5 años)
+- ✅ Sin neoplasias detectadas (mutation_rate = 0)
+- ✅ Crecimiento acelerado con el tiempo (no lineal)
+
+### `realistic_division`: Balance entre procesos
+
+```
+Año 0: [Tissue Description] id=0  cells=100  identified_neoplasms=0
+         Resumen genético:    100(0)      0(0)      0(0)         0 
+
+Año 10: [Tissue Description] id=0  cells=112  identified_neoplasms=1-2
+          Resumen genético:     85(0)      15(0)      8(1-2)      4 
+
+Año 30: [Tissue Description] id=0  cells=155  identified_neoplasms=5-8
+          Resumen genético:    115(0)      20(0)     15(5-8)      5 
+
+Año 50: [Tissue Description] id=0  cells=210  identified_neoplasms=12-20
+          Resumen genético:    170(0)      25(0)     10(12-20)     5 
+```
+
+Indicadores:
+- ✅ Crecimiento lento pero sostenido (100 → 210 en 50 años)
+- ✅ Neoplasias aumentan gradualmente (~25% en 50 años)
+- ✅ Algunas células muertas (BRCA-/- positivas)
+- ✅ Distribución genómica en múltiples categorías
+- ✅ Balance entre división (↑) y muerte (↑)
+- ✅ Crecimiento neto positivo (división > muerte)
+
 ---
 
 ## Troubleshooting
@@ -388,10 +629,19 @@ Indicadores:
 
 ## Siguiente Paso
 
-Próximamente se añadirán más escenarios:
-- `high_mutation`: Tasas altas de mutación (threshold=0.1)
+Escenarios completados: 6
+- ✅ `default` - Mutaciones normales
+- ✅ `no_mutations` - Control sin mutaciones
+- ✅ `high_brca_apoptosis` - Apoptosis masiva
+- ✅ `high_tp53_mutation` - Neoplasias masivas
+- ✅ `cell_division_healthy` - División celular pura (10%)
+- ✅ `realistic_division` - División realista con mutaciones (1%)
+
+Próximos escenarios a implementar:
+- `high_mutation`: Tasas altas de mutación en ambos genes (threshold=0.1)
 - `tp53_knockout`: TP53 siempre -/- desde inicio
 - `brca1_protected`: BRCA1 protegido contra mutaciones
+- `cell_division_aggressive`: División celular muy alta (20%) con mutaciones
 - Escenarios con parámetros configurables desde JSON/YAML
 
 

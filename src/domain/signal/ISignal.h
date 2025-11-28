@@ -12,7 +12,8 @@ namespace domain {
     struct ISignal {
         enum class Type {
             Neoplasm,
-            Apoptosis
+            Apoptosis,
+            CellDivision
         };
 
         virtual ~ISignal() = default;

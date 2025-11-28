@@ -4,9 +4,11 @@
 #include "AgenticCell.h"
 #include <iostream>
 #include "../signal/NeoplasmSignal.h"
+#include "../signal/CellDivisionSignal.h"
 #include "../exception/CellDeathException.h"
 #include "../exception/NeoplasticException.h"
 #include "../shared/Threshold.h"
+#include "../adapters/RandomNoise.h"
 
 namespace domain {
 
@@ -340,8 +342,7 @@ namespace domain {
     /**
      * Attempt cell division: sample noise and compare with division_rate.
      * If random value < division_rate, the cell attempts to divide.
-     * For now, this is a placeholder that only logs when verbose.
-     * Later: will create daughter cell and emit signal to tissue.
+     * Creates a daughter cell and emits a CellDivisionSignal to the tissue.
      */
     void AgenticCell::attemptDivision() {
         if (division_rate_ <= 0.0) {
@@ -354,8 +355,60 @@ namespace domain {
                 std::cout << "[Division] Cell [" << cell_id_ << "] attempting division "
                           << "(random=" << random_value << " < division_rate=" << division_rate_ << ")\n";
             }
-            // TODO: Create daughter cell, emit signal to tissue
+
+            // Create daughter cell by cloning
+            auto daughter = clone();
+
+            if (signal_emitter_) {
+                // Emit CellDivisionSignal with the daughter cell to the tissue
+                auto sig = std::make_unique<CellDivisionSignal>(
+                    id(),
+                    std::move(daughter),
+                    "cell_division"
+                );
+                signal_emitter_(std::move(sig));
+
+                if (verbose_) {
+                    std::cout << "[Division] Cell [" << cell_id_ << "] emitted daughter cell signal\n";
+                }
+            }
         }
+    }
+
+    /**
+     * Create a clone (daughter cell) of this cell.
+     * The daughter cell has:
+     * - A cloned genome (same state but independent)
+     * - A new random noise source (for genetic diversity)
+     * - Age reset to 0
+     * - Cell ID will be assigned by the tissue
+     * - Same configuration parameters (division_rate, neoplasm_k, instability deltas)
+     */
+    std::unique_ptr<AgenticCell> AgenticCell::clone() const {
+        // Create a new random noise source with a random seed for diversity
+        // Use a seed derived from current seed + cell age for some variability
+        unsigned new_seed = static_cast<unsigned>(seed_ + age_ + 1);
+        auto new_noise = std::make_unique<adapters::RandomNoise>(new_seed);
+
+        // Clone the genome
+        Genome cloned_genome = genome_.clone();
+
+        // Create daughter cell with same configuration
+        auto daughter = std::make_unique<AgenticCell>(
+            std::move(new_noise),
+            cloned_genome,
+            base_neoplasm_k_,
+            low_delta_instability_,
+            high_delta_instability_,
+            division_rate_,
+            verbose_
+        );
+
+        if (verbose_) {
+            std::cout << "[Clone] Created daughter cell from parent [" << cell_id_ << "] with new seed=" << new_seed << "\n";
+        }
+
+        return daughter;
     }
 
 } // namespace domain

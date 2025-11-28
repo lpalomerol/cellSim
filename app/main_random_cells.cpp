@@ -24,6 +24,7 @@ static void parseArgs(int argc, char** argv, int &n_cells, int &max_t, long &see
             std::cout << "  no_mutations           - Sin mutaciones (thresholds: BRCA1=0.0, TP53=0.0)\n";
             std::cout << "  high_brca_apoptosis    - Alta mutación en BRCA1 (threshold=0.5) para apoptosis masiva\n";
             std::cout << "  high_tp53_mutation     - Alta mutación en TP53 (threshold=0.3) para muchas neoplasias\n";
+            std::cout << "  cell_division_healthy  - Sin mutaciones con división celular (1% rate) para crecimiento\n";
             std::exit(0);
         }
         n_cells = std::stoi(arg1);
@@ -67,18 +68,21 @@ int main(int argc, char** argv) {
     // Configurar umbrales según el escenario
     std::unordered_map<std::string, double> gene_thresholds;
     std::unordered_map<std::string, double> gene_instability_k;
+    double division_rate = 0.001; // Tasa de división por defecto (0.1%)
 
     if (scenario == "no_mutations") {
         std::cout << "Escenario: NO MUTATIONS\n";
         std::cout << "Todas las probabilidades de mutación están en 0.\n";
         gene_thresholds = {{"BRCA1", 0.0}, {"TP53", 0.0}};
         gene_instability_k = {{"BRCA1", 0.0}, {"TP53", 0.0}};
+        division_rate = 0.0; // Sin división celular
     } else if (scenario == "high_brca_apoptosis") {
         std::cout << "Escenario: HIGH BRCA APOPTOSIS\n";
         std::cout << "Alta probabilidad de mutación en BRCA1 para causar apoptosis masiva.\n";
         std::cout << "Esperado: ~50% de células muertas en 10 años.\n";
         gene_thresholds = {{"BRCA1", 0.5}, {"TP53", 0.01}};
         gene_instability_k = {{"BRCA1", 0.1}, {"TP53", 0.01}};
+        division_rate = 0.0; // Sin división celular
     } else if (scenario == "high_tp53_mutation") {
         std::cout << "Escenario: HIGH TP53 MUTATION (Neoplasias)\n";
         std::cout << "Alta probabilidad de mutación en TP53 para favorecer neoplasias.\n";
@@ -86,15 +90,25 @@ int main(int argc, char** argv) {
         std::cout << "Esperado: muchas células transformadas a neoplasias (~80% en 20 años).\n";
         gene_thresholds = {{"BRCA1", 0.001}, {"TP53", 0.3}};
         gene_instability_k = {{"BRCA1", 0.001}, {"TP53", 0.2}};
+        division_rate = 0.0; // Sin división celular
+    } else if (scenario == "cell_division_healthy") {
+        std::cout << "Escenario: CELL DIVISION (Healthy Growth)\n";
+        std::cout << "Sin mutaciones y con división celular activa (ALTA TASA).\n";
+        std::cout << "Esperado: crecimiento exponencial muy notable de la población.\n";
+        gene_thresholds = {{"BRCA1", 0.0}, {"TP53", 0.0}};
+        gene_instability_k = {{"BRCA1", 0.0}, {"TP53", 0.0}};
+        division_rate = 0.1; // 10% división (TASA MUY ALTA para que sea notoria)
     } else {
         std::cout << "Escenario: DEFAULT (mutaciones normales)\n";
         gene_thresholds = {{"BRCA1", 0.01}, {"TP53", 0.01}};
         gene_instability_k = {{"BRCA1", 0.01}, {"TP53", 0.01}};
+        division_rate = 0.0; // Sin división celular por defecto
     }
 
     std::cout << "Creando " << n_cells << " células con los mismos thresholds iniciales.\n";
     std::cout << "  BRCA1: threshold=" << gene_thresholds["BRCA1"] << ", k=" << gene_instability_k["BRCA1"] << "\n";
     std::cout << "  TP53:  threshold=" << gene_thresholds["TP53"] << ", k=" << gene_instability_k["TP53"] << "\n";
+    std::cout << "  Division rate: " << division_rate << " (" << (division_rate * 100.0) << "%)\n";
 
     // Generador para seeds si seed < 0
     std::mt19937 seed_gen(static_cast<unsigned>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
@@ -120,7 +134,7 @@ int main(int argc, char** argv) {
         auto noise = std::make_unique<adapters::RandomNoise>(cell_seed);
 
         // Construir la célula mediante la factoría (inyecta noise y genome)
-        auto cell = domain::cell_factory::createAgenticCell(std::move(noise), std::move(genome), 0.02, 0.01, 0.02, verbose);
+        auto cell = domain::cell_factory::createAgenticCell(std::move(noise), std::move(genome), 0.02, 0.01, 0.02, division_rate, verbose);
         tissue.addCell(std::move(cell));
     }
 

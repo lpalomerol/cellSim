@@ -10,12 +10,14 @@ namespace domain::cell_factory {
 std::unique_ptr<ICell> createAgenticCell(unsigned seed, domain::Genome genome, double neoplasm_k,
     double low_delta_instability = 0.0001,
     double high_delta_instability = 0.0002,
+    double division_rate = 0.001,
     bool verbose = false);
 
 // Overload: allows directly injecting the noise source
 std::unique_ptr<ICell> createAgenticCell(std::unique_ptr<INoiseSource> noise, domain::Genome genome, double neoplasm_k,
     double low_delta_instability = 0.0001,
     double high_delta_instability = 0.0002,
+    double division_rate = 0.001,
     bool verbose = false);
 
 } // namespace domain::cell_factory

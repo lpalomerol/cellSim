@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include "GeneticTrackingService.h"
+#include "../signal/CellDivisionSignal.h"
 
 namespace domain {
 
@@ -73,7 +74,8 @@ namespace domain {
         // Inject a signal emitter that enqueues signals into signals_new_
         cell->setSignalEmitter([this](std::unique_ptr<ISignal> sig){
             if (!sig) return;
-            // If it's a neoplasm signal, print a message immediately
+
+            // Handle Neoplasm signals
             if (sig->type() == ISignal::Type::Neoplasm) {
                 std::uint64_t source_id = sig->sourceId();
                 std::string message = sig->message();
@@ -88,6 +90,23 @@ namespace domain {
                     neoplasm_listener_(source_id, message);
                 }
             }
+            // Handle CellDivision signals
+            else if (sig->type() == ISignal::Type::CellDivision) {
+                auto* division_sig = dynamic_cast<CellDivisionSignal*>(sig.get());
+                if (division_sig) {
+                    // Extract the daughter cell from the signal
+                    auto daughter = division_sig->takeDaughterCell();
+                    if (daughter) {
+                        if (verbose_) {
+                            std::cout << "[Tissue] Cell division signal detected from cell id="
+                                      << sig->sourceId() << "; adding daughter cell\n";
+                        }
+                        // Add the daughter cell to the tissue (assigns a new ID)
+                        addCell(std::move(daughter));
+                    }
+                }
+            }
+
             std::lock_guard<std::mutex> lk(signals_mutex_);
             signals_new_.push_back(std::move(sig));
         });
