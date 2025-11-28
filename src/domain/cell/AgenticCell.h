@@ -119,6 +119,9 @@ namespace domain {
         // The daughter cell will have age reset to 0 and a new ID assigned by the tissue
         std::unique_ptr<AgenticCell> clone() const;
 
+        // Attempt apoptosis (programmed cell death) in response to an apoptosis signal
+        void attemptApoptosis();
+
         // Indicator of genomic instability. Starts at 1.0 and is updated in phase4.
         // This acts as a multiplicative degrader of the biological system: it starts at 1.0
         // and may grow without an upper bound (values >1 represent progressive instability).

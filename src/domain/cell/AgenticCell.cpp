@@ -5,6 +5,7 @@
 #include <iostream>
 #include "../signal/NeoplasmSignal.h"
 #include "../signal/CellDivisionSignal.h"
+#include "../signal/ApoptosisSignal.h"
 #include "../exception/CellDeathException.h"
 #include "../exception/NeoplasticException.h"
 #include "../shared/Threshold.h"
@@ -109,10 +110,10 @@ namespace domain {
                 }
             }
 
-            // Future: handle specific message types
-            // if (msg->type() == ISignal::Type::Apoptosis) {
-            //     attemptApoptosis();
-            // }
+            // Handle specific message types
+            if (msg->type() == ISignal::Type::Apoptosis) {
+                attemptApoptosis();
+            }
         }
     }
 
@@ -409,6 +410,23 @@ namespace domain {
         }
 
         return daughter;
+    }
+
+    /**
+     * Attempt apoptosis (programmed cell death) in response to an apoptosis signal.
+     * This method disables the BRCA1 gene, which will cause the cell to be marked as dead
+     * in the next phase (since alive() checks if BRCA1 is enabled).
+     */
+    void AgenticCell::attemptApoptosis() {
+        if (verbose_) {
+            std::cout << "[Apoptosis] Cell [" << cell_id_ << "] received apoptosis signal and is undergoing programmed cell death\n";
+        }
+
+        // Disable BRCA1 to trigger cell death
+        genome_.mutate("BRCA1");
+
+        // Optionally throw CellDeathException to immediately stop the current cycle
+        throw CellDeathException("apoptosis@phase2");
     }
 
 } // namespace domain

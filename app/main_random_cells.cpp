@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
         std::cout << "Escenario: DEFAULT (mutaciones normales)\n";
         gene_thresholds = {{"BRCA1", 0.01}, {"TP53", 0.01}};
         gene_instability_k = {{"BRCA1", 0.01}, {"TP53", 0.01}};
-        division_rate = 0.0; // Sin división celular por defecto
+        division_rate = 0.01; // Sin división celular por defecto
     }
 
     std::cout << "Creando " << n_cells << " células con los mismos thresholds iniciales.\n";

@@ -25,6 +25,7 @@ add_executable(unit_tests
         ../src/domain/gene/Genome.cpp
         ../src/domain/gene/Genome.h
         ../src/domain/gene/GenomeFactory.cpp
+        ../src/domain/signal/ApoptosisSignal.h
         ../src/domain/tissue/Tissue.cpp
         GeneTest.cpp
         ExperimentalTrackingTest.cpp
@@ -40,6 +41,7 @@ add_executable(unit_tests
         TissueIntegrationSignalTest.cpp
         AgenticCellReceiveMessageTest.cpp
         CellDivisionIntegrationTest.cpp
+        ApoptosisTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales
