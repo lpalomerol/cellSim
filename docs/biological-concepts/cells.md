@@ -1,6 +1,34 @@
-# 🟢 Células en cellSim
-
+└─ INMUNOSUPRESIÓN: MÁXIMA 🔴
+   ├─ Sistema inmune severamente deprimido
+   ├─ Vigilancia: prácticamente ausente
+   └─ Evasión inmune: altamente probable
 ## Introducción
+
+### Visualización: Tránsito de TP53
+
+```
+        TP53 +/+              TP53 +/-              TP53 -/-
+        (SALVAJE)            (HETERO)             (KNOCKOUT)
+
+        🟢 Segura            🟡 Degradada          🔴 Peligrosa
+        
+        No tumores ✅        No tumores ✅         Tumores ✅
+        Baja mut ✅          Med mut ⚠️            Alta mut ❌
+        Inmune ok ✅         Inmune ⚠️             Inmune ❌
+
+        Estable              En transición         Caótica
+```
+
+### Tabla Comparativa
+
+| Característica | TP53 +/+ | TP53 +/- | TP53 -/- |
+|---|---|---|---|
+| **Protección** | Completa ✅ | Degradada ⚠️ | Nula ❌ |
+| **Permite tumor** | NO | NO | SÍ |
+| **Inestabilidad** | Base 🟢 | Media 🟡 | Alta 🔴 |
+| **Inmunosupresión** | Base 🟢 | Media 🟡 | Alta 🔴 |
+| **Mutaciones/año** | Normal | ↑ 1.5-2x | ↑↑↑ 3-5x |
+| **Riesgo oncogénico** | Bajo | Medio | Muy alto |
 
 La **célula** es la unidad funcional viva del simulador. Es una entidad autónoma con su propio genoma, identidad, edad y estado. Las células pueden vivir, mutar, reproducirse, morir o transformarse en neoplasias.
 
@@ -171,14 +199,17 @@ INICIO (Célula viva)
 │
 ├─────► FASE 3: EVALUACIÓN DE NEOPLASIA
 │       │
-│       ├─ ¿isNeoplasticProtected()?
+│       ├─ ¿TP53 es -/- ?
+│       │  (REGLA CLAVE: solo -/- permite tumores)
 │       │
-│       ├─ SÍ (TP53 +/+) ──► PROTEGIDA
+│       ├─ NO (TP53 +/+ o +/-) ──► PROTEGIDA
 │       │  │
-│       │  └─ Registrar protección
-│       │     Sin muestreo de neoplasia
+│       │  ├─ Si TP53 +/-: aumenta inestabilidad e inmunosupresión
+│       │  │
+│       │  └─ SIN transformación neoplástica
+│       │     No ejecutar develop_neoplasm()
 │       │
-│       └─ NO (TP53 dañado) ──► VULNERABLE
+│       └─ SÍ (TP53 -/-) ──► VULNERABLE
 │           │
 │           ├─ develop_neoplasm()
 │           │
@@ -190,7 +221,7 @@ INICIO (Célula viva)
 │           │  │       is_neoplastic_ = true
 │           │  │       Emitir signal
 │           │  │
-│           │  └─ NO ──► Sin cambio
+│           │  └─ NO ──► Sin cambio (pero inestable)
 │
 ├─────► INCREMENTAR EDAD
 │       age_++
@@ -290,13 +321,15 @@ bool AgenticCell::isNeoplasticProtected() const {
 }
 ```
 
-### Tabla: Protección
+### Tabla: Protección (Corrección según feedback del jefe)
 
-| Estado TP53 | Protegida | Acción |
-|---|---|---|
-| +/+ | ✅ SÍ | No muestrear neoplasia |
-| +/- | ❌ NO | Muestrear neoplasia |
-| -/- | ❌ NO | Muestrear neoplasia |
+| Estado TP53 | ¿Puede formar tumor? | Inestabilidad | Inmunosupresión | Acción |
+|---|---|---|---|---|
+| +/+ | ❌ NO | Base | Base | No muestrear neoplasia |
+| +/- | ❌ NO | Aumenta | Aumenta | No muestrear neoplasia, pero con degradación |
+| -/- | ✅ SÍ | Aumenta aún más | Aumenta aún más | Muestrear neoplasia activamente |
+
+**Regla clave**: Una célula **NO puede formar tumor hasta que TP53 sea -/-**. Los estados TP53 +/? (incluyendo +/-) NO permiten transformación neoplástica, pero SÍ aumentan inestabilidad genómica e inmunosupresión.
 
 ### Muestreo de Neoplasia
 
@@ -334,7 +367,20 @@ TP53 es el "guardián del genoma":
 - Detecta daño en el ADN
 - Detiene el ciclo celular
 - Induce apoptosis o reparación
-- En cellSim: previene transformación neoplástica
+- En cellSim: controla capacidad de formación de tumores
+
+### Regla Fundamental (Feedback del Jefe)
+
+**Una célula NO puede formar tumor a menos que TP53 sea -/-.**
+
+Esto significa:
+- TP53 +/+ → Protección completa ✅ 
+- TP53 +/- → Protección presente (aunque degradada) ✅ 
+- TP53 -/- → SIN protección, tumores posibles ❌ 
+
+Sin embargo, la pérdida de función de TP53 genera dos efectos secundarios graves:
+1. **Inestabilidad genómica**: aumenta con +/- y aún más con -/-
+2. **Inmunosupresión**: aumenta progresivamente
 
 ### Implementación
 
@@ -350,31 +396,70 @@ if (isNeoplasticProtected()) {
 }
 
 // Si llegamos aquí, TP53 está dañado o ausente
+// Nota: TP53 +/- TAMBIÉN está protegido en cellSim
+// (en versiones futuras: implementar grados de protección)
 develop_neoplasm();
 ```
 
-### Fases Biológicas de Protección
+### Modelo de Degradación: 3 Niveles
 
 ```
-TP53 +/+
-│
-├─► Detecta daño genético
-├─► Activa puntos de control
-├─► Permite reparación
-├─► Induce apoptosis si necesario
-└─► Previene transformación neoplástica ✅
+┌─────────────────────────────────────────────────────┐
+│   NIVELES DE TP53 Y SUS EFECTOS                    │
+└─────────────────────────────────────────────────────┘
 
-TP53 +/-
+NIVEL 1: TP53 +/+
 │
-├─► Protección reducida
-├─► Capacidad de detección debilitada
-├─► Mayor riesgo de transformación
-└─► Riesgo intermedio ⚠️
+├─ PROTECCIÓN: COMPLETA ✅
+│  ├─ Detecta daño genético eficientemente
+│  ├─ Detiene ciclo celular
+│  ├─ Puede inducir reparación o apoptosis
+│  └─ NO permite transformación neoplástica
+│
+├─ INESTABILIDAD GENÓMICA: BASE 🟢
+│  ├─ Mutaciones en otros genes: tasa normal
+│  └─ Cascadas de mutación: mínimas
+│
+└─ INMUNOSUPRESIÓN: BASE 🟢
+   ├─ Sistema inmune activo
+   └─ Vigilancia normal de células anormales
 
-TP53 -/-
+───────────────────────────────────────────────────────
+
+NIVEL 2: TP53 +/-
 │
-├─► SIN protección
-├─► No detecta daño
+├─ PROTECCIÓN: DEGRADADA ⚠️
+│  ├─ Detecta daño, pero con retardo
+│  ├─ Respuesta celular debilitada
+│  ├─ Capacidad de reparación reducida
+│  └─ NO permite transformación neoplástica (aún protege)
+│
+├─ INESTABILIDAD GENÓMICA: AUMENTA 🟡
+│  ├─ Mutaciones en otros genes: frecuencia mayor
+│  ├─ Cascadas de mutación: más probable
+│  └─ Knockdown de TP53: baja expresión
+│
+└─ INMUNOSUPRESIÓN: AUMENTA 🟡
+   ├─ Sistema inmune parcialmente deprimido
+   ├─ Vigilancia reducida de células anormales
+   └─ Primeros signos de evasión inmune
+
+───────────────────────────────────────────────────────
+
+NIVEL 3: TP53 -/-
+│
+├─ PROTECCIÓN: NULA ❌
+│  ├─ No detecta daño
+│  ├─ No detiene ciclo celular
+│  ├─ No induce apoptosis
+│  └─ ✅ PERMITE transformación neoplástica
+│
+├─ INESTABILIDAD GENÓMICA: MÁXIMA 🔴
+│  ├─ Mutaciones: tasa muy alta
+│  ├─ Cascadas de mutación: frecuentes y graves
+│  ├─ Inestabilidad cromosómica
+│  └─ Acumulación rápida de anomalías genómicas
+│
 ├─► Alto riesgo de transformación
 └─► Alto riesgo ❌
 ```

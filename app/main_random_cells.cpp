@@ -12,18 +12,33 @@
 #include "../src/domain/cell/AgenticCell.h"
 #include "../src/domain/tissue/Tissue.h"
 
-static void parseArgs(int argc, char** argv, int &n_cells, int &max_t, long &seed) {
+static void parseArgs(int argc, char** argv, int &n_cells, int &max_t, long &seed, std::string &scenario) {
     if (argc > 1) {
         std::string arg1(argv[1]);
         if (arg1 == "--help" || arg1 == "-h") {
-            std::cout << "Uso: random_cells [n_cells] [max_t] [seed]\n";
-            std::cout << " Ejemplo: random_cells 20 100 42\n";
+            std::cout << "Uso: random_cells [n_cells] [max_t] [seed] [--scenario SCENARIO]\n";
+            std::cout << " Ejemplo: random_cells 20 100 42 --scenario no_mutations\n";
+            std::cout << "\n";
+            std::cout << "Escenarios disponibles:\n";
+            std::cout << "  default                - Mutaciones normales (thresholds: BRCA1=0.01, TP53=0.01)\n";
+            std::cout << "  no_mutations           - Sin mutaciones (thresholds: BRCA1=0.0, TP53=0.0)\n";
+            std::cout << "  high_brca_apoptosis    - Alta mutación en BRCA1 (threshold=0.5) para apoptosis masiva\n";
+            std::cout << "  high_tp53_mutation     - Alta mutación en TP53 (threshold=0.3) para muchas neoplasias\n";
             std::exit(0);
         }
         n_cells = std::stoi(arg1);
     }
     if (argc > 2) max_t = std::stoi(argv[2]);
     if (argc > 3) seed = std::stol(argv[3]);
+
+    // Buscar el parámetro --scenario
+    for (int i = 4; i < argc; ++i) {
+        std::string arg(argv[i]);
+        if (arg == "--scenario" && i + 1 < argc) {
+            scenario = argv[i + 1];
+            break;
+        }
+    }
 }
 
 int main(int argc, char** argv) {
@@ -33,6 +48,7 @@ int main(int argc, char** argv) {
     int n_cells = 1000; // número de células por defecto (ajusta según necesites)
     int max_t = 50;   // años máximo
     long seed = -1;    // semilla base (-1 = usar semilla aleatoria por cell)
+    std::string scenario = "default"; // escenario por defecto
     bool verbose = false; // trazas por célula
 
     // Para ejecuciones locales rápidas: descomenta y ajusta estas líneas para fijar parámetros manualmente.
@@ -40,18 +56,45 @@ int main(int argc, char** argv) {
     // n_cells = 100; // ejemplo: descomenta y cambia según necesites
     // max_t = 100;   // ejemplo
     // seed = 42;     // ejemplo: usa -1 para semillas aleatorias
+    // scenario = "no_mutations"; // ejemplo: escenario sin mutaciones
     //
     // Parsing posicional ligero (la función hará lo mínimo necesario).
-    parseArgs(argc, argv, n_cells, max_t, seed);
+    parseArgs(argc, argv, n_cells, max_t, seed, scenario);
 
     if (n_cells <= 0) n_cells = 1;
     if (max_t <= 0) max_t = 1;
 
-    // Umbrales e inestabilidad inicial (todos los genomas usarán los mismos valores)
-    std::unordered_map<std::string, double> gene_thresholds{{"BRCA1", 0.01}, {"TP53", 0.01}};
-    std::unordered_map<std::string, double> gene_instability_k{{"BRCA1", 0.01}, {"TP53", 0.01}};
+    // Configurar umbrales según el escenario
+    std::unordered_map<std::string, double> gene_thresholds;
+    std::unordered_map<std::string, double> gene_instability_k;
+
+    if (scenario == "no_mutations") {
+        std::cout << "Escenario: NO MUTATIONS\n";
+        std::cout << "Todas las probabilidades de mutación están en 0.\n";
+        gene_thresholds = {{"BRCA1", 0.0}, {"TP53", 0.0}};
+        gene_instability_k = {{"BRCA1", 0.0}, {"TP53", 0.0}};
+    } else if (scenario == "high_brca_apoptosis") {
+        std::cout << "Escenario: HIGH BRCA APOPTOSIS\n";
+        std::cout << "Alta probabilidad de mutación en BRCA1 para causar apoptosis masiva.\n";
+        std::cout << "Esperado: ~50% de células muertas en 10 años.\n";
+        gene_thresholds = {{"BRCA1", 0.5}, {"TP53", 0.01}};
+        gene_instability_k = {{"BRCA1", 0.1}, {"TP53", 0.01}};
+    } else if (scenario == "high_tp53_mutation") {
+        std::cout << "Escenario: HIGH TP53 MUTATION (Neoplasias)\n";
+        std::cout << "Alta probabilidad de mutación en TP53 para favorecer neoplasias.\n";
+        std::cout << "BRCA1 bajo para evitar apoptosis masiva.\n";
+        std::cout << "Esperado: muchas células transformadas a neoplasias (~80% en 20 años).\n";
+        gene_thresholds = {{"BRCA1", 0.001}, {"TP53", 0.3}};
+        gene_instability_k = {{"BRCA1", 0.001}, {"TP53", 0.2}};
+    } else {
+        std::cout << "Escenario: DEFAULT (mutaciones normales)\n";
+        gene_thresholds = {{"BRCA1", 0.01}, {"TP53", 0.01}};
+        gene_instability_k = {{"BRCA1", 0.01}, {"TP53", 0.01}};
+    }
 
     std::cout << "Creando " << n_cells << " células con los mismos thresholds iniciales.\n";
+    std::cout << "  BRCA1: threshold=" << gene_thresholds["BRCA1"] << ", k=" << gene_instability_k["BRCA1"] << "\n";
+    std::cout << "  TP53:  threshold=" << gene_thresholds["TP53"] << ", k=" << gene_instability_k["TP53"] << "\n";
 
     // Generador para seeds si seed < 0
     std::mt19937 seed_gen(static_cast<unsigned>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
@@ -86,7 +129,7 @@ int main(int argc, char** argv) {
 
     while (current_year < max_t) {
         std::string line;
-        std::cout << "(Enter para tick / q para salir) > ";
+        std::cout << "(Año " << current_year << "/" << max_t << ") (Enter para tick / q para salir) > ";
         if (!std::getline(std::cin, line)) {
             std::cout << "Entrada cerrada. Saliendo.\n";
             break;
@@ -112,6 +155,11 @@ int main(int argc, char** argv) {
          }
      }
 
-    std::cout << "Simulación finalizada.\n";
+    std::cout << "\nSimulación finalizada.\n";
+    std::cout << "Resumen final:\n";
+    std::cout << "  Escenario: " << scenario << "\n";
+    std::cout << "  Células finales: " << tissue.size() << "\n";
+    std::cout << "  Años simulados: " << current_year << "\n";
+
     return 0;
 }

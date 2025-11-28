@@ -146,11 +146,13 @@ bool Genome::isUnstable() const {
 
 ### Estados y Estabilidad
 
-| Estado de TP53 | Genoma | Instabilidad Aplicada |
-|---|---|---|
-| +/+ | Estable ✅ | NO (threshold base) |
-| +/- | Inestable ⚠️ | SÍ (threshold + k) |
-| -/- | Muy Inestable ❌ | SÍ (threshold + k) |
+| Estado de TP53 | Genoma | Instabilidad Aplicada | Permite tumores |
+|---|---|---|---|
+| +/+ | Estable ✅ | NO (threshold base) | ❌ NO |
+| +/- | Inestable ⚠️ | SÍ (threshold + k) | ❌ NO (protección degradada) |
+| -/- | Muy Inestable ❌ | SÍ (threshold + k) | ✅ SÍ |
+
+**Nota importante**: Inestabilidad genómica ≠ Permisión de tumores. Un genoma con TP53 +/- es **inestable** (más mutaciones en otros genes) pero **aún protege** contra transformación neoplástica. Solo TP53 -/- permite formación de tumores.
 
 ### Implicación Biológica
 

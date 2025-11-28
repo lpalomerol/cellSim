@@ -279,10 +279,18 @@ namespace domain {
         }
     }
 
-    /** Return true if TP53 is present and enabled. */
+    /** Return true if TP53 is NOT -/- (i.e., +/+ or +/- protect; only -/- allows tumors). */
     bool AgenticCell::isNeoplasticProtected() const {
         const Gene *tp53 = genome_.getGene("TP53");
-        return (tp53 && tp53->enabled());
+        if (!tp53) return false;
+
+        // Protect from neoplasm unless TP53 is -/- (MinusMinus)
+        // This means:
+        // - TP53 +/+ → Protected ✅
+        // - TP53 +/- → Protected ✅ (but with degraded protection & increased instability)
+        // - TP53 -/- → NOT protected ❌ (allows tumors)
+        std::string status = tp53->status();
+        return status != "-/-";
     }
 
     void AgenticCell::adjust_neoplasm_k() {

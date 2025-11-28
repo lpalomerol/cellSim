@@ -47,7 +47,10 @@ namespace domain {
         // Force a gene mutation in the internal genome
         void mutateGene(const std::string& name) override;
 
-        // Check whether TP53 protects the cell from neoplasm (i.e., TP53 enabled)
+        // Check whether TP53 protects the cell from neoplasm.
+        // Rule: TP53 +/+ and +/- protect; only TP53 -/- allows tumors.
+        // Note: Even when protected by TP53 +/-, the cell still has increased instability
+        // and immunosuppression (handled separately in updateGenomicInstability).
         bool isNeoplasticProtected() const;
 
         // Expose the seed used by the noise source for traceability
