@@ -3,13 +3,14 @@
 #include <string>
 #include <unordered_map>
 #include "Gene.h"
+#include "../ports/ILogger.h"
 
 namespace domain {
 
 class Genome {
 public:
     // Constructor accepts a map (name -> Gene) and stores it internally.
-    explicit Genome(std::unordered_map<std::string, Gene> genes = {}, bool verbose = false);
+    explicit Genome(std::unordered_map<std::string, Gene> genes = {}, bool verbose = false, ports::ILoggerPtr logger = nullptr);
 
     // Check whether a gene with the given name exists
     bool hasGene(const std::string& name) const;
@@ -49,6 +50,7 @@ public:
 private:
     std::unordered_map<std::string, Gene> genes_;
     bool verbose_ = false;
+    ports::ILoggerPtr logger_;
 };
 
 } // namespace domain

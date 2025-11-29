@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include <string>
 #include "../src/application/simulation/Simulations.h"
+#include "../src/domain/adapters/Logger.h"
 
 int main() {
     // Parámetros de prueba - definidos aquí para pruebas mínimas y centralizar cambios
@@ -40,6 +41,10 @@ int main() {
     }
     std::cout << "----------------------------------------\n";
 
+    // Crear logger real e inyectarlo
+    auto logger = std::make_shared<domain::adapters::Logger>();
+    logger->setVerbose(verbose);
+
     application::SimulationsConfig cfg;
     cfg.n_cells = n_cells;
     cfg.num_simulations = num_simulations;
@@ -47,6 +52,7 @@ int main() {
     cfg.seed = seed;
     cfg.neoplasm_k = neoplasm_k;
     cfg.verbose = verbose;
+    cfg.logger = logger;
     // Asignar thresholds e instability k al config para que las simulaciones los usen
     cfg.gene_mutation_thresholds = std::move(gene_thresholds);
     cfg.gene_mutation_instability_k = std::move(gene_instability_k);

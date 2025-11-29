@@ -1,11 +1,14 @@
 #include "Genome.h"
 #include "GenomeFactory.h"
 #include <iostream>
+#include "../adapters/NullLogger.h"
 
 namespace domain {
 
-Genome::Genome(std::unordered_map<std::string, Gene> genes, bool verbose)
-    : genes_(std::move(genes)), verbose_(verbose) {}
+Genome::Genome(std::unordered_map<std::string, Gene> genes, bool verbose, ports::ILoggerPtr logger)
+    : genes_(std::move(genes)), verbose_(verbose), logger_(logger ? logger : std::make_shared<adapters::NullLogger>()) {
+    logger_->setVerbose(verbose_);
+}
 
 bool Genome::hasGene(const std::string& name) const {
     return genes_.find(name) != genes_.end();
@@ -28,7 +31,7 @@ Genome Genome::makeDefaultGenome() {
 
 // Return a deep copy of the genome
 Genome Genome::clone() const {
-    return Genome(genes_, verbose_);
+    return Genome(genes_, verbose_, logger_);
 }
 
 // Inject a noise source into every gene in the genome
@@ -50,11 +53,10 @@ void Genome::liveAllGenes(double genomic_instability) {
 
 // Print details of all genes (one line per gene)
 void Genome::details() const {
-    if (!verbose_) return;
     bool unstable = isUnstable();
     for (const auto& kv : genes_) {
         // Use Gene::details() which returns "NAME[status]"
-        std::cout << kv.second.details(unstable) << std::endl;
+        logger_->logGenome(kv.second.details(unstable));
     }
 }
 

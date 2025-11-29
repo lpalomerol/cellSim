@@ -9,6 +9,7 @@
 #include "../src/domain/cell/CellFactory.h"
 #include "../src/domain/gene/GenomeFactory.h"
 #include "../src/domain/adapters/RandomNoise.h"
+#include "../src/domain/adapters/Logger.h"
 #include "../src/domain/cell/AgenticCell.h"
 #include "../src/domain/tissue/Tissue.h"
 
@@ -50,7 +51,7 @@ int main(int argc, char** argv) {
     int max_t = 50;   // años máximo
     long seed = -1;    // semilla base (-1 = usar semilla aleatoria por cell)
     std::string scenario = "default"; // escenario por defecto
-    bool verbose = false; // trazas por célula
+    bool verbose = true; // trazas por célula
 
     // Para ejecuciones locales rápidas: descomenta y ajusta estas líneas para fijar parámetros manualmente.
     // (Si las dejas comentadas, el programa seguirá usando los valores por defecto o los que pases por argv.)
@@ -114,8 +115,12 @@ int main(int argc, char** argv) {
     std::mt19937 seed_gen(static_cast<unsigned>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
     std::uniform_int_distribution<unsigned> seed_dist(1, 0xFFFFFFFEu);
 
+    // Crear un logger real e inyectarlo
+    auto logger = std::make_shared<domain::adapters::Logger>();
+    logger->setVerbose(verbose);
+
     // Usar Tissue para agrupar y gestionar las células
-    domain::Tissue tissue(true); // verbose=true para imprimir descripción en cada live()
+    domain::Tissue tissue(verbose, logger);
     tissue.setId(0);
 
     // Vamos a crear y añadir las células al tissue
@@ -128,13 +133,13 @@ int main(int argc, char** argv) {
         }
 
         // Crear genoma idéntico para todas las células a partir de los mapas
-        domain::Genome genome = domain::genome_factory::makeDefaultGenome(gene_thresholds, gene_instability_k, verbose);
+        domain::Genome genome = domain::genome_factory::makeDefaultGenome(gene_thresholds, gene_instability_k, verbose, logger);
 
         // Crear fuente de ruido aleatoria por célula
         auto noise = std::make_unique<adapters::RandomNoise>(cell_seed);
 
         // Construir la célula mediante la factoría (inyecta noise y genome)
-        auto cell = domain::cell_factory::createAgenticCell(std::move(noise), std::move(genome), 0.02, 0.01, 0.02, division_rate, verbose);
+        auto cell = domain::cell_factory::createAgenticCell(std::move(noise), std::move(genome), 0.02, 0.01, 0.02, division_rate, verbose, logger);
         tissue.addCell(std::move(cell));
     }
 

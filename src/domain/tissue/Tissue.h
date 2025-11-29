@@ -14,6 +14,8 @@
 #include <string>
 #include <iomanip>
 #include "../ports/ICell.h"
+#include "../ports/ILogger.h"
+#include "../adapters/NullLogger.h"
 #include "../signal/ISignal.h"
 #include "GeneticTrackingData.h"
 
@@ -24,8 +26,13 @@ namespace domain {
     // and run a collective live() across all contained cells.
     class Tissue {
     public:
-        Tissue() = default;
-        explicit Tissue(bool verbose) : verbose_(verbose) {}
+        Tissue() : verbose_(false), logger_(std::make_shared<adapters::NullLogger>()) {
+            logger_->setVerbose(false);
+        }
+        explicit Tissue(bool verbose, ports::ILoggerPtr logger = nullptr)
+            : verbose_(verbose), logger_(logger ? logger : std::make_shared<adapters::NullLogger>()) {
+            logger_->setVerbose(verbose_);
+        }
 
         // Run a lifecycle tick for every contained cell. Exceptions thrown by
         // individual cells are caught and logged (if desired) so other cells
@@ -67,6 +74,7 @@ namespace domain {
         std::atomic<std::uint64_t> next_cell_id_{0};
         std::uint64_t tissue_id_ = static_cast<std::uint64_t>(-1);
         bool verbose_ = false;
+        ports::ILoggerPtr logger_;
 
         // Signals emitted by cells during the current turn; protected by mutex
         std::vector<std::unique_ptr<ISignal>> signals_new_;

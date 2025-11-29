@@ -5,10 +5,12 @@
 #include <cstddef>
 #include <string>
 #include <unordered_map>
+#include <memory>
 
 #include "Simulation.h"
 #include "../../domain/cell/CellFactory.h"
 #include "../../domain/adapters/RandomNoise.h"
+#include "../../domain/ports/ILogger.h"
 
 namespace application {
 
@@ -40,6 +42,9 @@ struct SimulationsConfig {
 
     // Nuevo flag: activar trazas verbose para genoma/células/genes (por defecto false)
     bool verbose = false;
+
+    // Logger inyectado (si nullptr, se usa NullLogger por defecto)
+    domain::ports::ILoggerPtr logger = nullptr;
 };
 
 class Simulations {

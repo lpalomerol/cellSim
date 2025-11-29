@@ -26,6 +26,11 @@ public:
 
     void setVerbose(bool verbose) override {
         verbose_ = verbose;
+        if (verbose) {
+            config_.enableAll();
+        } else {
+            config_.disableAll();
+        }
     }
 
     void logTissue(const std::string& message) override {

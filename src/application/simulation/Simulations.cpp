@@ -25,7 +25,8 @@ void Simulations::runAll() {
              domain::Genome genome = domain::genome_factory::makeDefaultGenome(
                  cfg_.gene_mutation_thresholds,
                  cfg_.gene_mutation_instability_k,
-                 cfg_.verbose
+                 cfg_.verbose,
+                 cfg_.logger
                  );
              sim.addCell(
                  domain::cell_factory::createAgenticCell(
@@ -34,7 +35,9 @@ void Simulations::runAll() {
                      cfg_.neoplasm_k,
                      cfg_.low_delta_instability,
                      cfg_.high_delta_instability,
-                     cfg_.verbose)
+                     0.001,
+                     cfg_.verbose,
+                     cfg_.logger)
              );
          }
          sim.run();

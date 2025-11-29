@@ -7,6 +7,7 @@
 #include "../src/domain/gene/GenomeFactory.h"
 #include "../src/domain/adapters/FixedNoise.h" // para crear FixedNoise con valor 0
 #include "../src/domain/adapters/RandomNoise.h" // para crear RandomNoise cuando use_random_noise == true
+#include "../src/domain/adapters/Logger.h"
 
 
 int main() {
@@ -24,7 +25,12 @@ int main() {
 
     // En modo interactivo activamos trazas verbose para inspección
     bool verbose = true;
-    domain::Genome genome = domain::genome_factory::makeDefaultGenome(gene_thresholds, gene_instability_k, verbose);
+
+    // Crear logger real e inyectarlo
+    auto logger = std::make_shared<domain::adapters::Logger>();
+    logger->setVerbose(verbose);
+
+    domain::Genome genome = domain::genome_factory::makeDefaultGenome(gene_thresholds, gene_instability_k, verbose, logger);
 
     // Elegir el tipo de ruido: true = aleatorio (RandomNoise), false = fijo (FixedNoise{0.0})
     bool use_random_noise = true; // <- cambia aquí si quieres FixedNoise
@@ -47,7 +53,9 @@ int main() {
         neoplasm_k,
         0.0001,
         0.0002,
-        verbose)
+        0.001,
+        verbose,
+        logger)
     );
 
     std::cout << "Creada 1 célula. Presiona Enter para avanzar año a año." << std::endl;

@@ -6,45 +6,47 @@
 #include <sstream>
 #include "GeneticTrackingService.h"
 #include "../signal/CellDivisionSignal.h"
+#include "../adapters/NullLogger.h"
 
 namespace domain {
 
     void Tissue::live() {
+
         phase0_Description();
         phase1_SignalIntegration();
         phase2_ExecuteCellCycles();
     }
 
     void Tissue::phase0_Description() const {
-        if (verbose_) {
-            auto tracking = getGeneticTracking();
 
-            std::cout << "[Tissue Description] id=" << tissue_id_
-                      << " | cells=" << cells_.size()
-                      << " | identified_neoplasms=" << identified_neoplasms_.size() << "\n";
+        auto tracking = getGeneticTracking();
 
-            // Print genetic summary similar to ExperimentalTracking
-            const int boxWidth = 9;
-            auto makeBox = [&](int count, int neos) {
-                std::ostringstream ss;
-                ss << count;
-                if (neos >= 0) ss << "(" << neos << ")";
-                return ss.str();
-            };
+        logger_->logTissue("[Tissue Description] id=" + std::to_string(tissue_id_)
+                      + " | cells=" + std::to_string(cells_.size())
+                      + " | identified_neoplasms=" + std::to_string(identified_neoplasms_.size()));
 
-            std::string b1 = makeBox(tracking.brca_het_tp53_hom_plus, tracking.neo_brca_het_tp53_hom_plus);
-            std::string b2 = makeBox(tracking.brca_het_tp53_het, tracking.neo_brca_het_tp53_het);
-            std::string b3 = makeBox(tracking.brca_het_tp53_hom_minus, tracking.neo_brca_het_tp53_hom_minus);
-            std::string b4 = makeBox(tracking.brca_hom_minus, -1);
+        // Print genetic summary similar to ExperimentalTracking
+        const int boxWidth = 9;
+        auto makeBox = [&](int count, int neos) {
+            std::ostringstream ss;
+            ss << count;
+            if (neos >= 0) ss << "(" << neos << ")";
+            return ss.str();
+        };
 
-            std::cout << "  Resumen genético: |"
-                      << std::setw(boxWidth) << b1 << " |"
-                      << std::setw(boxWidth) << b2 << " |"
-                      << std::setw(boxWidth) << b3 << " |"
-                      << std::setw(boxWidth) << b4 << " |\n";
+        std::string b1 = makeBox(tracking.brca_het_tp53_hom_plus, tracking.neo_brca_het_tp53_hom_plus);
+        std::string b2 = makeBox(tracking.brca_het_tp53_het, tracking.neo_brca_het_tp53_het);
+        std::string b3 = makeBox(tracking.brca_het_tp53_hom_minus, tracking.neo_brca_het_tp53_hom_minus);
+        std::string b4 = makeBox(tracking.brca_hom_minus, -1);
 
-            std::cout << "    [BRCA+/- TP53+/+] [BRCA+/- TP53+/-] [BRCA+/- TP53-/-] [BRCA-/-]\n";
-        }
+        std::ostringstream summary;
+        summary << "  Resumen genético: |"
+                << std::setw(boxWidth) << b1 << " |"
+                << std::setw(boxWidth) << b2 << " |"
+                << std::setw(boxWidth) << b3 << " |"
+                << std::setw(boxWidth) << b4 << " |\n"
+                << "    [BRCA+/- TP53+/+] [BRCA+/- TP53+/-] [BRCA+/- TP53-/-] [BRCA-/-]";
+        logger_->logTissue(summary.str());
     }
 
     void Tissue::phase1_SignalIntegration() {
@@ -58,9 +60,9 @@ namespace domain {
             try {
                 c->live();
             } catch (const std::exception& e) {
-                std::cerr << "[Tissue] cell[" << i << "] exception: " << e.what() << "\n";
+                logger_->logTissue("[Tissue] cell[" + std::to_string(i) + "] exception: " + std::string(e.what()));
             } catch (...) {
-                std::cerr << "[Tissue] cell[" << i << "] unknown exception\n";
+                logger_->logTissue("[Tissue] cell[" + std::to_string(i) + "] unknown exception");
             }
         }
     }
@@ -80,7 +82,7 @@ namespace domain {
                 std::uint64_t source_id = sig->sourceId();
                 std::string message = sig->message();
 
-                std::cout << "[Tissue] Neoplasm signal detected from cell id=" << source_id << " message='" << message << "'\n";
+                logger_->logTissue("[Tissue] Neoplasm signal detected from cell id=" + std::to_string(source_id) + " message='" + message + "'");
 
                 // Track the neoplasm
                 identified_neoplasms_.insert(source_id);
@@ -97,10 +99,7 @@ namespace domain {
                     // Extract the daughter cell from the signal
                     auto daughter = division_sig->takeDaughterCell();
                     if (daughter) {
-                        if (verbose_) {
-                            std::cout << "[Tissue] Cell division signal detected from cell id="
-                                      << sig->sourceId() << "; adding daughter cell\n";
-                        }
+                        logger_->logTissue("[Tissue] Cell division signal detected from cell id=" + std::to_string(sig->sourceId()) + "; adding daughter cell");
                         // Add the daughter cell to the tissue (assigns a new ID)
                         addCell(std::move(daughter));
                     }
