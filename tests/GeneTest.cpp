@@ -1,4 +1,6 @@
 #include "../src/domain/gene/Gene.h"
+#include "mocks/MockLogger.h"
+#include "FakeNoise.h"
 #include <gtest/gtest.h>
 
 TEST(GeneTest, NameIsStoredAndReturned) {
@@ -25,3 +27,35 @@ TEST(GeneTest, EnabledReturnsTrueExceptMinusMinus) {
     gene.mutate();
     EXPECT_FALSE(gene.enabled());
 }
+
+// Tests con MockLogger para verificar que se invoca correctamente
+class GeneLoggingTest : public ::testing::Test {
+protected:
+    std::shared_ptr<domain::ports::MockLogger> mockLogger;
+    FakeNoise fakeNoise;
+
+    GeneLoggingTest() : fakeNoise({domain::CellNoise{0.05}}) {} // valor bajo que activa mutación
+
+    void SetUp() override {
+        mockLogger = std::make_shared<domain::ports::MockLogger>();
+    }
+};
+
+TEST_F(GeneLoggingTest, LoggerIsNotCalledWhenVerboseIsFalse) {
+    // El logger no debe ser llamado si verbose=false
+    EXPECT_CALL(*mockLogger, logGenome).Times(0);
+
+    domain::Gene gene("TP53", domain::Gene::State::PlusPlus, 0.1, 0.0, false, mockLogger);
+    gene.setNoiseSource(&fakeNoise);
+    gene.live();
+}
+
+TEST_F(GeneLoggingTest, LoggerIsCalledWhenVerboseIsTrue) {
+    // El logger DEBE ser llamado si verbose=true
+    EXPECT_CALL(*mockLogger, logGenome).Times(::testing::AtLeast(1));
+
+    domain::Gene gene("TP53", domain::Gene::State::PlusPlus, 0.1, 0.0, true, mockLogger);
+    gene.setNoiseSource(&fakeNoise);
+    gene.live();
+}
+

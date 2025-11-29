@@ -12,9 +12,13 @@ FetchContent_MakeAvailable(googletest)
 add_executable(unit_tests
         ../src/domain/ports/ICell.h
         ../src/domain/ports/INoiseSource.h
+        ../src/domain/ports/ILogger.h
         ../src/domain/ports/CellNoise.h
         ../src/domain/adapters/RandomNoise.h
         ../src/domain/adapters/FixedNoise.h
+        ../src/domain/adapters/Logger.h
+        ../src/domain/adapters/LogLevel.h
+        ../src/domain/adapters/NullLogger.h
 
         ../src/domain/cell/CellFactory.cpp
         ../src/domain/cell/CellFactory.h
@@ -27,7 +31,9 @@ add_executable(unit_tests
         ../src/domain/gene/GenomeFactory.cpp
         ../src/domain/signal/ApoptosisSignal.h
         ../src/domain/tissue/Tissue.cpp
+        mocks/MockLogger.h
         GeneTest.cpp
+        MockLoggerDemoTest.cpp
         ExperimentalTrackingTest.cpp
         AgenticCellTest.cpp
         GenomeTest.cpp
@@ -48,6 +54,7 @@ add_executable(unit_tests
 target_link_libraries(unit_tests
         PRIVATE
         GTest::gtest_main
+        GTest::gmock_main
 )
 
 include(GoogleTest)
