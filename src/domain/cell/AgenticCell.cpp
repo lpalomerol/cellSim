@@ -10,6 +10,7 @@
 #include "../exception/NeoplasticException.h"
 #include "../shared/Threshold.h"
 #include "../adapters/RandomNoise.h"
+#include "../adapters/NullLogger.h"
 
 namespace domain {
 
@@ -18,12 +19,14 @@ namespace domain {
      * - Injects the provided noise source into all genes.
      * - Sets genome verbosity and captures the RNG seed (if available).
      */
-    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, double low_delta_instability, double high_delta_instability, double division_rate, bool verbose)
-        : noise_(std::move(noise)), genome_(std::move(genome)), base_neoplasm_k_(neoplasm_k), neoplasm_k_(domain::shared::Threshold(neoplasm_k)), is_neoplastic_(false), verbose_(verbose), low_delta_instability_(low_delta_instability), high_delta_instability_(high_delta_instability), division_rate_(division_rate) {
+    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, double low_delta_instability, double high_delta_instability, double division_rate, bool verbose, ports::ILoggerPtr logger)
+        : noise_(std::move(noise)), logger_(logger ? logger : std::make_shared<adapters::NullLogger>()), genome_(std::move(genome)), base_neoplasm_k_(neoplasm_k), neoplasm_k_(domain::shared::Threshold(neoplasm_k)), is_neoplastic_(false), verbose_(verbose), low_delta_instability_(low_delta_instability), high_delta_instability_(high_delta_instability), division_rate_(division_rate) {
         // Inject the noise source into all genes via the Genome API
         genome_.setNoiseSourceForAll(noise_.get());
         // Propagate verbose flag to the genome and genes
         genome_.setVerbose(verbose_);
+        // Set verbose level in logger
+        logger_->setVerbose(verbose_);
 
         // Store the RNG seed (if the noise source provides one)
         if (noise_) {
@@ -31,9 +34,7 @@ namespace domain {
         } else {
             seed_ = 0;
         }
-        if (verbose_) {
-            std::cout << "[Trace] AgenticCell seed: " << seed_ << "\n";
-        }
+        logger_->logCell("[Trace] AgenticCell seed: " + std::to_string(seed_));
     }
 
     /**
@@ -49,21 +50,17 @@ namespace domain {
             phase4_CytoplasmicRemodeling();
             phase5_Exocytosis();
         } catch (const NeoplasticException& e) {
-            if (verbose_) {
-                std::cout << "[Trace] Neoplastic during live(): " << e.what() << "\n";
-            }
+            logger_->logCell("[Trace] Neoplastic during live(): " + std::string(e.what()));
             return;
         } catch (const CellDeathException& e) {
-            if (verbose_) {
-                std::cout << "[Trace] Cell death during live(): " << e.what() << "\n";
-            }
+            logger_->logCell("[Trace] Cell death during live(): " + std::string(e.what()));
             return;
         }
     }
 
     /** Show details when verbose */
     void AgenticCell::phase0_BaselineAssessment() const {
-        if (verbose_) {
+        if (logger_) {
             details();
         }
     }
@@ -91,23 +88,23 @@ namespace domain {
             auto msg = std::move(incoming_messages_.front());
             incoming_messages_.pop();
 
-            if (msg && verbose_) {
-                std::cout << "[Endocytosis] Cell [" << cell_id_ << "] processing message\n";
-                std::cout << "  - Type: " << static_cast<int>(msg->type()) << "\n";
-                std::cout << "  - Source: " << msg->sourceId() << "\n";
-                std::cout << "  - Message: " << msg->message() << "\n";
+            if (msg) {
+                logger_->logCell("[Endocytosis] Cell [" + std::to_string(cell_id_) + "] processing message");
+                logger_->logCell("  - Type: " + std::to_string(static_cast<int>(msg->type())));
+                logger_->logCell("  - Source: " + std::to_string(msg->sourceId()));
+                logger_->logCell("  - Message: " + msg->message());
 
                 const auto& targets = msg->targetIds();
-                std::cout << "  - Targets: ";
+                std::string targets_str;
                 if (targets.empty()) {
-                    std::cout << "(broadcast)\n";
+                    targets_str = "(broadcast)";
                 } else {
                     for (size_t i = 0; i < targets.size(); ++i) {
-                        if (i > 0) std::cout << ", ";
-                        std::cout << targets[i];
+                        if (i > 0) targets_str += ", ";
+                        targets_str += std::to_string(targets[i]);
                     }
-                    std::cout << "\n";
                 }
+                logger_->logCell("  - Targets: " + targets_str);
             }
 
             // Handle specific message types
@@ -176,10 +173,8 @@ namespace domain {
 
         genomic_instability_ = next;
 
-        if (verbose_) {
-            std::cout << "[Trace] genomic_instability: prev=" << previous << " -> next=" << genomic_instability_
-                      << " | TP53=" << (tp53 ? tp53->status() : "?") << "\n";
-        }
+        logger_->logCell("[Trace] genomic_instability: prev=" + std::to_string(previous) + " -> next=" + std::to_string(genomic_instability_)
+                      + " | TP53=" + (tp53 ? tp53->status() : "?"));
     }
 
     /** Return whether the cell is alive (BRCA1 must be enabled). */
@@ -207,17 +202,15 @@ namespace domain {
         std::string cell_is_alive = (alive() ? "yes" : "no");
         std::string cell_is_neoplastic = (isNeoplastic() ? "yes" : "no");
         std::string cell_is_neoplastic_protected = (isNeoplasticProtected() ? "yes" : "no");
-        if (verbose_) {
-            std::cout << "[Cell details] "
-                << "Alive: [" << cell_is_alive << "] | "
-                << "Neoplastic protected: ["<< cell_is_neoplastic_protected<< "] | "
-                << "Neoplastic: [" << cell_is_neoplastic << "] | "
-                << "Seed: [" << seed_ << "] | Age: [" << age_ << "] | Genomic instability: [" << genomic_instability_ << "]\n";
-            std::cout << "Genome details:\n";
-            genome_.details();
-        }
-
+        logger_->logCell("[Cell details] "
+            "Alive: [" + cell_is_alive + "] | "
+            "Neoplastic protected: ["+ cell_is_neoplastic_protected + "] | "
+            "Neoplastic: [" + cell_is_neoplastic + "] | "
+            "Seed: [" + std::to_string(seed_) + "] | Age: [" + std::to_string(age_) + "] | Genomic instability: [" + std::to_string(genomic_instability_) + "]");
+        logger_->logCell("Genome details:");
+        genome_.details();
     }
+
 
     /** Delegate mutation to the Genome. */
     void AgenticCell::mutateGene(const std::string& name) {
@@ -255,14 +248,10 @@ namespace domain {
 
         if (should_accept) {
             incoming_messages_.push(std::move(signal));
-            if (verbose_) {
-                std::cout << "[Trace] Cell [" << cell_id_ << "] received message: "
-                          << (incoming_messages_.back() ? incoming_messages_.back()->message() : "?") << "\n";
-            }
+            logger_->logCell("[Trace] Cell [" + std::to_string(cell_id_) + "] received message: "
+                          + (incoming_messages_.back() ? incoming_messages_.back()->message() : "?"));
         } else {
-            if (verbose_) {
-                std::cout << "[Trace] Cell [" << cell_id_ << "] ignored message (not in targetIds)\n";
-            }
+            logger_->logCell("[Trace] Cell [" + std::to_string(cell_id_) + "] ignored message (not in targetIds)");
         }
     }
 
@@ -270,17 +259,17 @@ namespace domain {
     void AgenticCell::develop_neoplasm() {
         if (!noise_) return;
         double sample = noise_->next().u01;
-        if (verbose_) std::cout << "[Trace] neoplasm sample=" << sample << " threshold=" << neoplasm_k_.value() << "\n";
+        logger_->logCell("[Trace] neoplasm sample=" + std::to_string(sample) + " threshold=" + std::to_string(neoplasm_k_.value()));
         if (sample < neoplasm_k_.value()) {
             bool transitioned = !is_neoplastic_;
             is_neoplastic_ = true;
-            if (verbose_) std::cout << "[Trace] Cell converted to neoplastic state\n";
+            logger_->logCell("[Trace] Cell converted to neoplastic state");
             if (transitioned && signal_emitter_) {
                 auto sig = std::make_unique<NeoplasmSignal>(id(), std::string("neoplasm"));
                 signal_emitter_(std::move(sig));
             }
         } else {
-            if (verbose_) std::cout << "[Trace] No neoplasm (sample >= threshold)\n";
+            logger_->logCell("[Trace] No neoplasm (sample >= threshold)");
         }
     }
 
@@ -318,11 +307,9 @@ namespace domain {
         // Assign back using Threshold to ensure clamping to [0,1]
         neoplasm_k_ = domain::shared::Threshold(next);
 
-        if (verbose_) {
-            std::cout << "[Trace] neoplasm_k: base=" << base_neoplasm_k_ << " instability=" << genomic_instability_
-                      << " prev=" << previous << " -> next=" << neoplasm_k_.value()
-                      << " | TP53=" << (tp53 ? tp53->status() : "?") << "\n";
-        }
+        logger_->logCell("[Trace] neoplasm_k: base=" + std::to_string(base_neoplasm_k_) + " instability=" + std::to_string(genomic_instability_)
+                      + " prev=" + std::to_string(previous) + " -> next=" + std::to_string(neoplasm_k_.value())
+                      + " | TP53=" + (tp53 ? tp53->status() : "?"));
     }
 
     /** Increment age only when cell is alive. */
@@ -352,10 +339,8 @@ namespace domain {
 
         double random_value = noise_->next().u01;
         if (random_value < division_rate_) {
-            if (verbose_) {
-                std::cout << "[Division] Cell [" << cell_id_ << "] attempting division "
-                          << "(random=" << random_value << " < division_rate=" << division_rate_ << ")\n";
-            }
+            logger_->logCell("[Division] Cell [" + std::to_string(cell_id_) + "] attempting division "
+                          "(random=" + std::to_string(random_value) + " < division_rate=" + std::to_string(division_rate_) + ")");
 
             // Create daughter cell by cloning
             auto daughter = clone();
@@ -369,9 +354,7 @@ namespace domain {
                 );
                 signal_emitter_(std::move(sig));
 
-                if (verbose_) {
-                    std::cout << "[Division] Cell [" << cell_id_ << "] emitted daughter cell signal\n";
-                }
+                logger_->logCell("[Division] Cell [" + std::to_string(cell_id_) + "] emitted daughter cell signal");
             }
         }
     }
@@ -389,7 +372,7 @@ namespace domain {
         // Create a new random noise source with a random seed for diversity
         // Use a seed derived from current seed + cell age for some variability
         unsigned new_seed = static_cast<unsigned>(seed_ + age_ + 1);
-        auto new_noise = std::make_unique<adapters::RandomNoise>(new_seed);
+        auto new_noise = std::make_unique<::adapters::RandomNoise>(new_seed);
 
         // Clone the genome
         Genome cloned_genome = genome_.clone();
@@ -402,12 +385,11 @@ namespace domain {
             low_delta_instability_,
             high_delta_instability_,
             division_rate_,
-            verbose_
+            verbose_,
+            logger_
         );
 
-        if (verbose_) {
-            std::cout << "[Clone] Created daughter cell from parent [" << cell_id_ << "] with new seed=" << new_seed << "\n";
-        }
+        logger_->logCell("[Clone] Created daughter cell from parent [" + std::to_string(cell_id_) + "] with new seed=" + std::to_string(new_seed));
 
         return daughter;
     }
@@ -418,9 +400,7 @@ namespace domain {
      * in the next phase (since alive() checks if BRCA1 is enabled).
      */
     void AgenticCell::attemptApoptosis() {
-        if (verbose_) {
-            std::cout << "[Apoptosis] Cell [" << cell_id_ << "] received apoptosis signal and is undergoing programmed cell death\n";
-        }
+        logger_->logCell("[Apoptosis] Cell [" + std::to_string(cell_id_) + "] received apoptosis signal and is undergoing programmed cell death");
 
         // Disable BRCA1 to trigger cell death
         genome_.mutate("BRCA1");

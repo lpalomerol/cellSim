@@ -6,6 +6,7 @@
 #include <cstdint>
 #include "../ports/ICell.h"
 #include "../ports/INoiseSource.h"
+#include "../ports/ILogger.h"
 #include "../signal/ISignal.h"
 #include "../gene/Genome.h"
 #include <memory>
@@ -22,13 +23,15 @@ namespace domain {
         // and allow move-semantics from caller. Noise source is owned via unique_ptr.
         // Added optional low/high genomic instability deltas (defaults kept for backward compatibility)
         // division_rate: probability that the cell divides during phase4 (default 0.001)
+        // logger: optional logger (if nullptr, NullLogger will be used by default)
         AgenticCell(std::unique_ptr<INoiseSource> noise,
                     Genome genome,
                     double neoplasm_k = 0.002,
                     double low_delta_instability = 0.0001,
                     double high_delta_instability = 0.0002,
                     double division_rate = 0.001,
-                    bool verbose = false);
+                    bool verbose = false,
+                    ports::ILoggerPtr logger = nullptr);
 
         // Run a single lifecycle tick for the cell
         void live() override;
@@ -74,6 +77,7 @@ namespace domain {
 
     private:
         std::unique_ptr<INoiseSource> noise_;
+        ports::ILoggerPtr logger_;
         // callback to emit signals to the owning tissue; default empty
         std::function<void(std::unique_ptr<domain::ISignal>)> signal_emitter_;
         // Queue of incoming messages (directed or broadcast)
