@@ -5,10 +5,8 @@
 
 namespace domain {
 
-Genome::Genome(std::unordered_map<std::string, Gene> genes, bool verbose, ports::ILoggerPtr logger)
-    : genes_(std::move(genes)), verbose_(verbose), logger_(logger ? logger : std::make_shared<adapters::NullLogger>()) {
-    logger_->setVerbose(verbose_);
-}
+Genome::Genome(std::unordered_map<std::string, Gene> genes, ports::ILoggerPtr logger)
+    : genes_(std::move(genes)), logger_(logger ? logger : std::make_shared<adapters::NullLogger>()) {}
 
 bool Genome::hasGene(const std::string& name) const {
     return genes_.find(name) != genes_.end();
@@ -31,7 +29,7 @@ Genome Genome::makeDefaultGenome() {
 
 // Return a deep copy of the genome
 Genome Genome::clone() const {
-    return Genome(genes_, verbose_, logger_);
+    return Genome(genes_, logger_);
 }
 
 // Inject a noise source into every gene in the genome
@@ -60,13 +58,6 @@ void Genome::details() const {
     }
 }
 
-void Genome::setVerbose(bool v) {
-    verbose_ = v;
-    // Propagate verbose setting to all genes
-    for (auto& kv : genes_) {
-        kv.second.setVerbose(v);
-    }
-}
 
 // Apply mutation to the gene identified by `name`.
 void Genome::mutate(const std::string& name) {

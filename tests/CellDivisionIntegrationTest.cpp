@@ -8,7 +8,7 @@
 // Test that a cell can divide and the daughter cell is added to the tissue
 // (Simplified: just verify the mechanism works with the DaughterCellInheritsGenome test)
 TEST(CellDivisionIntegrationTest, TissueReceivesDaughterCell) {
-    domain::Tissue t(false);
+    domain::Tissue t;
 
     // Create parent cell with specific genome
     domain::Gene tp53("TP53", domain::Gene::State::PlusMinus);
@@ -26,8 +26,7 @@ TEST(CellDivisionIntegrationTest, TissueReceivesDaughterCell) {
         std::make_unique<FakeNoise>(noise_seq),
         genome,
         0.002, 0.0001, 0.0002,
-        0.5,   // division_rate = 50%
-        false
+        0.5    // division_rate = 50%
     );
 
     t.addCell(std::move(cell));
@@ -47,7 +46,7 @@ TEST(CellDivisionIntegrationTest, TissueReceivesDaughterCell) {
 
 // Test that daughter cells inherit parent's genome state
 TEST(CellDivisionIntegrationTest, DaughterCellInheritsGenome) {
-    domain::Tissue t(false);
+    domain::Tissue t;
 
     // Create parent cell with specific genome
     domain::Gene tp53("TP53", domain::Gene::State::PlusMinus);
@@ -64,8 +63,8 @@ TEST(CellDivisionIntegrationTest, DaughterCellInheritsGenome) {
         std::make_unique<FakeNoise>(noise_seq),
         genome,
         0.002, 0.0001, 0.0002,
-        0.5,   // high division rate
-        false
+        0.5   // high division rate
+
     );
 
     t.addCell(std::move(cell));
@@ -89,7 +88,7 @@ TEST(CellDivisionIntegrationTest, DaughterCellInheritsGenome) {
 
 // Test that division is disabled when division_rate = 0
 TEST(CellDivisionIntegrationTest, DivisionDisabledWhenRateIsZero) {
-    domain::Tissue t(false);
+    domain::Tissue t;
 
     domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
     domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus);
@@ -100,8 +99,7 @@ TEST(CellDivisionIntegrationTest, DivisionDisabledWhenRateIsZero) {
         std::make_unique<test::DummyNoise>(),
         genome,
         0.002, 0.0001, 0.0002,
-        0.0,   // division_rate = 0 (disabled)
-        false
+        0.0    // division_rate = 0 (disabled)
     );
 
     t.addCell(std::move(cell));
@@ -117,7 +115,7 @@ TEST(CellDivisionIntegrationTest, DivisionDisabledWhenRateIsZero) {
 
 // Test that signals are properly collected
 TEST(CellDivisionIntegrationTest, TissueCollectsDivisionSignals) {
-    domain::Tissue t(false);
+    domain::Tissue t;
 
     domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
     domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus);
@@ -132,8 +130,7 @@ TEST(CellDivisionIntegrationTest, TissueCollectsDivisionSignals) {
         std::make_unique<FakeNoise>(noise_seq),
         genome,
         0.002, 0.0001, 0.0002,
-        0.5,   // high division rate
-        false
+        0.5    // high division rate
     );
 
     t.addCell(std::move(cell));

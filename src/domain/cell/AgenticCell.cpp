@@ -19,14 +19,10 @@ namespace domain {
      * - Injects the provided noise source into all genes.
      * - Sets genome verbosity and captures the RNG seed (if available).
      */
-    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, double low_delta_instability, double high_delta_instability, double division_rate, bool verbose, ports::ILoggerPtr logger)
-        : noise_(std::move(noise)), logger_(logger ? logger : std::make_shared<adapters::NullLogger>()), genome_(std::move(genome)), base_neoplasm_k_(neoplasm_k), neoplasm_k_(domain::shared::Threshold(neoplasm_k)), is_neoplastic_(false), verbose_(verbose), low_delta_instability_(low_delta_instability), high_delta_instability_(high_delta_instability), division_rate_(division_rate) {
+    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, double low_delta_instability, double high_delta_instability, double division_rate, ports::ILoggerPtr logger)
+        : noise_(std::move(noise)), logger_(logger ? logger : std::make_shared<adapters::NullLogger>()), genome_(std::move(genome)), base_neoplasm_k_(neoplasm_k), neoplasm_k_(domain::shared::Threshold(neoplasm_k)), is_neoplastic_(false), low_delta_instability_(low_delta_instability), high_delta_instability_(high_delta_instability), division_rate_(division_rate) {
         // Inject the noise source into all genes via the Genome API
         genome_.setNoiseSourceForAll(noise_.get());
-        // Propagate verbose flag to the genome and genes
-        genome_.setVerbose(verbose_);
-        // Set verbose level in logger
-        logger_->setVerbose(verbose_);
 
         // Store the RNG seed (if the noise source provides one)
         if (noise_) {
@@ -385,7 +381,6 @@ namespace domain {
             low_delta_instability_,
             high_delta_instability_,
             division_rate_,
-            verbose_,
             logger_
         );
 

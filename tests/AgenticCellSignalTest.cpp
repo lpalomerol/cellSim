@@ -18,7 +18,7 @@ TEST(AgenticCellSignalTest, EmitsNeoplasmSignalOnTransition) {
 
     // Create cell with HighNoise and guarantee neoplasm by setting neoplasm_k=1.0
     // division_rate=0.0 to disable division and focus on neoplasm signal
-    domain::AgenticCell cell(std::make_unique<test::HighNoise>(), genome, 1.0, 0.0001, 0.0002, 0.0, false);
+    domain::AgenticCell cell(std::make_unique<test::HighNoise>(), genome, 1.0, 0.0001, 0.0002, 0.0);
 
     // assign an id so the signal will carry a known sourceId
     cell.setId(42);

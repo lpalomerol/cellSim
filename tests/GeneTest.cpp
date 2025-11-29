@@ -45,7 +45,7 @@ TEST_F(GeneLoggingTest, LoggerIsNotCalledWhenVerboseIsFalse) {
     // El logger debe ser llamado si verbose=false
     EXPECT_CALL(*mockLogger, logGenome).Times(1);
 
-    domain::Gene gene("TP53", domain::Gene::State::PlusPlus, 0.1, 0.0, false, mockLogger);
+    domain::Gene gene("TP53", domain::Gene::State::PlusPlus, 0.1, 0.0,  mockLogger);
     gene.setNoiseSource(&fakeNoise);
     gene.live();
 }
@@ -54,7 +54,7 @@ TEST_F(GeneLoggingTest, LoggerIsCalledWhenVerboseIsTrue) {
     // El logger DEBE ser llamado si verbose=true
     EXPECT_CALL(*mockLogger, logGenome).Times(::testing::AtLeast(1));
 
-    domain::Gene gene("TP53", domain::Gene::State::PlusPlus, 0.1, 0.0, true, mockLogger);
+    domain::Gene gene("TP53", domain::Gene::State::PlusPlus, 0.1, 0.0,  mockLogger);
     gene.setNoiseSource(&fakeNoise);
     gene.live();
 }

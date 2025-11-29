@@ -10,7 +10,7 @@ using namespace domain::genome_factory;
 
 TEST(ExperimentalTracking, ObserveCellCounts) {
     // Create genomes and fixed noises
-    auto g_defaults = makeDefaultGenome({{"BRCA1",0.01},{"TP53",0.01}}, {{"BRCA1",0.01},{"TP53",0.01}}, false);
+    auto g_defaults = makeDefaultGenome({{"BRCA1",0.01},{"TP53",0.01}}, {{"BRCA1",0.01},{"TP53",0.01}}, nullptr);
 
     // Cell A: default (BRCA+/- TP53+/+)
     auto noiseA = std::make_unique<adapters::FixedNoise>(domain::CellNoise{1.0});
@@ -55,7 +55,7 @@ TEST(ExperimentalTracking, ObserveCellCounts) {
 }
 
 TEST(ExperimentalTracking, PrintSummaryProducesOutput) {
-    auto g_defaults = makeDefaultGenome({{"BRCA1",0.01},{"TP53",0.01}}, {{"BRCA1",0.01},{"TP53",0.01}}, false);
+    auto g_defaults = makeDefaultGenome({{"BRCA1",0.01},{"TP53",0.01}}, {{"BRCA1",0.01},{"TP53",0.01}});
     auto noise = std::make_unique<adapters::FixedNoise>(domain::CellNoise{0.0});
     auto cell_ptr = std::make_unique<domain::AgenticCell>(std::move(noise), g_defaults.clone(), 0.02, 0.01, 0.02, false);
     domain::AgenticCell* ac = cell_ptr.get();

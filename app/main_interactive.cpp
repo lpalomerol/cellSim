@@ -30,7 +30,7 @@ int main() {
     auto logger = std::make_shared<domain::adapters::Logger>();
     logger->setVerbose(verbose);
 
-    domain::Genome genome = domain::genome_factory::makeDefaultGenome(gene_thresholds, gene_instability_k, verbose, logger);
+    domain::Genome genome = domain::genome_factory::makeDefaultGenome(gene_thresholds, gene_instability_k, logger);
 
     // Elegir el tipo de ruido: true = aleatorio (RandomNoise), false = fijo (FixedNoise{0.0})
     bool use_random_noise = true; // <- cambia aquí si quieres FixedNoise
@@ -54,7 +54,6 @@ int main() {
         0.0001,
         0.0002,
         0.001,
-        verbose,
         logger)
     );
 

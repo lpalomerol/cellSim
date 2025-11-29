@@ -23,7 +23,6 @@ TEST_F(MockLoggerDemoTest, MockLoggerCanBeUsed) {
                       domain::Gene::State::PlusPlus,
                       0.1,
                       0.0,
-                      false,
                       mockLogger);
 
     // El test pasa si gmock está funcionando correctamente
@@ -38,7 +37,6 @@ TEST_F(MockLoggerDemoTest, VerifyLoggerNotCalled) {
                       domain::Gene::State::PlusPlus,
                       0.1,
                       0.0,
-                      false,
                       mockLogger);
 }
 

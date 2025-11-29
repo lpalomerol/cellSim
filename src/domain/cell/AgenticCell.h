@@ -30,7 +30,6 @@ namespace domain {
                     double low_delta_instability = 0.0001,
                     double high_delta_instability = 0.0002,
                     double division_rate = 0.001,
-                    bool verbose = false,
                     ports::ILoggerPtr logger = nullptr);
 
         // Run a single lifecycle tick for the cell
@@ -87,7 +86,6 @@ namespace domain {
         double base_neoplasm_k_ = 0.002;
         domain::shared::Threshold neoplasm_k_;
         bool is_neoplastic_;
-        bool verbose_ = false;
         std::uint64_t seed_ = 0; // records the RNG seed used by the noise source
 
         // Age counter incremented each tick when the cell is alive

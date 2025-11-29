@@ -13,7 +13,7 @@ TEST(ApoptosisSignalTest, CellReceivesApoptosisSignalBroadcast) {
     domain::Genome genome(genes);
 
     // Create cell with dummy noise
-    domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome, 0.002, 0.0001, 0.0002, 0.001, false);
+    domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome, 0.002, 0.0001, 0.0002, 0.001);
     cell.setId(1);
 
     // Verify cell is alive before apoptosis signal
@@ -41,7 +41,7 @@ TEST(ApoptosisSignalTest, ApoptosisSignalWithDirectedTarget) {
     domain::Genome genome(genes);
 
     // Create cell
-    domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome, 0.002, 0.0001, 0.0002, 0.001, false);
+    domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome, 0.002, 0.0001, 0.0002, 0.001);
     cell.setId(1);
 
     // Verify cell is alive before apoptosis signal
@@ -69,7 +69,7 @@ TEST(ApoptosisSignalTest, ApoptosisSignalNotDirectedToCell) {
     domain::Genome genome(genes);
 
     // Create cell
-    domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome, 0.002, 0.0001, 0.0002, 0.001, false);
+    domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome, 0.002, 0.0001, 0.0002, 0.001);
     cell.setId(1);
 
     // Verify cell is alive before apoptosis signal

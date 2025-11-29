@@ -10,7 +10,7 @@ namespace domain {
 class Genome {
 public:
     // Constructor accepts a map (name -> Gene) and stores it internally.
-    explicit Genome(std::unordered_map<std::string, Gene> genes = {}, bool verbose = false, ports::ILoggerPtr logger = nullptr);
+    explicit Genome(std::unordered_map<std::string, Gene> genes = {}, ports::ILoggerPtr logger = nullptr);
 
     // Check whether a gene with the given name exists
     bool hasGene(const std::string& name) const;
@@ -37,8 +37,6 @@ public:
     // Print details of all genes (one line per gene), using Gene::details()
     void details() const;
 
-    // Verbose trace control
-    void setVerbose(bool v);
 
     // Apply mutation to the gene identified by `name`.
     // If the gene does not exist, do nothing.
@@ -49,7 +47,6 @@ public:
 
 private:
     std::unordered_map<std::string, Gene> genes_;
-    bool verbose_ = false;
     ports::ILoggerPtr logger_;
 };
 

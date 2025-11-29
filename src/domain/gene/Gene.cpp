@@ -10,18 +10,15 @@ namespace domain {
         State initial,
         double mutation_threshold,
         double mutation_instability_k,
-        bool verbose,
         ports::ILoggerPtr logger)
         : name_(std::move(name)), state_(initial),
     mutation_threshold_(mutation_threshold),
     mutation_instability_k_(mutation_instability_k),
     noise_(nullptr),
-    verbose_(verbose),
     logger_(logger ? logger : std::make_shared<adapters::NullLogger>()) {
         assert(!name_.empty());
         assert(mutation_threshold >= 0.0 && mutation_threshold <= 1.0);
         assert(mutation_instability_k >= 0.0);
-        logger_->setVerbose(verbose);
     }
 
     const std::string& Gene::name() const {
@@ -102,9 +99,6 @@ namespace domain {
         state_ = s;
     }
 
-    void Gene::setVerbose(bool v) {
-        verbose_ = v;
-    }
 
     double Gene::get_mutation_threshold(bool apply_instability) const {
         domain::shared::Threshold t = mutation_threshold_;

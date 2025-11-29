@@ -26,13 +26,9 @@ namespace domain {
     // and run a collective live() across all contained cells.
     class Tissue {
     public:
-        Tissue() : verbose_(false), logger_(std::make_shared<adapters::NullLogger>()) {
-            logger_->setVerbose(false);
-        }
-        explicit Tissue(bool verbose, ports::ILoggerPtr logger = nullptr)
-            : verbose_(verbose), logger_(logger ? logger : std::make_shared<adapters::NullLogger>()) {
-            logger_->setVerbose(verbose_);
-        }
+        // Constructor: accepts optional logger (if nullptr, NullLogger will be used by default)
+        explicit Tissue(ports::ILoggerPtr logger = nullptr)
+            : logger_(logger ? logger : std::make_shared<adapters::NullLogger>()) {}
 
         // Run a lifecycle tick for every contained cell. Exceptions thrown by
         // individual cells are caught and logged (if desired) so other cells
@@ -73,7 +69,6 @@ namespace domain {
         std::vector<std::unique_ptr<ICell>> cells_;
         std::atomic<std::uint64_t> next_cell_id_{0};
         std::uint64_t tissue_id_ = static_cast<std::uint64_t>(-1);
-        bool verbose_ = false;
         ports::ILoggerPtr logger_;
 
         // Signals emitted by cells during the current turn; protected by mutex

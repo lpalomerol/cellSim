@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
     logger->setVerbose(verbose);
 
     // Usar Tissue para agrupar y gestionar las células
-    domain::Tissue tissue(verbose, logger);
+    domain::Tissue tissue(logger);
     tissue.setId(0);
 
     // Vamos a crear y añadir las células al tissue
@@ -133,13 +133,13 @@ int main(int argc, char** argv) {
         }
 
         // Crear genoma idéntico para todas las células a partir de los mapas
-        domain::Genome genome = domain::genome_factory::makeDefaultGenome(gene_thresholds, gene_instability_k, verbose, logger);
+        domain::Genome genome = domain::genome_factory::makeDefaultGenome(gene_thresholds, gene_instability_k, logger);
 
         // Crear fuente de ruido aleatoria por célula
         auto noise = std::make_unique<adapters::RandomNoise>(cell_seed);
 
         // Construir la célula mediante la factoría (inyecta noise y genome)
-        auto cell = domain::cell_factory::createAgenticCell(std::move(noise), std::move(genome), 0.02, 0.01, 0.02, division_rate, verbose, logger);
+        auto cell = domain::cell_factory::createAgenticCell(std::move(noise), std::move(genome), 0.02, 0.01, 0.02, division_rate, logger);
         tissue.addCell(std::move(cell));
     }
 

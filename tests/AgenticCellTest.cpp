@@ -213,8 +213,8 @@ TEST(AgenticCellTest, DivisionRateCustomValue) {
                              0.002, // neoplasm_k
                              0.0001, // low_delta_instability
                              0.0002, // high_delta_instability
-                             0.5,    // division_rate alto (50%)
-                             false); // verbose
+                             0.5    // division_rate alto (50%)
+                             ); // verbose
     cell.live();
     EXPECT_TRUE(cell.alive());
 }
@@ -226,7 +226,7 @@ TEST(AgenticCellTest, DivisionDisabledWhenRateIsZero) {
     domain::Genome genome(genes);
     // division_rate = 0.0 disables division
     domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome,
-                             0.002, 0.0001, 0.0002, 0.0, false);
+                             0.002, 0.0001, 0.0002, 0.0);
     cell.live();
     EXPECT_TRUE(cell.alive()); // Sin intentos de división
 }
@@ -247,7 +247,7 @@ TEST(AgenticCellTest, DivisionAttemptWithVerboseOutput) {
     };
     domain::AgenticCell cell(std::make_unique<FakeNoise>(noise_sequence),
                              genome,
-                             0.002, 0.0001, 0.0002, 0.5, true);
+                             0.002, 0.0001, 0.0002, 0.5);
     // El test pasa si no lanza excepciones durante la ejecución
     cell.live();
     EXPECT_TRUE(cell.alive());
@@ -262,7 +262,7 @@ TEST(AgenticCellTest, NoDivisionWhenRandomAboveThreshold) {
     // 1.0 < 0.3 es falso, no hay división
     domain::AgenticCell cell(std::make_unique<FakeNoise>(std::vector<domain::CellNoise>{domain::CellNoise{1.0}}),
                              genome,
-                             0.002, 0.0001, 0.0002, 0.3, false);
+                             0.002, 0.0001, 0.0002, 0.3);
     cell.live();
     EXPECT_TRUE(cell.alive()); // Sin intento de división
 }
@@ -281,7 +281,7 @@ TEST(AgenticCellTest, DivisionAttemptMultipleCycles) {
     };
     domain::AgenticCell cell(std::make_unique<FakeNoise>(noise_sequence),
                              genome,
-                             0.002, 0.0001, 0.0002, 0.2, false);
+                             0.002, 0.0001, 0.0002, 0.2);
 
     // Ejecutar múltiples ciclos
     for (int i = 0; i < 4; ++i) {

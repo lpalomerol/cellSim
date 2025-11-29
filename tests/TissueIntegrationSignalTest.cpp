@@ -12,7 +12,7 @@ TEST(TissueIntegrationSignalTest, TissueCollectsNeoplasmSignals) {
     std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
     domain::Genome genome(genes);
     // division_rate=0.0 to disable division and focus on neoplasm signal only
-    auto cell = std::make_unique<domain::AgenticCell>(std::make_unique<test::HighNoise>(), genome, 1.0, 0.0001, 0.0002, 0.0, false);
+    auto cell = std::make_unique<domain::AgenticCell>(std::make_unique<test::HighNoise>(), genome, 1.0, 0.0001, 0.0002, 0.0);
 
     t.addCell(std::move(cell));
     ASSERT_EQ(t.size(), 1u);
