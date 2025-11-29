@@ -3,14 +3,15 @@
 //
 
 #include "Gene.h"
+#include "../adapters/NullLogger.h"
 
 #include <iostream>
 #include <utility>
 
 namespace domain {
 
-    Gene::Gene(std::string name, State initial, double mutation_threshold, double mutation_instability_k, bool verbose)
-        : name_(std::move(name)), state_(initial), mutation_threshold_(mutation_threshold), mutation_instability_k_(mutation_instability_k), noise_(nullptr), verbose_(verbose) {}
+    Gene::Gene(std::string name, State initial, double mutation_threshold, double mutation_instability_k, bool verbose, ports::ILoggerPtr logger)
+        : name_(std::move(name)), state_(initial), mutation_threshold_(mutation_threshold), mutation_instability_k_(mutation_instability_k), noise_(nullptr), verbose_(verbose), logger_(logger ? logger : std::make_shared<adapters::NullLogger>()) {}
 
     const std::string& Gene::name() const {
         return name_;
@@ -97,6 +98,7 @@ namespace domain {
     }
 
     void Gene::setVerbose(bool v) { verbose_ = v; }
+
 
     double Gene::get_mutation_threshold(bool apply_instability) const {
         // Use the Threshold value object to apply instability and keep limits enforced by Threshold itself.

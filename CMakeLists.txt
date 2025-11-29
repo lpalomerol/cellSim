@@ -12,9 +12,13 @@ include(FetchContent)
 set(COMMON_SOURCES
         src/domain/ports/ICell.h
         src/domain/ports/INoiseSource.h
+        src/domain/ports/ILogger.h
         src/domain/ports/CellNoise.h
         src/domain/adapters/RandomNoise.h
         src/domain/adapters/FixedNoise.h
+        src/domain/adapters/LogLevel.h
+        src/domain/adapters/Logger.h
+        src/domain/adapters/NullLogger.h
         src/domain/cell/CellFactory.cpp
         src/domain/cell/CellFactory.h
         src/domain/cell/OncoState.h
