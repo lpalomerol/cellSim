@@ -1,10 +1,7 @@
-//
-// Created by luis on 31/10/25.
-//
 
 #include "Gene.h"
+#include <cassert>
 #include "../adapters/NullLogger.h"
-
 #include <utility>
 
 namespace domain {
@@ -20,22 +17,22 @@ namespace domain {
     mutation_instability_k_(mutation_instability_k),
     noise_(nullptr),
     verbose_(verbose),
-    logger_(logger ? logger : std::make_shared<adapters::NullLogger>()) {}
+    logger_(logger ? logger : std::make_shared<adapters::NullLogger>()) {
+        assert(!name_.empty());
+        assert(mutation_threshold >= 0.0 && mutation_threshold <= 1.0);
+        assert(mutation_instability_k >= 0.0);
+        logger_->setVerbose(verbose);
+    }
 
     const std::string& Gene::name() const {
         return name_;
     }
 
     void Gene::mutate() {
-        switch (state_) {
-            case State::PlusPlus:
-                state_ = State::PlusMinus;
-                break;
-            case State::PlusMinus:
-                state_ = State::MinusMinus;
-                break;
-            case State::MinusMinus:
-                break;
+        if (state_ == State::PlusPlus) {
+            state_ = State::PlusMinus;
+        } else if (state_ == State::PlusMinus) {
+            state_ = State::MinusMinus;
         }
     }
 
@@ -44,61 +41,60 @@ namespace domain {
     }
 
     std::string Gene::status() const {
-        switch (state_) {
-            case State::PlusPlus: return "+/+";
-            case State::PlusMinus: return "+/-";
-            case State::MinusMinus: return "-/-";
-            default: return "?";
-        }
+        static const char* statuses[] = {"+/+", "+/-", "-/-"};
+        return statuses[static_cast<int>(state_)];
     }
 
     std::string Gene::details() const {
-        // Show effective mutation threshold considering instability (clamped internally)
-        return name_ + " [" + status() + "] p(mut)=" + std::to_string(get_mutation_threshold(true));
+        return details(true);
     }
 
     std::string Gene::details(bool unstable) const {
         return name_ + " [" + status() + "] p(mut)=" + std::to_string(get_mutation_threshold(unstable));
     }
 
-
     void Gene::live() {
-        // Consumir una muestra desde la fuente de ruido y aplicar mutación si corresponde.
         live(true);
     }
 
     void Gene::live(bool apply_instability) {
+        assert(noise_ != nullptr);
         double threshold = get_mutation_threshold(apply_instability);
-        if (noise_) {
-            double sample = noise_->next().u01;
-            if (sample < threshold) {
-                if (verbose_) logger_->logGenome("[Gene::live] Gene " + name_ + " mutating (sample=" + std::to_string(sample) + " > threshold=" + std::to_string(threshold) + ")");
-                mutate();
-            } else {
-                if (verbose_) logger_->logGenome("[Gene::live] Gene " + name_ + " not mutating (sample=" + std::to_string(sample) + " <= threshold=" + std::to_string(threshold) + ")");
-            }
+        double sample = noise_->next().u01;
+        bool should_mutate = sample < threshold;
+
+        logger_->logGenome("[Gene::live] Gene " + name_ + (should_mutate ? " mutating" : " not mutating") +
+            " (sample=" + std::to_string(sample) + " " + (should_mutate ? "<" : ">=") + " threshold=" + std::to_string(threshold) + ")");
+
+        if (should_mutate) {
+            mutate();
         }
     }
 
     void Gene::live(bool apply_instability, double genomic_instability) {
-        // genomic_instability acts as a multiplicative degrader: values >1 increase effective mutation probability
-        domain::shared::Threshold t = mutation_threshold_; // copy
-        if (apply_instability) t += mutation_instability_k_;
-        t *= genomic_instability; // Threshold clamps internally
-        double threshold = t.value();
+        assert(genomic_instability > 0.0);
+        assert(noise_ != nullptr);
 
-        if (noise_) {
-            double sample = noise_->next().u01;
-            if (sample < threshold) {
-                if (verbose_) logger_->logGenome("[Gene::live] Gene " + name_ + " mutating (sample=" + std::to_string(sample) + " < threshold=" + std::to_string(threshold) + ")");
-                mutate();
-            } else {
-                if (verbose_) logger_->logGenome("[Gene::live] Gene " + name_ + " not mutating (sample=" + std::to_string(sample) + " >= threshold=" + std::to_string(threshold) + ")");
-            }
+        domain::shared::Threshold t = mutation_threshold_;
+        if (apply_instability) {
+            t += mutation_instability_k_;
+        }
+        t *= genomic_instability;
+
+        double threshold = t.value();
+        double sample = noise_->next().u01;
+        bool should_mutate = sample < threshold;
+
+        logger_->logGenome("[Gene::live] Gene " + name_ + (should_mutate ? " mutating" : " not mutating") +
+            " (sample=" + std::to_string(sample) + " " + (should_mutate ? "<" : ">=") + " threshold=" + std::to_string(threshold) + ")");
+
+        if (should_mutate) {
+            mutate();
         }
     }
 
     void Gene::setNoiseSource(INoiseSource* noise) {
+        assert(noise != nullptr);
         noise_ = noise;
     }
 
@@ -106,13 +102,15 @@ namespace domain {
         state_ = s;
     }
 
-    void Gene::setVerbose(bool v) { verbose_ = v; }
-
+    void Gene::setVerbose(bool v) {
+        verbose_ = v;
+    }
 
     double Gene::get_mutation_threshold(bool apply_instability) const {
-        // Use the Threshold value object to apply instability and keep limits enforced by Threshold itself.
-        domain::shared::Threshold t = mutation_threshold_; // copy
-        if (apply_instability) t += mutation_instability_k_;
+        domain::shared::Threshold t = mutation_threshold_;
+        if (apply_instability) {
+            t += mutation_instability_k_;
+        }
         return t.value();
     }
 }

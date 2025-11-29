@@ -10,6 +10,7 @@ namespace domain::adapters {
 class Logger : public ports::ILogger {
 private:
     LogLevel config_;
+    bool verbose_ = false;
 
 public:
     explicit Logger(const LogLevel& config = LogLevel())
@@ -23,20 +24,24 @@ public:
         return config_;
     }
 
+    void setVerbose(bool verbose) override {
+        verbose_ = verbose;
+    }
+
     void logTissue(const std::string& message) override {
-        if (config_.tissue) {
+        if (config_.tissue && verbose_) {
             std::cout << "[TISSUE] " << message << "\n";
         }
     }
 
     void logCell(const std::string& message) override {
-        if (config_.cell) {
+        if (config_.cell && verbose_) {
             std::cout << "[CELL] " << message << "\n";
         }
     }
 
     void logGenome(const std::string& message) override {
-        if (config_.genome) {
+        if (config_.genome && verbose_) {
             std::cout << "[GENOME] " << message << "\n";
         }
     }

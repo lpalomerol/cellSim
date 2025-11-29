@@ -18,6 +18,10 @@ public:
     void logGenome(const std::string& message) override {
         // No hace nada
     }
+
+    void setVerbose(bool verbose) override {
+        // No hace nada
+    }
 };
 
 } // namespace domain::adapters
