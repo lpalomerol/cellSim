@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include "../ports/ILogger.h"
+#include "../ports/ILoggeable.h"
 #include "LogLevel.h"
 
 namespace domain::adapters {
@@ -49,6 +50,26 @@ public:
         if (config_.genome && verbose_) {
             std::cout << "[GENOME] " << message << "\n";
         }
+    }
+
+    // Nuevo: método genérico que usa ILoggeable
+    void log(const ports::ILoggeable* obj, const std::string& message) {
+        if (!obj || !verbose_) return;
+
+        std::string category = obj->getLogCategory();
+        bool should_log = isVerboseCategory(category);
+
+        if (should_log) {
+            std::cout << "[" << category << "] " << message << "\n";
+        }
+    }
+
+private:
+    bool isVerboseCategory(const std::string& category) const {
+        if (category == "TISSUE") return config_.tissue;
+        if (category == "CELL") return config_.cell;
+        if (category == "GENOME") return config_.genome;
+        return false;
     }
 };
 

@@ -6,10 +6,11 @@
 #include <string>
 #include "../ports/INoiseSource.h"
 #include "../ports/ILogger.h"
+#include "../ports/ILoggeable.h"
 #include "../shared/Threshold.h"
 
 namespace domain{
-    class Gene {
+    class Gene : public ports::ILoggeable {
     public:
         enum class State { PlusPlus, PlusMinus, MinusMinus };
         // Name is taken by value and moved into the member to avoid unnecessary copies
@@ -20,6 +21,9 @@ namespace domain{
         [[nodiscard]] std::string details() const;
 
         [[nodiscard]] std::string details(bool unstable) const;
+
+        // ILoggeable implementation
+        std::string getLogCategory() const override { return "GENE"; }
 
         void mutate();
         void live();

@@ -1,7 +1,3 @@
-// filepath: /home/luis/CLionProjects/cellSim/src/domain/tissue/Tissue.h
-//
-// Tissue moved to its own domain subfolder (tissue)
-
 #pragma once
 
 #include <vector>
@@ -15,6 +11,7 @@
 #include <iomanip>
 #include "../ports/ICell.h"
 #include "../ports/ILogger.h"
+#include "../ports/ILoggeable.h"
 #include "../adapters/NullLogger.h"
 #include "../signal/ISignal.h"
 #include "GeneticTrackingData.h"
@@ -24,11 +21,14 @@ namespace domain {
     // Tissue: simple collection of ICell instances that can be stepped as a group.
     // Behaves like an AgenticCellCollection: add cells, query count/access by index
     // and run a collective live() across all contained cells.
-    class Tissue {
+    class Tissue : public ports::ILoggeable {
     public:
         // Constructor: accepts optional logger (if nullptr, NullLogger will be used by default)
         explicit Tissue(ports::ILoggerPtr logger = nullptr)
             : logger_(logger ? logger : std::make_shared<adapters::NullLogger>()) {}
+
+        // ILoggeable implementation
+        std::string getLogCategory() const override { return "TISSUE"; }
 
         // Run a lifecycle tick for every contained cell. Exceptions thrown by
         // individual cells are caught and logged (if desired) so other cells

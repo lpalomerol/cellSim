@@ -119,6 +119,10 @@ int main(int argc, char** argv) {
     auto logger = std::make_shared<domain::adapters::Logger>();
     logger->setVerbose(verbose);
 
+    // Para control granular por categoría, puedes crear una configuración personalizada:
+    domain::adapters::LogLevel custom_config(true, false, false);  // TISSUE=on, CELL=off, GENOME=off
+    logger->setLogLevel(custom_config);
+
     // Usar Tissue para agrupar y gestionar las células
     domain::Tissue tissue(logger);
     tissue.setId(0);

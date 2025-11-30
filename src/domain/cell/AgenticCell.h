@@ -7,6 +7,7 @@
 #include "../ports/ICell.h"
 #include "../ports/INoiseSource.h"
 #include "../ports/ILogger.h"
+#include "../ports/ILoggeable.h"
 #include "../signal/ISignal.h"
 #include "../gene/Genome.h"
 #include <memory>
@@ -17,7 +18,7 @@
 
 namespace domain {
 
-    class AgenticCell final : public ICell {
+    class AgenticCell final : public ICell, public ports::ILoggeable {
     public:
         // Construct an AgenticCell. Genome is taken by value to make ownership explicit
         // and allow move-semantics from caller. Noise source is owned via unique_ptr.
@@ -31,6 +32,9 @@ namespace domain {
                     double high_delta_instability = 0.0002,
                     double division_rate = 0.001,
                     ports::ILoggerPtr logger = nullptr);
+
+        // ILoggeable implementation
+        std::string getLogCategory() const override { return "CELL"; }
 
         // Run a single lifecycle tick for the cell
         void live() override;
