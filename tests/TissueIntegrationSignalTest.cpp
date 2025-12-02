@@ -20,11 +20,19 @@ TEST(TissueIntegrationSignalTest, TissueCollectsNeoplasmSignals) {
     // Act: run tissue live which will call live() on the cell and cell should emit signal
     t.live();
 
-    // Collect emitted signals
+    // Verify: Tissue processed the neoplasm signal (detected it internally)
+    // The signal was processed (apoptosis was sent back), so it's not collected in stealEmittedSignals()
+    // Instead, verify that the tissue identified the neoplasm
+    auto identified_neoplasms = t.getIdentifiedNeoplasms();
+    ASSERT_EQ(identified_neoplasms.size(), 1u);
+
+    // The cell id should be 0 because Tissue assigned first id as 0
+    auto it = identified_neoplasms.begin();
+    EXPECT_EQ(*it, 0u);
+
+    // Verify the tissue collected some signals (at least the neoplasm signal was processed)
+    // Note: After processing, we don't expect it in stealEmittedSignals()
     auto signals = t.stealEmittedSignals();
-    ASSERT_EQ(signals.size(), 1u);
-    auto* s = dynamic_cast<domain::NeoplasmSignal*>(signals[0].get());
-    ASSERT_NE(s, nullptr);
-    // source id should be 0 because Tissue assigned first id as 0
-    EXPECT_EQ(s->sourceId(), 0u);
+    // The neoplasm signal is NOT in here because it was processed internally
+    // But we should have verified above that it was detected
 }

@@ -113,7 +113,7 @@ TEST(CellDivisionIntegrationTest, DivisionDisabledWhenRateIsZero) {
     EXPECT_EQ(t.size(), 1u);
 }
 
-// Test that signals are properly collected
+// Test that division is processed and daughter cell is added to tissue
 TEST(CellDivisionIntegrationTest, TissueCollectsDivisionSignals) {
     domain::Tissue t;
 
@@ -134,20 +134,19 @@ TEST(CellDivisionIntegrationTest, TissueCollectsDivisionSignals) {
     );
 
     t.addCell(std::move(cell));
+    ASSERT_EQ(t.size(), 1u);
+
     t.live();
 
-    // Collect emitted signals
-    auto signals = t.stealEmittedSignals();
+    // Verify: Division signal was processed (daughter cell was added)
+    // The signal is NOT collected in stealEmittedSignals() because it was processed internally
+    EXPECT_EQ(t.size(), 2u) << "Division should have created a daughter cell";
 
-    // Should have at least one CellDivision signal
-    bool found_division_signal = false;
-    for (const auto& sig : signals) {
-        if (sig->type() == domain::ISignal::Type::CellDivision) {
-            found_division_signal = true;
-            break;
-        }
-    }
-
-    EXPECT_TRUE(found_division_signal) << "No CellDivision signal found in emitted signals";
+    // Verify both cells exist and have proper IDs
+    auto* parent = t.getCell(0);
+    auto* daughter = t.getCell(1);
+    ASSERT_NE(parent, nullptr);
+    ASSERT_NE(daughter, nullptr);
+    EXPECT_LT(parent->id(), daughter->id());
 }
 

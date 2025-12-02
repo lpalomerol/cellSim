@@ -2,8 +2,8 @@
 // Implementation for Tissue collection (moved to domain/tissue)
 
 #include "Tissue.h"
-#include <iostream>
 #include <sstream>
+#include <iomanip>
 #include <algorithm>
 #include "GeneticTrackingService.h"
 #include "../signal/CellDivisionSignal.h"
@@ -13,14 +13,24 @@
 namespace domain {
 
     void Tissue::live() {
-
         phase0_Description();
         phase1_SignalIntegration();
         phase2_ExecuteCellCycles();
     }
 
-    void Tissue::phase0_Description() const {
+    // Helper: format genetic summary box with format "total(neo/active)"
+    std::string Tissue::formatGeneticBox(int count, int neos, int active_neos) {
+        std::ostringstream ss;
+        ss << count;
+        if (neos > 0 || active_neos > 0) {
+            ss << "(" << neos;
+            if (active_neos > 0) ss << "/" << active_neos;
+            ss << ")";
+        }
+        return ss.str();
+    }
 
+    void Tissue::phase0_Description() const {
         auto tracking = getGeneticTracking();
 
         logger_->logTissue("[Tissue Description] id=" + std::to_string(tissue_id_)
@@ -28,25 +38,13 @@ namespace domain {
                       + " | identified_neoplasms=" + std::to_string(identified_neoplasms_.size())
                       + " | ACTIVE neoplasms=" + std::to_string(tracking.totalActiveNeoplasms()));
 
-        // Print genetic summary similar to ExperimentalTracking
+        // Print genetic summary using helper
         const int boxWidth = 12;
 
-        // Lambda to create boxes with format: "total(identified/active)"
-        auto makeBox = [&](int count, int neos, int active_neos) {
-            std::ostringstream ss;
-            ss << count;
-            if (neos > 0 || active_neos > 0) {
-                ss << "(" << neos;
-                if (active_neos > 0) ss << "/" << active_neos;
-                ss << ")";
-            }
-            return ss.str();
-        };
-
-        std::string b1 = makeBox(tracking.brca_het_tp53_hom_plus, tracking.neo_brca_het_tp53_hom_plus, tracking.active_neo_brca_het_tp53_hom_plus);
-        std::string b2 = makeBox(tracking.brca_het_tp53_het, tracking.neo_brca_het_tp53_het, tracking.active_neo_brca_het_tp53_het);
-        std::string b3 = makeBox(tracking.brca_het_tp53_hom_minus, tracking.neo_brca_het_tp53_hom_minus, tracking.active_neo_brca_het_tp53_hom_minus);
-        std::string b4 = makeBox(tracking.brca_hom_minus, -1, -1);
+        std::string b1 = formatGeneticBox(tracking.brca_het_tp53_hom_plus, tracking.neo_brca_het_tp53_hom_plus, tracking.active_neo_brca_het_tp53_hom_plus);
+        std::string b2 = formatGeneticBox(tracking.brca_het_tp53_het, tracking.neo_brca_het_tp53_het, tracking.active_neo_brca_het_tp53_het);
+        std::string b3 = formatGeneticBox(tracking.brca_het_tp53_hom_minus, tracking.neo_brca_het_tp53_hom_minus, tracking.active_neo_brca_het_tp53_hom_minus);
+        std::string b4 = formatGeneticBox(tracking.brca_hom_minus, -1, -1);
 
         std::ostringstream summary;
         summary << "  Resumen genético [total(neo/activo)]: |"
@@ -57,7 +55,6 @@ namespace domain {
                 << "    [BRCA+/- TP53+/+] [BRCA+/- TP53+/-] [BRCA+/- TP53-/-] [BRCA-/-]";
         logger_->logTissue(summary.str());
 
-        // Additional detailed summary
         logger_->logTissue("[Active Neoplasms] "
                       "TP53+/+: " + std::to_string(tracking.active_neo_brca_het_tp53_hom_plus) + " | "
                       "TP53+/-: " + std::to_string(tracking.active_neo_brca_het_tp53_het) + " | "
@@ -67,6 +64,58 @@ namespace domain {
 
     void Tissue::phase1_SignalIntegration() {
         // Currently placeholder for future signal processing logic
+    }
+
+    // Helper: find cell by ID using linear search
+    ICell* Tissue::findCellById(std::uint64_t cell_id) {
+        for (auto& cell_ptr : cells_) {
+            if (cell_ptr && cell_ptr->id() == cell_id) {
+                return cell_ptr.get();
+            }
+        }
+        return nullptr;
+    }
+
+    // Helper: handle neoplasm signal from cell
+    void Tissue::handleNeoplasmSignal(std::unique_ptr<ISignal> sig) {
+        std::uint64_t source_id = sig->sourceId();
+        std::string message = sig->message();
+
+        logger_->logTissue("[Tissue] Neoplasm signal detected from cell id=" + std::to_string(source_id) + " message='" + message + "'");
+
+        // Track the neoplasm
+        identified_neoplasms_.insert(source_id);
+
+        // Invoke listener callback if set
+        if (neoplasm_listener_) {
+            neoplasm_listener_(source_id, message);
+        }
+
+        // Send apoptosis signal back to the neoplastic cell
+        std::vector<std::uint64_t> target_ids = {source_id};
+        auto apoptosis_sig = std::make_unique<ApoptosisSignal>(
+            tissue_id_,  // source: the tissue itself
+            "apoptosis_response_to_neoplasm",
+            target_ids   // directed to the neoplastic cell
+        );
+
+        ICell* target_cell = findCellById(source_id);
+        if (target_cell) {
+            target_cell->receiveMessage(std::move(apoptosis_sig));
+            logger_->logTissue("[Tissue] Apoptosis signal sent to neoplastic cell id=" + std::to_string(source_id));
+        }
+    }
+
+    // Helper: handle cell division signal from cell
+    void Tissue::handleCellDivisionSignal(std::unique_ptr<ISignal> sig) {
+        auto* division_sig = dynamic_cast<CellDivisionSignal*>(sig.get());
+        if (division_sig) {
+            auto daughter = division_sig->takeDaughterCell();
+            if (daughter) {
+                logger_->logTissue("[Tissue] Cell division signal detected from cell id=" + std::to_string(sig->sourceId()) + "; adding daughter cell");
+                addCell(std::move(daughter));
+            }
+        }
     }
 
     void Tissue::phase2_ExecuteCellCycles() {
@@ -100,62 +149,28 @@ namespace domain {
 
     void Tissue::addCell(std::unique_ptr<ICell> cell) {
         if (!cell) return;
+
         // Assign a stable id to the cell before storing it
         std::uint64_t id = next_cell_id_.fetch_add(1, std::memory_order_relaxed);
         cell->setId(id);
 
-        // Inject a signal emitter that enqueues signals into signals_new_
+        // Inject a signal emitter that processes signals via helpers
         cell->setSignalEmitter([this](std::unique_ptr<ISignal> sig){
             if (!sig) return;
 
-            // Handle Neoplasm signals
+            // Dispatch signal based on type
+            // Note: Processed signals (Neoplasm, CellDivision) are consumed and not stored
             if (sig->type() == ISignal::Type::Neoplasm) {
-                std::uint64_t source_id = sig->sourceId();
-                std::string message = sig->message();
-
-                logger_->logTissue("[Tissue] Neoplasm signal detected from cell id=" + std::to_string(source_id) + " message='" + message + "'");
-
-                // Track the neoplasm
-                identified_neoplasms_.insert(source_id);
-
-                // Invoke listener callback if set
-                if (neoplasm_listener_) {
-                    neoplasm_listener_(source_id, message);
-                }
-
-                // Send apoptosis signal back to the neoplastic cell
-                std::vector<std::uint64_t> target_ids = {source_id};
-                auto apoptosis_sig = std::make_unique<ApoptosisSignal>(
-                    tissue_id_,  // source: the tissue itself
-                    "apoptosis_response_to_neoplasm",
-                    target_ids   // directed to the neoplastic cell
-                );
-
-                // Find the cell and deliver the signal
-                for (auto& cell_ptr : cells_) {
-                    if (cell_ptr && cell_ptr->id() == source_id) {
-                        cell_ptr->receiveMessage(std::move(apoptosis_sig));
-                        logger_->logTissue("[Tissue] Apoptosis signal sent to neoplastic cell id=" + std::to_string(source_id));
-                        break;
-                    }
-                }
+                handleNeoplasmSignal(std::move(sig));
+                // Signal was processed internally, don't collect it
+            } else if (sig->type() == ISignal::Type::CellDivision) {
+                handleCellDivisionSignal(std::move(sig));
+                // Signal was processed internally, don't collect it
+            } else {
+                // For other signal types, store them in thread-safe queue
+                std::lock_guard<std::mutex> lk(signals_mutex_);
+                signals_new_.push_back(std::move(sig));
             }
-            // Handle CellDivision signals
-            else if (sig->type() == ISignal::Type::CellDivision) {
-                auto* division_sig = dynamic_cast<CellDivisionSignal*>(sig.get());
-                if (division_sig) {
-                    // Extract the daughter cell from the signal
-                    auto daughter = division_sig->takeDaughterCell();
-                    if (daughter) {
-                        logger_->logTissue("[Tissue] Cell division signal detected from cell id=" + std::to_string(sig->sourceId()) + "; adding daughter cell");
-                        // Add the daughter cell to the tissue (assigns a new ID)
-                        addCell(std::move(daughter));
-                    }
-                }
-            }
-
-            std::lock_guard<std::mutex> lk(signals_mutex_);
-            signals_new_.push_back(std::move(sig));
         });
 
         cells_.push_back(std::move(cell));

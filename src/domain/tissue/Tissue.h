@@ -28,7 +28,7 @@ namespace domain {
             : logger_(logger ? logger : std::make_shared<adapters::NullLogger>()) {}
 
         // ILoggeable implementation
-        std::string getLogCategory() const override { return "TISSUE"; }
+        [[nodiscard]] std::string getLogCategory() const override { return "TISSUE"; }
 
         // Run a lifecycle tick for every contained cell. Exceptions thrown by
         // individual cells are caught and logged (if desired) so other cells
@@ -86,6 +86,19 @@ namespace domain {
         void phase0_Description() const;
         void phase1_SignalIntegration();
         void phase2_ExecuteCellCycles();
+
+    private:
+        // Helper: find cell by ID (linear search)
+        [[nodiscard]] ICell* findCellById(std::uint64_t cell_id);
+
+        // Helper: format genetic summary box with format "total(neo/active)"
+        [[nodiscard]] static std::string formatGeneticBox(int count, int neos, int active_neos);
+
+        // Helper: handle neoplasm signal from cell
+        void handleNeoplasmSignal(std::unique_ptr<ISignal> sig);
+
+        // Helper: handle cell division signal from cell
+        void handleCellDivisionSignal(std::unique_ptr<ISignal> sig);
     };
 
 } // namespace domain
