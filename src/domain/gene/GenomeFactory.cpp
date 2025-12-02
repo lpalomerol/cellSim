@@ -4,27 +4,41 @@
 
 namespace domain::genome_factory {
 
+// Default values for gene parameters
+constexpr double DEFAULT_THRESHOLD = 0.1;
+constexpr double DEFAULT_INSTABILITY_K = 0.0;
+
+// Gene names
+constexpr const char* GENE_TP53 = "TP53";
+constexpr const char* GENE_BRCA1 = "BRCA1";
+
+// Helper: safely retrieve value from map with default fallback
+static double getMapValue(const std::unordered_map<std::string, double>& map,
+                         const std::string& key,
+                         double default_value) {
+    auto it = map.find(key);
+    return (it != map.end()) ? it->second : default_value;
+}
+
 Genome makeDefaultGenome(const std::unordered_map<std::string, double>& gene_thresholds,
                           const std::unordered_map<std::string, double>& gene_instability_k,
                           ports::ILoggerPtr logger) {
-    double tp53_th = 0.1;
-    double brca1_th = 0.1;
-    double tp53_k = 0.0;
-    double brca1_k = 0.0;
+    // Retrieve gene parameters with sensible defaults
+    double tp53_threshold = getMapValue(gene_thresholds, GENE_TP53, DEFAULT_THRESHOLD);
+    double tp53_instability = getMapValue(gene_instability_k, GENE_TP53, DEFAULT_INSTABILITY_K);
 
-    auto it_tp = gene_thresholds.find("TP53");
-    if (it_tp != gene_thresholds.end()) tp53_th = it_tp->second;
-    auto it_br = gene_thresholds.find("BRCA1");
-    if (it_br != gene_thresholds.end()) brca1_th = it_br->second;
+    double brca1_threshold = getMapValue(gene_thresholds, GENE_BRCA1, DEFAULT_THRESHOLD);
+    double brca1_instability = getMapValue(gene_instability_k, GENE_BRCA1, DEFAULT_INSTABILITY_K);
 
-    auto itk_tp = gene_instability_k.find("TP53");
-    if (itk_tp != gene_instability_k.end()) tp53_k = itk_tp->second;
-    auto itk_br = gene_instability_k.find("BRCA1");
-    if (itk_br != gene_instability_k.end()) brca1_k = itk_br->second;
+    // Create genes with their initial states
+    Gene tp53(GENE_TP53, Gene::State::PlusPlus, tp53_threshold, tp53_instability, logger);
+    Gene brca1(GENE_BRCA1, Gene::State::PlusMinus, brca1_threshold, brca1_instability, logger);
 
-    Gene tp53("TP53", Gene::State::PlusPlus, tp53_th, tp53_k, logger);
-    Gene brca1("BRCA1", Gene::State::PlusMinus, brca1_th, brca1_k, logger);
-    std::unordered_map<std::string, Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
+    // Build genome map and return
+    std::unordered_map<std::string, Gene> genes{
+        {tp53.name(), tp53},
+        {brca1.name(), brca1}
+    };
     return Genome(std::move(genes), logger);
 }
 

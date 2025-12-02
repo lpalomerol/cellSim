@@ -7,8 +7,20 @@
 
 namespace domain::genome_factory {
 
-// Devuelve un genoma por defecto con los genes principales (TP53, BRCA1).
-// Se unifican las sobrecargas: ambos parámetros son opcionales (mapas vacíos por defecto).
+// Factory function: creates a default genome with TP53 and BRCA1 genes.
+//
+// Parameters:
+//   gene_thresholds: optional map of gene name -> mutation threshold probability
+//                    (default: 0.1 for all genes if not provided)
+//   gene_instability_k: optional map of gene name -> instability penalty
+//                       (default: 0.0 for all genes if not provided)
+//   logger: optional logger for debug output (uses NullLogger if nullptr)
+//
+// Gene states:
+//   TP53: initialized as +/+ (wild-type, protected)
+//   BRCA1: initialized as +/- (heterozygous)
+//
+// Returns: Genome object containing both genes with specified parameters
 Genome makeDefaultGenome(const std::unordered_map<std::string, double>& gene_thresholds = {},
                           const std::unordered_map<std::string, double>& gene_instability_k = {},
                           ports::ILoggerPtr logger = nullptr);
