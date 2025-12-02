@@ -29,8 +29,24 @@ add_executable(unit_tests
         ../src/domain/gene/Genome.cpp
         ../src/domain/gene/Genome.h
         ../src/domain/gene/GenomeFactory.cpp
+        ../src/domain/gene/GenomeFactory.h
+
+        ../src/domain/signal/ISignal.h
+        ../src/domain/signal/BaseSignal.h
+        ../src/domain/signal/NeoplasmSignal.h
         ../src/domain/signal/ApoptosisSignal.h
+        ../src/domain/signal/CellDivisionSignal.h
+
         ../src/domain/tissue/Tissue.cpp
+        ../src/domain/tissue/Tissue.h
+        ../src/domain/tissue/GeneticTrackingData.h
+        ../src/domain/tissue/GeneticTrackingService.h
+
+        ../src/application/config/SimulationConfig.h
+        ../src/application/config/SimulationConfig.cpp
+        ../src/application/simulation/Simulation.h
+        ../src/application/simulation/Simulation.cpp
+
         mocks/MockLogger.h
         GeneTest.cpp
         AgenticCellTest.cpp
