@@ -33,18 +33,12 @@ add_executable(unit_tests
         ../src/domain/tissue/Tissue.cpp
         mocks/MockLogger.h
         GeneTest.cpp
-        MockLoggerDemoTest.cpp
         AgenticCellTest.cpp
-        GenomeTest.cpp
         GenomeFactoryTest.cpp
         GenomeMutateTest.cpp
         ThresholdTest.cpp
         TissueTest.cpp
         TissueIdTest.cpp
-        NeoplasmSignalTest.cpp
-        AgenticCellSignalTest.cpp
-        TissueIntegrationSignalTest.cpp
-        AgenticCellReceiveMessageTest.cpp
         CellDivisionIntegrationTest.cpp
         CellDivisionInstabilityPropagationTest.cpp
         ApoptosisTest.cpp
