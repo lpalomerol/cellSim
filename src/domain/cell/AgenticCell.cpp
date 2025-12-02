@@ -2,10 +2,8 @@
 //
 
 #include "AgenticCell.h"
-#include <iostream>
 #include "../signal/NeoplasmSignal.h"
 #include "../signal/CellDivisionSignal.h"
-#include "../signal/ApoptosisSignal.h"
 #include "../exception/CellDeathException.h"
 #include "../exception/NeoplasticException.h"
 #include "../shared/Threshold.h"
@@ -36,9 +34,20 @@ namespace domain {
     /**
      * Run a single cell cycle. Phases are executed in order; exceptions are
      * used to signal cell death or neoplastic conversion and stop further work.
+     *
+     * Neoplastic cells process incoming messages (phase2) and emit signals (phase5)
+     * but skip growth phases (0,1,3,4).
      */
     void AgenticCell::live() {
         try {
+            // Neoplastic cells: process messages (to receive apoptosis) then emit signal
+            if (is_neoplastic_) {
+                phase2_Endocytosis();
+                phase5_Exocytosis();
+                return;
+            }
+
+            // Normal cell cycle
             phase0_BaselineAssessment();
             phase1_G1IntegrityCheckpoint();
             phase2_Endocytosis();
@@ -127,13 +136,6 @@ namespace domain {
      */
     void AgenticCell::phase3_NuclearDynamics() {
 
-        // If already neoplastic, don't do anything else
-        if (is_neoplastic_) {
-            logger_->logCell("[Trace] Cell is already neoplastic; skipping phase3 nuclear dynamics");
-            return;
-        }
-
-
         // Advance genes using the current genomic instability modifier
         genome_.liveAllGenes(genomic_instability_);
         adjust_neoplasm_k();
@@ -145,15 +147,10 @@ namespace domain {
 
     /**
      * Cytoplasmic remodeling: attempt neoplasm development (unless protected)
-     * and update immunosuppression for the next cycle.
-     * NOTE: If already neoplastic, skip further development and division.
+     * and update genomic instability for the next cycle.
+     * Also attempts cell division if conditions are met.
      */
     void AgenticCell::phase4_CytoplasmicRemodeling() {
-        // If already neoplastic, don't do anything else
-        if (is_neoplastic_) {
-            logger_->logCell("[Trace] Cell is already neoplastic; skipping phase4 remodeling");
-            return;
-        }
 
         if (!isNeoplasticProtected()) {
             develop_neoplasm();
@@ -455,8 +452,6 @@ namespace domain {
         if (genomic_instability_ > apoptosis_instability_threshold_) {
             logger_->logCell("[Apoptosis] Cell [" + std::to_string(cell_id_) + "] IGNORED apoptosis signal (genomic_instability="
                           + std::to_string(genomic_instability_) + " > " + std::to_string(apoptosis_instability_threshold_) + ")");
-            std::cout << "[Apoptosis] Cell [" << cell_id_ << "] IGNORED apoptosis signal (genomic_instability="
-                      << genomic_instability_ << " > " << apoptosis_instability_threshold_ << ")\n";
 
             // Mark that this cell has evaded apoptosis - it becomes immortal
             has_evaded_apoptosis_ = true;
@@ -466,8 +461,6 @@ namespace domain {
 
         logger_->logCell("[Apoptosis] Cell [" + std::to_string(cell_id_) + "] ACCEPTED apoptosis signal (genomic_instability="
                       + std::to_string(genomic_instability_) + " <= " + std::to_string(apoptosis_instability_threshold_) + ")");
-        std::cout << "[Apoptosis] Cell [" << cell_id_ << "] ACCEPTED apoptosis signal (genomic_instability="
-                  << genomic_instability_ << " <= " << apoptosis_instability_threshold_ << ")\n";
 
         // Disable BRCA1 to trigger cell death
         genome_.mutate("BRCA1");
