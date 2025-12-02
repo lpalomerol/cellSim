@@ -47,7 +47,10 @@ add_executable(unit_tests
         TissueIntegrationSignalTest.cpp
         AgenticCellReceiveMessageTest.cpp
         CellDivisionIntegrationTest.cpp
+        CellDivisionInstabilityPropagationTest.cpp
         ApoptosisTest.cpp
+        ApoptosisNeoplasticIntegrationTest.cpp
+        NeoplasticImmortalityTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales

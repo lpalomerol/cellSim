@@ -31,6 +31,7 @@ namespace domain {
                     double low_delta_instability = 0.0001,
                     double high_delta_instability = 0.0002,
                     double division_rate = 0.001,
+                    double apoptosis_instability_threshold = 10.0,
                     ports::ILoggerPtr logger = nullptr);
 
         // ILoggeable implementation
@@ -78,6 +79,11 @@ namespace domain {
         // is intended for it by checking targetIds(). If empty, it's a broadcast.
         void receiveMessage(std::unique_ptr<domain::ISignal> signal) override;
 
+        // Create a clone (daughter cell) with the same genome and inherited genomic instability
+        // The daughter cell will have age reset to 0 and a new ID assigned by the tissue
+        // Used internally for cell division and available for testing
+        [[nodiscard]] std::unique_ptr<AgenticCell> clone() const;
+
     private:
         std::unique_ptr<INoiseSource> noise_;
         ports::ILoggerPtr logger_;
@@ -90,6 +96,7 @@ namespace domain {
         double base_neoplasm_k_ = 0.002;
         domain::shared::Threshold neoplasm_k_;
         bool is_neoplastic_;
+        bool has_evaded_apoptosis_ = false;  // Track if cell has evaded apoptosis (becomes immortal)
         std::uint64_t seed_ = 0; // records the RNG seed used by the noise source
 
         // Age counter incremented each tick when the cell is alive
@@ -100,6 +107,9 @@ namespace domain {
 
         // Division rate: probability that the cell divides during phase4 (default 0.001)
         double division_rate_ = 0.001;
+
+        // Apoptosis instability threshold: apoptosis is only effective if genomic_instability_ <= this value
+        double apoptosis_instability_threshold_ = 10.0;
 
         // Encapsulate neoplasm development logic (samples noise and applies threshold)
         void develop_neoplasm();
@@ -121,9 +131,6 @@ namespace domain {
         // Attempt cell division if random value is below division_rate (called in phase4)
         void attemptDivision();
 
-        // Create a clone (daughter cell) with the same genome and noise source
-        // The daughter cell will have age reset to 0 and a new ID assigned by the tissue
-        std::unique_ptr<AgenticCell> clone() const;
 
         // Attempt apoptosis (programmed cell death) in response to an apoptosis signal
         void attemptApoptosis();

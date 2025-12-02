@@ -52,6 +52,13 @@ add_executable(random_cells app/main_random_cells.cpp
         app/main_random_cells.cpp
         src/domain/tissue/Tissue.cpp)
 
+# Ejecutable para evaluar evolución de una única célula
+add_executable(single_cell_evolution app/single_cell_evolution.cpp
+        src/application/simulation/InteractiveSimulation.cpp
+        src/application/simulation/InteractiveSimulation.h
+        ${COMMON_SOURCES}
+        src/domain/tissue/Tissue.cpp)
+
 # Añadir tests solo si BUILD_TESTS=ON (tests pueden descargar googletest)
 if (BUILD_TESTS)
     enable_testing()

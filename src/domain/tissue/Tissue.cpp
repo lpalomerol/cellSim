@@ -4,8 +4,10 @@
 #include "Tissue.h"
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 #include "GeneticTrackingService.h"
 #include "../signal/CellDivisionSignal.h"
+#include "../signal/ApoptosisSignal.h"
 #include "../adapters/NullLogger.h"
 
 namespace domain {
@@ -23,30 +25,44 @@ namespace domain {
 
         logger_->logTissue("[Tissue Description] id=" + std::to_string(tissue_id_)
                       + " | cells=" + std::to_string(cells_.size())
-                      + " | identified_neoplasms=" + std::to_string(identified_neoplasms_.size()));
+                      + " | identified_neoplasms=" + std::to_string(identified_neoplasms_.size())
+                      + " | ACTIVE neoplasms=" + std::to_string(tracking.totalActiveNeoplasms()));
 
         // Print genetic summary similar to ExperimentalTracking
-        const int boxWidth = 9;
-        auto makeBox = [&](int count, int neos) {
+        const int boxWidth = 12;
+
+        // Lambda to create boxes with format: "total(identified/active)"
+        auto makeBox = [&](int count, int neos, int active_neos) {
             std::ostringstream ss;
             ss << count;
-            if (neos >= 0) ss << "(" << neos << ")";
+            if (neos > 0 || active_neos > 0) {
+                ss << "(" << neos;
+                if (active_neos > 0) ss << "/" << active_neos;
+                ss << ")";
+            }
             return ss.str();
         };
 
-        std::string b1 = makeBox(tracking.brca_het_tp53_hom_plus, tracking.neo_brca_het_tp53_hom_plus);
-        std::string b2 = makeBox(tracking.brca_het_tp53_het, tracking.neo_brca_het_tp53_het);
-        std::string b3 = makeBox(tracking.brca_het_tp53_hom_minus, tracking.neo_brca_het_tp53_hom_minus);
-        std::string b4 = makeBox(tracking.brca_hom_minus, -1);
+        std::string b1 = makeBox(tracking.brca_het_tp53_hom_plus, tracking.neo_brca_het_tp53_hom_plus, tracking.active_neo_brca_het_tp53_hom_plus);
+        std::string b2 = makeBox(tracking.brca_het_tp53_het, tracking.neo_brca_het_tp53_het, tracking.active_neo_brca_het_tp53_het);
+        std::string b3 = makeBox(tracking.brca_het_tp53_hom_minus, tracking.neo_brca_het_tp53_hom_minus, tracking.active_neo_brca_het_tp53_hom_minus);
+        std::string b4 = makeBox(tracking.brca_hom_minus, -1, -1);
 
         std::ostringstream summary;
-        summary << "  Resumen genético: |"
+        summary << "  Resumen genético [total(neo/activo)]: |"
                 << std::setw(boxWidth) << b1 << " |"
                 << std::setw(boxWidth) << b2 << " |"
                 << std::setw(boxWidth) << b3 << " |"
                 << std::setw(boxWidth) << b4 << " |\n"
                 << "    [BRCA+/- TP53+/+] [BRCA+/- TP53+/-] [BRCA+/- TP53-/-] [BRCA-/-]";
         logger_->logTissue(summary.str());
+
+        // Additional detailed summary
+        logger_->logTissue("[Active Neoplasms] "
+                      "TP53+/+: " + std::to_string(tracking.active_neo_brca_het_tp53_hom_plus) + " | "
+                      "TP53+/-: " + std::to_string(tracking.active_neo_brca_het_tp53_het) + " | "
+                      "TP53-/-: " + std::to_string(tracking.active_neo_brca_het_tp53_hom_minus) + " | "
+                      "TOTAL: " + std::to_string(tracking.totalActiveNeoplasms()));
     }
 
     void Tissue::phase1_SignalIntegration() {
@@ -65,6 +81,21 @@ namespace domain {
                 logger_->logTissue("[Tissue] cell[" + std::to_string(i) + "] unknown exception");
             }
         }
+
+        // Remove dead cells after all cells have executed their cycle
+        cells_.erase(
+            std::remove_if(cells_.begin(), cells_.end(),
+                [this](const std::unique_ptr<ICell>& cell) {
+                    if (!cell || !cell->alive()) {
+                        if (cell) {
+                            logger_->logTissue("[Tissue] Removing dead cell id=" + std::to_string(cell->id()));
+                        }
+                        return true;  // Mark for removal
+                    }
+                    return false;  // Keep the cell
+                }),
+            cells_.end()
+        );
     }
 
     void Tissue::addCell(std::unique_ptr<ICell> cell) {
@@ -90,6 +121,23 @@ namespace domain {
                 // Invoke listener callback if set
                 if (neoplasm_listener_) {
                     neoplasm_listener_(source_id, message);
+                }
+
+                // Send apoptosis signal back to the neoplastic cell
+                std::vector<std::uint64_t> target_ids = {source_id};
+                auto apoptosis_sig = std::make_unique<ApoptosisSignal>(
+                    tissue_id_,  // source: the tissue itself
+                    "apoptosis_response_to_neoplasm",
+                    target_ids   // directed to the neoplastic cell
+                );
+
+                // Find the cell and deliver the signal
+                for (auto& cell_ptr : cells_) {
+                    if (cell_ptr && cell_ptr->id() == source_id) {
+                        cell_ptr->receiveMessage(std::move(apoptosis_sig));
+                        logger_->logTissue("[Tissue] Apoptosis signal sent to neoplastic cell id=" + std::to_string(source_id));
+                        break;
+                    }
                 }
             }
             // Handle CellDivision signals

@@ -35,6 +35,7 @@ void Simulations::runAll() {
                      cfg_.low_delta_instability,
                      cfg_.high_delta_instability,
                      0.001,
+                     10.0,
                      cfg_.logger)
              );
          }

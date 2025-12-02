@@ -19,8 +19,8 @@ namespace domain {
      * - Injects the provided noise source into all genes.
      * - Sets genome verbosity and captures the RNG seed (if available).
      */
-    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, double low_delta_instability, double high_delta_instability, double division_rate, ports::ILoggerPtr logger)
-        : noise_(std::move(noise)), logger_(logger ? logger : std::make_shared<adapters::NullLogger>()), genome_(std::move(genome)), base_neoplasm_k_(neoplasm_k), neoplasm_k_(domain::shared::Threshold(neoplasm_k)), is_neoplastic_(false), low_delta_instability_(low_delta_instability), high_delta_instability_(high_delta_instability), division_rate_(division_rate) {
+    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k, double low_delta_instability, double high_delta_instability, double division_rate, double apoptosis_instability_threshold, ports::ILoggerPtr logger)
+        : noise_(std::move(noise)), logger_(logger ? logger : std::make_shared<adapters::NullLogger>()), genome_(std::move(genome)), base_neoplasm_k_(neoplasm_k), neoplasm_k_(domain::shared::Threshold(neoplasm_k)), is_neoplastic_(false), low_delta_instability_(low_delta_instability), high_delta_instability_(high_delta_instability), division_rate_(division_rate), apoptosis_instability_threshold_(apoptosis_instability_threshold) {
         // Inject the noise source into all genes via the Genome API
         genome_.setNoiseSourceForAll(noise_.get());
 
@@ -62,14 +62,13 @@ namespace domain {
     }
 
     /**
-     * G1 integrity checkpoint: throws if the cell is dead or already neoplastic.
+     * G1 integrity checkpoint: throws if the cell is dead.
+     * NOTE: Neoplastic cells are NOT killed here - they continue through the cycle
+     * to allow them to process incoming messages (e.g., apoptosis signals).
      */
     void AgenticCell::phase1_G1IntegrityCheckpoint() const {
         if (!alive()) {
             throw CellDeathException("dead@phase1");
-        }
-        if (is_neoplastic_) {
-            throw NeoplasticException("neoplastic@phase1");
         }
     }
 
@@ -105,6 +104,18 @@ namespace domain {
 
             // Handle specific message types
             if (msg->type() == ISignal::Type::Apoptosis) {
+                bool will_evade = (genomic_instability_ > apoptosis_instability_threshold_);
+                if (will_evade) {
+                    logger_->logCell("[Apoptosis Signal] Cell [" + std::to_string(cell_id_)
+                                  + "] will IGNORE apoptosis signal (genomic_instability="
+                                  + std::to_string(genomic_instability_) + " > threshold="
+                                  + std::to_string(apoptosis_instability_threshold_) + ")");
+                } else {
+                    logger_->logCell("[Apoptosis Signal] Cell [" + std::to_string(cell_id_)
+                                  + "] will ACCEPT apoptosis signal (genomic_instability="
+                                  + std::to_string(genomic_instability_) + " <= threshold="
+                                  + std::to_string(apoptosis_instability_threshold_) + ")");
+                }
                 attemptApoptosis();
             }
         }
@@ -115,6 +126,14 @@ namespace domain {
      * Also checks for death and increments age for living cells.
      */
     void AgenticCell::phase3_NuclearDynamics() {
+
+        // If already neoplastic, don't do anything else
+        if (is_neoplastic_) {
+            logger_->logCell("[Trace] Cell is already neoplastic; skipping phase3 nuclear dynamics");
+            return;
+        }
+
+
         // Advance genes using the current genomic instability modifier
         genome_.liveAllGenes(genomic_instability_);
         adjust_neoplasm_k();
@@ -127,8 +146,15 @@ namespace domain {
     /**
      * Cytoplasmic remodeling: attempt neoplasm development (unless protected)
      * and update immunosuppression for the next cycle.
+     * NOTE: If already neoplastic, skip further development and division.
      */
     void AgenticCell::phase4_CytoplasmicRemodeling() {
+        // If already neoplastic, don't do anything else
+        if (is_neoplastic_) {
+            logger_->logCell("[Trace] Cell is already neoplastic; skipping phase4 remodeling");
+            return;
+        }
+
         if (!isNeoplasticProtected()) {
             develop_neoplasm();
         }
@@ -138,9 +164,13 @@ namespace domain {
         attemptDivision();
     }
 
-    /** Exocytosis phase (placeholder) */
+    /** Exocytosis phase: emit neoplasm signal every cycle while neoplastic */
     void AgenticCell::phase5_Exocytosis() {
-        // intentionally empty
+        if (is_neoplastic_ && signal_emitter_) {
+            auto sig = std::make_unique<NeoplasmSignal>(id(), "neoplasm");
+            signal_emitter_(std::move(sig));
+            logger_->logCell("[Exocytosis] Cell [" + std::to_string(cell_id_) + "] emitting neoplasm signal");
+        }
     }
 
     /**
@@ -173,8 +203,18 @@ namespace domain {
                       + " | TP53=" + (tp53 ? tp53->status() : "?"));
     }
 
-    /** Return whether the cell is alive (BRCA1 must be enabled). */
+    /** Return whether the cell is alive.
+     * Rules:
+     * - Normal cells: BRCA1 must be enabled
+     * - Immortal cells (that evaded apoptosis): always alive, even if BRCA1 is disabled
+     */
     bool AgenticCell::alive() const {
+        // If cell has evaded apoptosis, it's immortal and cannot die
+        if (has_evaded_apoptosis_) {
+            return true;
+        }
+
+        // Otherwise, check BRCA1 status (normal cell death)
         const Gene *brca1 = genome_.getGene("BRCA1");
         return brca1 && brca1->enabled();
     }
@@ -257,13 +297,8 @@ namespace domain {
         double sample = noise_->next().u01;
         logger_->logCell("[Trace] neoplasm sample=" + std::to_string(sample) + " threshold=" + std::to_string(neoplasm_k_.value()));
         if (sample < neoplasm_k_.value()) {
-            bool transitioned = !is_neoplastic_;
             is_neoplastic_ = true;
             logger_->logCell("[Trace] Cell converted to neoplastic state");
-            if (transitioned && signal_emitter_) {
-                auto sig = std::make_unique<NeoplasmSignal>(id(), std::string("neoplasm"));
-                signal_emitter_(std::move(sig));
-            }
         } else {
             logger_->logCell("[Trace] No neoplasm (sample >= threshold)");
         }
@@ -336,7 +371,11 @@ namespace domain {
         double random_value = noise_->next().u01;
         if (random_value < division_rate_) {
             logger_->logCell("[Division] Cell [" + std::to_string(cell_id_) + "] attempting division "
-                          "(random=" + std::to_string(random_value) + " < division_rate=" + std::to_string(division_rate_) + ")");
+                          "(random=" + std::to_string(random_value) + " < division_rate=" + std::to_string(division_rate_) + ")"
+                          " | Parent: neoplasm_k=" + std::to_string(neoplasm_k_.value())
+                          + " | BRCA1=" + getBRCA1()
+                          + " | TP53=" + getTP53()
+                          + " | genomic_instability=" + std::to_string(genomic_instability_));
 
             // Create daughter cell by cloning
             auto daughter = clone();
@@ -363,6 +402,7 @@ namespace domain {
      * - Age reset to 0
      * - Cell ID will be assigned by the tissue
      * - Same configuration parameters (division_rate, neoplasm_k, instability deltas)
+     * - INHERITED genomic_instability from the parent (propagates mutations)
      */
     std::unique_ptr<AgenticCell> AgenticCell::clone() const {
         // Create a new random noise source with a random seed for diversity
@@ -381,10 +421,24 @@ namespace domain {
             low_delta_instability_,
             high_delta_instability_,
             division_rate_,
+            apoptosis_instability_threshold_,
             logger_
         );
 
-        logger_->logCell("[Clone] Created daughter cell from parent [" + std::to_string(cell_id_) + "] with new seed=" + std::to_string(new_seed));
+        // INHERIT genomic instability from parent to daughter
+        // This propagates accumulated mutations to the next generation
+        daughter->genomic_instability_ = genomic_instability_;
+
+        // INHERIT immortality: if parent evaded apoptosis, daughter is also immortal
+        daughter->has_evaded_apoptosis_ = has_evaded_apoptosis_;
+
+        logger_->logCell("[Clone] Created daughter cell from parent [" + std::to_string(cell_id_)
+                      + "] with new seed=" + std::to_string(new_seed)
+                      + " | neoplasm_k=" + std::to_string(neoplasm_k_.value())
+                      + " | genomic_instability=" + std::to_string(genomic_instability_)
+                      + " | BRCA1=" + getBRCA1()
+                      + " | TP53=" + getTP53()
+                      + (has_evaded_apoptosis_ ? " | [IMMORTAL]" : ""));
 
         return daughter;
     }
@@ -395,12 +449,30 @@ namespace domain {
      * in the next phase (since alive() checks if BRCA1 is enabled).
      */
     void AgenticCell::attemptApoptosis() {
-        logger_->logCell("[Apoptosis] Cell [" + std::to_string(cell_id_) + "] received apoptosis signal and is undergoing programmed cell death");
+        logger_->logCell("[Apoptosis] Cell [" + std::to_string(cell_id_) + "] received apoptosis signal");
+
+        // Apoptosis is only effective if genomic instability is below threshold
+        if (genomic_instability_ > apoptosis_instability_threshold_) {
+            logger_->logCell("[Apoptosis] Cell [" + std::to_string(cell_id_) + "] IGNORED apoptosis signal (genomic_instability="
+                          + std::to_string(genomic_instability_) + " > " + std::to_string(apoptosis_instability_threshold_) + ")");
+            std::cout << "[Apoptosis] Cell [" << cell_id_ << "] IGNORED apoptosis signal (genomic_instability="
+                      << genomic_instability_ << " > " << apoptosis_instability_threshold_ << ")\n";
+
+            // Mark that this cell has evaded apoptosis - it becomes immortal
+            has_evaded_apoptosis_ = true;
+            logger_->logCell("[Apoptosis] Cell [" + std::to_string(cell_id_) + "] is now IMMORTAL (cannot die from apoptosis or BRCA1 loss)");
+            return;
+        }
+
+        logger_->logCell("[Apoptosis] Cell [" + std::to_string(cell_id_) + "] ACCEPTED apoptosis signal (genomic_instability="
+                      + std::to_string(genomic_instability_) + " <= " + std::to_string(apoptosis_instability_threshold_) + ")");
+        std::cout << "[Apoptosis] Cell [" << cell_id_ << "] ACCEPTED apoptosis signal (genomic_instability="
+                  << genomic_instability_ << " <= " << apoptosis_instability_threshold_ << ")\n";
 
         // Disable BRCA1 to trigger cell death
         genome_.mutate("BRCA1");
 
-        // Optionally throw CellDeathException to immediately stop the current cycle
+        // Throw to immediately stop the current cycle
         throw CellDeathException("apoptosis@phase2");
     }
 

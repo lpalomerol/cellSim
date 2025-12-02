@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
         auto noise = std::make_unique<adapters::RandomNoise>(cell_seed);
 
         // Construir la célula mediante la factoría (inyecta noise y genome)
-        auto cell = domain::cell_factory::createAgenticCell(std::move(noise), std::move(genome), 0.02, 0.01, 0.02, division_rate, logger);
+        auto cell = domain::cell_factory::createAgenticCell(std::move(noise), std::move(genome), 0.02, 0.01, 0.02, division_rate, 10.0, logger);
         tissue.addCell(std::move(cell));
     }
 
