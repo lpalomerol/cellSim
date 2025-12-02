@@ -14,21 +14,21 @@ public:
     explicit Genome(std::unordered_map<std::string, Gene> genes = {}, ports::ILoggerPtr logger = nullptr);
 
     // ILoggeable implementation
-    std::string getLogCategory() const override { return "GENOME"; }
+    [[nodiscard]] std::string getLogCategory() const override { return "GENOME"; }
 
     // Check whether a gene with the given name exists
-    bool hasGene(const std::string& name) const;
+    [[nodiscard]] bool hasGene(const std::string& name) const;
 
     // Return const pointer to the gene; nullptr if not found
-    const Gene* getGene(const std::string& name) const;
+    [[nodiscard]] const Gene* getGene(const std::string& name) const;
 
     // Access the full map
-    const std::unordered_map<std::string, Gene>& genes() const;
+    [[nodiscard]] const std::unordered_map<std::string, Gene>& genes() const;
 
     // Factory: returns a default genome (TP53 and BRCA1 with standard states)
     static Genome makeDefaultGenome();
 
-    // Return a deep copy of the genome
+    // Return a shallow copy of the genome (copies genes but shares logger reference)
     Genome clone() const;
 
     // Inject a noise source to every gene in the genome
@@ -47,7 +47,7 @@ public:
     void mutate(const std::string& name);
 
     // Return true if TP53 indicates instability (TP53 == +/- or -/-)
-    bool isUnstable() const;
+    [[nodiscard]] bool isUnstable() const;
 
 private:
     std::unordered_map<std::string, Gene> genes_;

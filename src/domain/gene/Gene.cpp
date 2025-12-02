@@ -42,43 +42,15 @@ namespace domain {
         return statuses[static_cast<int>(state_)];
     }
 
-    std::string Gene::details() const {
-        return details(true);
-    }
-
-    std::string Gene::details(bool unstable) const {
-        return name_ + " [" + status() + "] p(mut)=" + std::to_string(get_mutation_threshold(unstable));
-    }
-
-    void Gene::live() {
-        live(true);
-    }
-
-    void Gene::live(bool apply_instability) {
-        assert(noise_ != nullptr);
-        double threshold = get_mutation_threshold(apply_instability);
-        double sample = noise_->next().u01;
-        bool should_mutate = sample < threshold;
-
-        logger_->logGenome("[Gene::live] Gene " + name_ + (should_mutate ? " mutating" : " not mutating") +
-            " (sample=" + std::to_string(sample) + " " + (should_mutate ? "<" : ">=") + " threshold=" + std::to_string(threshold) + ")");
-
-        if (should_mutate) {
-            mutate();
-        }
+    std::string Gene::details(bool apply_instability) const {
+        return name_ + " [" + status() + "] p(mut)=" + std::to_string(calculateMutationThreshold(apply_instability, 1.0));
     }
 
     void Gene::live(bool apply_instability, double genomic_instability) {
         assert(genomic_instability > 0.0);
         assert(noise_ != nullptr);
 
-        domain::shared::Threshold t = mutation_threshold_;
-        if (apply_instability) {
-            t += mutation_instability_k_;
-        }
-        t *= genomic_instability;
-
-        double threshold = t.value();
+        double threshold = calculateMutationThreshold(apply_instability, genomic_instability);
         double sample = noise_->next().u01;
         bool should_mutate = sample < threshold;
 
@@ -88,6 +60,15 @@ namespace domain {
         if (should_mutate) {
             mutate();
         }
+    }
+
+    double Gene::calculateMutationThreshold(bool apply_instability, double genomic_instability) const {
+        domain::shared::Threshold t = mutation_threshold_;
+        if (apply_instability) {
+            t += mutation_instability_k_;
+        }
+        t *= genomic_instability;
+        return t.value();
     }
 
     void Gene::setNoiseSource(INoiseSource* noise) {
@@ -99,12 +80,4 @@ namespace domain {
         state_ = s;
     }
 
-
-    double Gene::get_mutation_threshold(bool apply_instability) const {
-        domain::shared::Threshold t = mutation_threshold_;
-        if (apply_instability) {
-            t += mutation_instability_k_;
-        }
-        return t.value();
-    }
 }
