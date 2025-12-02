@@ -27,9 +27,9 @@ int main() {
     std::unique_ptr<domain::INoiseSource> noise;
     if (config.use_random_noise) {
         std::cout << "Usando ruido aleatorio: RandomNoise(seed=" << config.seed << ")" << std::endl;
-        noise = std::make_unique<adapters::RandomNoise>(static_cast<unsigned>(config.seed));
+        noise = std::make_unique<domain::adapters::RandomNoise>(static_cast<unsigned>(config.seed));
     } else {
-        noise = std::make_unique<adapters::FixedNoise>(domain::CellNoise{1.0});
+        noise = std::make_unique<domain::adapters::FixedNoise>(domain::CellNoise{1.0});
         std::cout << "Usando ruido fijo: FixedNoise(u01=1.0)" << std::endl;
     }
 

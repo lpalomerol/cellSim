@@ -47,10 +47,10 @@ int main(int argc, char* argv[]) {
     std::unique_ptr<domain::INoiseSource> noise;
     if (config.use_random_noise) {
         std::cout << "Ruido: RandomNoise (seed=" << config.seed << ")" << std::endl;
-        noise = std::make_unique<adapters::RandomNoise>(static_cast<unsigned>(config.seed));
+        noise = std::make_unique<domain::adapters::RandomNoise>(static_cast<unsigned>(config.seed));
     } else {
         std::cout << "Ruido: FixedNoise(1.0)" << std::endl;
-        noise = std::make_unique<adapters::FixedNoise>(domain::CellNoise{1.0});
+        noise = std::make_unique<domain::adapters::FixedNoise>(domain::CellNoise{1.0});
     }
 
     // Crear tejido

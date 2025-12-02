@@ -23,7 +23,7 @@ protected:
 
 TEST_F(NeoplasticImmortalityTest, NeoplasticCellBecomesImmortalAfterEvadingApoptosis) {
     // Create a neoplastic cell with high genomic instability that will evade apoptosis
-    auto fixed_noise = std::make_unique<::adapters::FixedNoise>(CellNoise{0.01});
+    auto fixed_noise = std::make_unique<domain::adapters::FixedNoise>(CellNoise{0.01});
 
     std::unordered_map<std::string, double> thresholds = {
         {"BRCA1", 0.001},
@@ -108,7 +108,7 @@ TEST_F(NeoplasticImmortalityTest, NeoplasticCellBecomesImmortalAfterEvadingApopt
 
 TEST_F(NeoplasticImmortalityTest, ImmortalCellsPropagatImmunityToOffspring) {
     // Create a neoplastic cell that will evade apoptosis and become immortal
-    auto fixed_noise = std::make_unique<::adapters::FixedNoise>(CellNoise{0.01});
+    auto fixed_noise = std::make_unique<domain::adapters::FixedNoise>(CellNoise{0.01});
 
     std::unordered_map<std::string, double> thresholds = {
         {"BRCA1", 0.001},

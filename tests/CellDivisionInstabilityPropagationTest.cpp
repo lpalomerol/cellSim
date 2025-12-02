@@ -22,7 +22,7 @@ protected:
 
 TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsParentGenomicInstability) {
     // Create a parent cell with high genomic instability
-    auto fixed_noise = std::make_unique<::adapters::FixedNoise>(CellNoise{0.01});
+    auto fixed_noise = std::make_unique<domain::adapters::FixedNoise>(CellNoise{0.01});
 
     std::unordered_map<std::string, double> thresholds = {
         {"BRCA1", 0.001},
@@ -70,7 +70,7 @@ TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsParentGenomicInst
 TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsAccumulatedInstability) {
     // More realistic: accumulate instability in parent, then divide
 
-    auto fixed_noise = std::make_unique<::adapters::FixedNoise>(CellNoise{0.01});
+    auto fixed_noise = std::make_unique<domain::adapters::FixedNoise>(CellNoise{0.01});
 
     std::unordered_map<std::string, double> thresholds = {
         {"BRCA1", 0.001},

@@ -4,39 +4,37 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include "../../domain/cell/CellState.h"
-#include "../cell/OncoState.h"
-#include "IGeneticProfile.h"
 
 namespace domain {
     struct ISignal; // forward
 
-    struct ICell : public IGeneticProfile {
+    struct ICell {
         virtual ~ICell() = default;
-        virtual void live() = 0;
-        virtual bool alive() const = 0 ;
-        // Indica si la célula presenta neoplasia (estado neoplásico)
-        virtual bool isNeoplastic() const = 0;
 
-        // Imprime detalles de la célula (por defecto no hace nada). Se marca const
-        // porque no debería mutar el estado al mostrar información.
+        // === Lifecycle ===
+        virtual void live() = 0;
+        [[nodiscard]] virtual bool alive() const = 0;
+
+        // === Genetic Profile (consolidated from IGeneticProfile) ===
+        [[nodiscard]] virtual std::string getBRCA1Status() const = 0;
+        [[nodiscard]] virtual std::string getTP53Status() const = 0;
+
+        // === Neoplasia State ===
+        [[nodiscard]] virtual bool isNeoplastic() const = 0;
+
+        // === Information ===
+        // Imprime detalles de la célula (por defecto no hace nada)
         virtual void details() const {}
 
-        // Nueva: permitir que la simulación o tests soliciten una mutación sobre
-        // un gen del genoma interno de la célula.
+        // === Mutation ===
         virtual void mutateGene(const std::string& name) = 0;
 
-        // Identificador estable de la célula. Por defecto no hace nada para mantener
-        // compatibilidad con implementaciones existentes.
+        // === Identity ===
         virtual void setId(std::uint64_t /*id*/) {}
-        virtual std::uint64_t id() const { return static_cast<std::uint64_t>(-1); }
+        [[nodiscard]] virtual std::uint64_t id() const { return static_cast<std::uint64_t>(-1); }
 
-        // Nuevo: inyectar un emisor de señales para que la célula pueda enviar
-        // eventos al Tissue. Por defecto es un no-op para compatibilidad.
+        // === Signaling ===
         virtual void setSignalEmitter(std::function<void(std::unique_ptr<ISignal>)> /*emitter*/) {}
-
-        // Nuevo: recibir un mensaje dirigido (o broadcast). La célula validará
-        // si el mensaje es para ella comparando targetIds.
         virtual void receiveMessage(std::unique_ptr<ISignal> /*signal*/) {}
 
     };

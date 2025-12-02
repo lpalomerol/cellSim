@@ -34,7 +34,7 @@ TEST_F(ApoptosisNeoplasticDeathTest, NeoplasticCellDiesWhenGenomicInstabilityBel
     // Setup: Create a cell with very high neoplasm probability (0.9 to force mutation quickly)
     // Use FixedNoise with 0.01 to avoid gene mutations, but neoplasm can trigger
 
-    auto fixed_noise = std::make_unique<::adapters::FixedNoise>(CellNoise{0.01});
+    auto fixed_noise = std::make_unique<domain::adapters::FixedNoise>(CellNoise{0.01});
 
     // Create genome with LOW thresholds so mutations are unlikely
     // With FixedNoise(0.01), we need threshold < 0.01 to avoid mutations (sample < threshold rule)
@@ -142,7 +142,7 @@ TEST_F(ApoptosisNeoplasticSurvivalTest, NeoplasticCellSurvivesWhenGenomicInstabi
     // Setup: Create a cell that will accumulate high genomic instability
     // We'll use FixedNoise with 0.01 to avoid initial gene mutations
 
-    auto fixed_noise = std::make_unique<::adapters::FixedNoise>(CellNoise{0.01});
+    auto fixed_noise = std::make_unique<domain::adapters::FixedNoise>(CellNoise{0.01});
 
     // Create genome where genes won't mutate with FixedNoise(0.01)
     // With FixedNoise(0.01), we need threshold < 0.01 to avoid mutations

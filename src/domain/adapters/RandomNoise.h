@@ -1,15 +1,15 @@
 #pragma once
 #include <random>
-#include "../../domain/ports/INoiseSource.h"
+#include "../ports/INoiseSource.h"
 
-namespace adapters {
+namespace domain::adapters {
 
-    class RandomNoise : public domain::INoiseSource {
+    class RandomNoise : public INoiseSource {
     public:
         explicit RandomNoise(unsigned seed = 42)
             : rng_(seed), U01_(0.0, 1.0), seed_(seed) {}
 
-        domain::CellNoise next() override {
+        CellNoise next() override {
             return {U01_(rng_)};
         }
 

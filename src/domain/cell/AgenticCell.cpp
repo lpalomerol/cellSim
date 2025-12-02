@@ -405,7 +405,7 @@ namespace domain {
         // Create a new random noise source with a random seed for diversity
         // Use a seed derived from current seed + cell age for some variability
         unsigned new_seed = static_cast<unsigned>(seed_ + age_ + 1);
-        auto new_noise = std::make_unique<::adapters::RandomNoise>(new_seed);
+        auto new_noise = std::make_unique<domain::adapters::RandomNoise>(new_seed);
 
         // Clone the genome
         Genome cloned_genome = genome_.clone();

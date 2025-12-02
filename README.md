@@ -10,7 +10,7 @@ Simulador de evolución celular y neoplasia. Permite simular múltiples células
   - `application/`
     - `simulation/Simulations.h` y `.cpp`: lógica de simulaciones y configuración global.
   - `domain/`
-    - `cell/`: lógica de células, fábrica de células (`CellFactory`, `AgenticCell`, `SimpleCell`).
+    - `cell/`: lógica de células, fábrica de células (`CellFactory`, `AgenticCell`).
     - `gene/`: lógica de genes (`Gene`), `Genome` y mutaciones.
     - `adapters/`: adaptadores como los generadores de ruido (`RandomNoise`, `FixedNoise`).
 - `app/`: puntos de entrada (`main.cpp`, `main_interactive.cpp`).
