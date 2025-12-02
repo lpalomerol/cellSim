@@ -43,6 +43,8 @@ add_executable(cellSim app/main.cpp
 
 # Ejecutable interactivo: reutiliza las mismas fuentes para enlazar correctamente
 add_executable(interactive app/main_interactive.cpp
+        src/application/simulation/Simulation.cpp
+        src/application/simulation/Simulation.h
         src/application/simulation/InteractiveSimulation.cpp
         src/application/simulation/InteractiveSimulation.h
         ${COMMON_SOURCES}
@@ -51,6 +53,8 @@ add_executable(interactive app/main_interactive.cpp
 
 # Ejecutable para evaluar evolución de una única célula
 add_executable(single_cell_evolution app/single_cell_evolution.cpp
+        src/application/simulation/Simulation.cpp
+        src/application/simulation/Simulation.h
         src/application/simulation/InteractiveSimulation.cpp
         src/application/simulation/InteractiveSimulation.h
         ${COMMON_SOURCES}

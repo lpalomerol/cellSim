@@ -2,31 +2,26 @@
 
 #pragma once
 
-#include "ISignal.h"
+#include "BaseSignal.h"
 #include <string>
 #include <vector>
 
 namespace domain {
 
-    class NeoplasmSignal : public ISignal {
+    class NeoplasmSignal : public BaseSignal {
     public:
-        // Construct a NeoplasmSignal with optional target IDs
-        // - Empty targets: broadcast to all
-        // - Non-empty targets: directed to specific cells
+        /**
+         * Construct a NeoplasmSignal.
+         * @param source_id ID del origen
+         * @param message Mensaje (default "neoplasm")
+         * @param targets IDs de destino (vacío = broadcast)
+         */
         explicit NeoplasmSignal(std::uint64_t source_id,
-                               std::string msg = "neoplasm",
+                               std::string message = "neoplasm",
                                std::vector<std::uint64_t> targets = {})
-            : src_(source_id), msg_(std::move(msg)), targets_(std::move(targets)) {}
+            : BaseSignal(source_id, std::move(message), std::move(targets)) {}
 
         Type type() const noexcept override { return Type::Neoplasm; }
-        std::uint64_t sourceId() const noexcept override { return src_; }
-        const std::string& message() const noexcept override { return msg_; }
-        const std::vector<std::uint64_t>& targetIds() const noexcept override { return targets_; }
-
-    private:
-        std::uint64_t src_ = static_cast<std::uint64_t>(-1);
-        std::string msg_;
-        std::vector<std::uint64_t> targets_;
     };
 
 } // namespace domain

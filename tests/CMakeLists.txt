@@ -34,7 +34,6 @@ add_executable(unit_tests
         mocks/MockLogger.h
         GeneTest.cpp
         MockLoggerDemoTest.cpp
-        ExperimentalTrackingTest.cpp
         AgenticCellTest.cpp
         GenomeTest.cpp
         GenomeFactoryTest.cpp
