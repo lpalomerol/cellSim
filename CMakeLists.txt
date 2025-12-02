@@ -29,7 +29,9 @@ set(COMMON_SOURCES
         src/domain/gene/Genome.cpp
         src/domain/gene/GenomeFactory.cpp
         src/domain/gene/Genome.h
-        src/domain/tissue/Tissue.cpp)
+        src/domain/tissue/Tissue.cpp
+        src/application/config/SimulationConfig.cpp
+        src/application/config/SimulationConfig.h)
 
 add_executable(cellSim app/main.cpp
         src/application/simulation/Simulation.cpp
@@ -46,11 +48,6 @@ add_executable(interactive app/main_interactive.cpp
         ${COMMON_SOURCES}
         src/domain/tissue/Tissue.cpp)
 
-# Ejecutable que ejecuta una población de células aleatorias y avanza año a año
-add_executable(random_cells app/main_random_cells.cpp
-        ${COMMON_SOURCES}
-        app/main_random_cells.cpp
-        src/domain/tissue/Tissue.cpp)
 
 # Ejecutable para evaluar evolución de una única célula
 add_executable(single_cell_evolution app/single_cell_evolution.cpp

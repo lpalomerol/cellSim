@@ -1,103 +1,77 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <unordered_map>
 #include <memory>
 #include <iomanip>
 #include <limits>
+#include "../src/application/config/SimulationConfig.h"
 #include "../src/domain/cell/CellFactory.h"
 #include "../src/domain/gene/GenomeFactory.h"
 #include "../src/domain/adapters/FixedNoise.h"
 #include "../src/domain/adapters/RandomNoise.h"
-#include "../src/domain/adapters/Logger.h"
 #include "../src/domain/tissue/Tissue.h"
 
 /**
  * single_cell_evolution.cpp
  *
- * Programa para evaluar la evolución de una única célula en un tejido.
- *
- * Simula el comportamiento de una célula única a lo largo del tiempo y registra:
- * - Estado de mutaciones (BRCA1, TP53, etc.)
- * - Identificación de neoplasia
- * - Evolución del genoma
- * - Cambios en inestabilidad cromosómica
+ * Simula la evolución de una única célula en un tejido.
+ * Registra: estado de mutaciones, neoplasia, evolución cromosómica, instabilidad.
  */
 
 int main(int argc, char* argv[]) {
     std::cout << "=== Single Cell Evolution Simulator ===" << std::endl;
     std::cout << "Simulating evolution of a single cell in a tissue\n" << std::endl;
 
-    // Parámetros de simulación
-    int max_t = 100;                      // Años de simulación
-    double neoplasm_k = 0.05;            // Probabilidad base de neoplasia
-    bool use_random_noise = true;         // true = RandomNoise, false = FixedNoise
-    unsigned seed = 42u;                  // Semilla para reproducibilidad
+    // Cargar configuración
+    auto config = application::SimulationConfig::loadSingleCell(/* verbose = */ true);
 
-    // Umbrales y parámetros de inestabilidad por gen
-    std::unordered_map<std::string, double> gene_thresholds{
-        {"BRCA1", 0.01},
-        {"TP53", 0.25}
-    };
-    std::unordered_map<std::string, double> gene_instability_k{
-        {"BRCA1", 0.01},
-        {"TP53", 0.5}
-    };
+    std::cout << "\nParámetros de simulación:" << std::endl;
+    std::cout << "  - Años simulados: " << config.max_t << std::endl;
+    std::cout << "  - Células: 1 (única)" << std::endl;
+    std::cout << "  - Probabilidad base neoplasia (neoplasm_k): " << config.neoplasm_k << std::endl;
+    std::cout << "\nGenes y umbrales:" << std::endl;
+    for (const auto& [gene, threshold] : config.gene_thresholds) {
+        std::cout << "  - " << gene << ": threshold=" << threshold
+                  << ", instability_k=" << config.gene_instability_k.at(gene) << std::endl;
+    }
+    std::cout << "\n" << std::string(50, '-') << std::endl;
 
-    // Crear logger con trazas verbose
-    auto logger = std::make_shared<domain::adapters::Logger>();
-    logger->setVerbose(true);  // Cambiar a true si quieres detalles en consola
-
-    // Crear genoma con parámetros específicos
+    // Crear genoma
     domain::Genome genome = domain::genome_factory::makeDefaultGenome(
-        gene_thresholds,
-        gene_instability_k,
-        logger
+        config.gene_thresholds,
+        config.gene_instability_k,
+        config.logger
     );
 
-    // Crear fuente de ruido
+    // Crear ruido
     std::unique_ptr<domain::INoiseSource> noise;
-    if (use_random_noise) {
-        std::cout << "Ruido: RandomNoise (seed=" << seed << ")" << std::endl;
-        noise = std::make_unique<adapters::RandomNoise>(seed);
+    if (config.use_random_noise) {
+        std::cout << "Ruido: RandomNoise (seed=" << config.seed << ")" << std::endl;
+        noise = std::make_unique<adapters::RandomNoise>(static_cast<unsigned>(config.seed));
     } else {
         std::cout << "Ruido: FixedNoise(1.0)" << std::endl;
         noise = std::make_unique<adapters::FixedNoise>(domain::CellNoise{1.0});
     }
 
+    // Crear tejido
+    auto tissue = std::make_shared<domain::Tissue>(config.logger);
+    tissue->setId(1);
 
-    // Crear un tejido para contener la célula
-    auto tissue = std::make_shared<domain::Tissue>(logger);
-    tissue->setId(1);  // Asignar ID al tejido
-
-    // Crear una única célula
+    // Crear célula única
     auto single_cell = domain::cell_factory::createAgenticCell(
         std::move(noise),
         std::move(genome),
-        neoplasm_k,
-        0.0001,    // low_delta_instability
-        0.0002,    // high_detal_instability
-        0.1,     // division_rate
-        0.01,      // apoptosis_instablity_threshold
-        logger
+        config.neoplasm_k,
+        0.0001,
+        0.0002,
+        config.division_rate,
+        config.apoptosis_threshold,
+        config.logger
     );
 
-    // Agregar la célula al tejido
     tissue->addCell(std::move(single_cell));
 
-
-    std::cout << "\nParámetros de simulación:" << std::endl;
-    std::cout << "  - Años simulados: " << max_t << std::endl;
-    std::cout << "  - Células: 1 (única)" << std::endl;
-    std::cout << "  - Probabilidad base neoplasia (neoplasm_k): " << neoplasm_k << std::endl;
-    std::cout << "\nGenes y umbrales:" << std::endl;
-    for (const auto& [gene, threshold] : gene_thresholds) {
-        std::cout << "  - " << gene << ": threshold=" << threshold
-                  << ", instability_k=" << gene_instability_k.at(gene) << std::endl;
-    }
-    std::cout << "\n" << std::string(50, '-') << std::endl;
-
-    // Abrir fichero de salida para registrar evolución
+    // Abrir fichero de salida
     std::ofstream outfile("single_cell_evolution_log.txt");
     if (!outfile.is_open()) {
         std::cerr << "Error: no se pudo abrir fichero de salida" << std::endl;
@@ -113,7 +87,7 @@ int main(int argc, char* argv[]) {
     int neoplastic_transitions = 0;
     int last_neoplastic_count = 0;
 
-    while (year < max_t) {
+    while (year < config.max_t) {
         // Ejecutar un ciclo de vida del tejido (que contiene la célula)
         tissue->live();
 
@@ -132,7 +106,7 @@ int main(int argc, char* argv[]) {
         }
 
         // Imprimir estado actual en consola cada 10 años
-        if (year % 10 == 0 || year == max_t - 1) {
+        if (year % 10 == 0 || year == config.max_t - 1) {
             std::cout << "Year " << std::setw(3) << year
                       << " | Neoplastic cells: " << current_neoplastic
                       << " | Total cells: " << tissue->size() << std::endl;
@@ -148,7 +122,7 @@ int main(int argc, char* argv[]) {
         year++;
 
         // Pausa interactiva: presionar Enter para continuar
-        if (year < max_t) {
+        if (year < config.max_t) {
             std::cout << "\n[Presiona ENTER para ver el siguiente año...]";
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         }
