@@ -51,71 +51,96 @@ Transición:
     ┌──────────────┐          ┌──────────────┐          ┌──────────────┐
     │              │ ────────→ │              │ ────────→ │              │
     │     +/+      │   μ₁      │     +/-      │   μ₂     │     -/-      │
-    │  (protegido) │ ────────→ │ (reducido)   │ ────────→ │ (vulnerable) │
-    │              │           │              │           │              │
+    │✅ PROTEGIDO  │ ────────→ │✅ PROTEGIDO  │ ────────→ │❌ VULNERABLE │
+    │ inest=base   │           │ inest=base   │           │ inest=base   │
+    │              │           │     +low     │           │     +high    │
     └──────────────┘           └──────────────┘           └──────────────┘
-     (INICIAL)                                         (NEOPLASIAS ↑)
+     (INICIAL)                (degradación leve)       (degradación severa)
+
 
 Matemática:
 ──────────
 P(+/+ → +/-) = μ₁ = threshold_TP53 × (1 + k_TP53) × genomic_instability
-P(+/- → -/-) = μ₂ = (threshold_TP53 + Δk) × (1 + k_TP53) × genomic_instability
+P(+/- → -/-) = μ₂ = threshold_TP53 × (1 + k_TP53) × genomic_instability
 
-Nota: Δk depende del escenario (normalmente pequeño)
+Inestabilidad genómica progresiva:
+  • TP53 +/+ → inestabilidad = base
+  • TP53 +/- → inestabilidad += low_delta_instability (degradación moderada)
+  • TP53 -/- → inestabilidad += high_delta_instability (degradación severa)
 
-Estados:
-  • +/+ : Protegido (TP53 totalmente funcional)
-  • +/- : Reducido (TP53 parcialmente funcional, riesgo moderado)
-  • -/- : Vulnerable (TP53 deficiente, alto riesgo de neoplasia)
+Estados de Protección contra Neoplasia:
+  • +/+ : ✅ PROTEGIDO (TP53 totalmente funcional)
+  • +/- : ✅ PROTEGIDO (TP53 parcialmente funcional, pero sigue siendo funcional)
+  • -/- : ❌ NO PROTEGIDO (TP53 deficiente, vulnerable a transformación neoplástica)
 
 Consecuencias:
-  • TP53 +/+ → Rechaza transformación neoplástica
-  • TP53 +/- → Riesgo moderado de neoplasia (threshold elevado)
-  • TP53 -/- → Vulnerable a neoplasia (threshold bajo)
+  • TP53 +/+ → Rechaza transformación neoplástica, inestabilidad baja
+  • TP53 +/- → Rechaza transformación neoplástica, pero INESTABILIDAD AUMENTA
+  • TP53 -/- → PERMITE transformación neoplástica, inestabilidad muy elevada
 ```
 
 ---
 
-### 🔗 FSM Combinado: BRCA1 + TP53
+### 🔗 FSM Combinado: BRCA1 + TP53 (Protección vs Inestabilidad)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│              FSM COMBINADO - 2D STATE SPACE                      │
+│         FSM COMBINADO - 2D STATE SPACE (PROTECCIÓN)             │
 └─────────────────────────────────────────────────────────────────┘
 
                               TP53 STATE
-                         +/+  │  +/-  │  -/-
-                    ─────┼────┼────┼────┼─────
-                         │    │    │    │
-BRCA1    +/-    │ VIVO   │ VIVO  │ VIVO
-STATE           │ Seg.   │ Riesgo│ Riesgo
-                │        │ Mod.  │ Alto
-                ├────────┼────────┼────────
-                │        │        │
-          -/-   │ MUERTE │ MUERTE │ MUERTE
-                │ (Fase1)│ (Fase1)│ (Fase1)
-                │        │        │
+                         +/+     │     +/-      │     -/-
+                    ────────┼──────────┼──────────┼─────────
+                           │          │          │
+BRCA1    +/-    │ ✅ VIVO  │ ✅ VIVO  │ ❌ VIVO
+STATE           │ Seguro   │ Protegido│ Vulnerable
+                │ inest=   │ inest=   │ inest=
+                │ base     │ base+low │ base+high
+                ├──────────┼──────────┼──────────
+                │          │          │
+          -/-   │ ✗ MUERTE │ ✗ MUERTE │ ✗ MUERTE
+                │ (Fase1)  │ (Fase1)  │ (Fase1)
+                │          │          │
 
 
-Tabla de Transiciones (por ciclo):
-───────────────────────────────────
+Matriz de Protección contra Neoplasia:
+─────────────────────────────────────
 
-Estado Inicial          Evento Fase 3               Estado Final    Destino
-─────────────────────────────────────────────────────────────────────────────
-BRCA1(+/-) + TP53(+/+)  • BRCA1 mutación (μ₁)     → BRCA1(-/-)    → MUERTE
-                        • TP53 mutación (μ₁)      → TP53(+/-)     → VIVO*
-                        • Ambas (μ₁×μ₂)           → BRCA1(-/-) TP53(+/-) → MUERTE
-
-BRCA1(+/-) + TP53(+/-)  • BRCA1 mutación (μ₁)     → BRCA1(-/-)    → MUERTE
-                        • TP53 mutación (μ₂)      → TP53(-/-)     → VIVO (Riesgo!)
-                        • Ambas (μ₁×μ₂)           → BRCA1(-/-) TP53(-/-) → MUERTE
-
-BRCA1(+/-) + TP53(-/-)  • BRCA1 mutación (μ₁)     → BRCA1(-/-)    → MUERTE
-                        • TP53 sin cambio         → Permanece     → VIVO (Vulnerable)
-                        • Nada                    → Permanece     → VIVO (Vulnerable)
+BRCA1\TP53       +/+           +/-           -/-
+────────────────────────────────────────────────────
++/-      ✅ PROTEGIDO  ✅ PROTEGIDO  ❌ VULNERABLE
+         bajo riesgo   riesgo mod     alto riesgo
+         inest=base    inest=base+low inest=base+high
+         
+-/-      ✗ MUERTE      ✗ MUERTE      ✗ MUERTE
+         (Fase 1)      (Fase 1)      (Fase 1)
 
 
-* VIVO: Célula sobrevive Fase 1 (BRCA1 aún +/-)
+Tabla de Transiciones (por ciclo) - ESCENARIO DEFAULT:
+────────────────────────────────────────────────────────
+
+De Estado          Evento              A Estado           P(trans)    Protección  Resultado
+──────────────────────────────────────────────────────────────────────────────────────────────
+(+/-, +/+)   • BRCA1 mutación      → (-/-, +/+)        0.0099      ✅ → ❌     ✗ MUERTE (Fase 1)
+             • TP53 mutación       → (+/-, +/-)        0.0100      ✅ → ✅     VIVO (degradado)
+             • Ambas mutaciones    → (-/-, +/-)        0.0001      ✅ → ✅     ✗ MUERTE (Fase 1)
+             • Sin mutación        → (+/-, +/+)        0.9801      ✅ → ✅     VIVO (seguro)
+
+(+/-, +/-)   • BRCA1 mutación      → (-/-, +/-)        0.0099      ✅ → ✅     ✗ MUERTE (Fase 1)
+             • TP53 mutación       → (+/-, -/-)        0.0100      ✅ → ❌     VIVO (vulnerable)
+             • Ambas mutaciones    → (-/-, -/-)        0.0001      ✅ → ❌     ✗ MUERTE (Fase 1)
+             • Sin mutación        → (+/-, +/-)        0.9801      ✅ → ✅     VIVO (degradado)
+
+(+/-, -/-)   • BRCA1 mutación      → (-/-, -/-)        0.0100      ❌ → ❌     ✗ MUERTE (Fase 1)
+             • Sin cambio          → (+/-, -/-)        0.9900      ❌ → ❌     VIVO (vulnerable)
+
+
+PUNTOS CLAVE:
+─────────────
+1. ✅ PROTECCIÓN: status ≠ "-/-" (tanto +/+ como +/-)
+2. 📈 INESTABILIDAD: Aumenta con TP53 +/-, aumenta más con TP53 -/-
+3. ❌ VULNERABLE: Solo TP53 -/- permite transformación neoplástica
+4. 🔄 CICLO: Por cada ciclo, ~1% de probabilidad de mutación de cada gen
 ```
 
 ---
@@ -196,15 +221,16 @@ MUERTE          CONTINÚA              │
     [División?]                    [Transformación?]
    P(div)=x%                      neoplasm_k > threshold
         │                                     │
-   ┌────┴──────────┐                   ┌──────┴──────┐
-   │               │                   │             │
-   ↓               ↓                   ↓             ↓
-  SÍ              NO              [TP53=+/+]   [TP53=-/-]
-   │               │                   │             │
-   ↓               ↓                   ↓             ↓
- CLONA         CONTINÚA         RECHAZA      TRANSFORMA
- HIJA           (sin div)        (muere)     (neoplástica)
-   │               │                   │             │
+   ┌────┴──────────┐                   ┌──────┴────────┐
+   │               │                   │               │
+   ↓               ↓                   ↓               ↓
+  SÍ              NO              TP53 ≠ -/-      TP53 = -/-
+   │               │            (protegido)     (no protegido)
+   ↓               ↓                   │               │
+ CLONA         CONTINÚA         RECHAZA          TRANSFORMA
+ HIJA           (sin div)     (protegido)      (neoplástica)
+   │               │           tanto +/+             │
+   │               │           como +/-)             │
    │               │                   │             ↓
    │               │                   │        EMITE SEÑAL
    │               │                   │        NeoplasmSignal
@@ -442,6 +468,14 @@ ESCENARIO HIGH_BRCA_APOPTOSIS (threshold_BRCA1=0.5, threshold_TP53=0.01, genomic
 - 🔵 **AZUL**: Células vivas normales
 - 🔴 **ROJO**: Células neoplásticas (transformadas)
 - ⚪ **GRIS**: Células muertas
+
+### Protección contra Neoplasia (CRÍTICO):
+- **TP53 +/+** → ✅ PROTEGIDO, inestabilidad base
+- **TP53 +/-** → ✅ PROTEGIDO (sigue siendo funcional), inestabilidad += low_delta
+- **TP53 -/-** → ❌ NO PROTEGIDO (vulnerable a transformación), inestabilidad += high_delta
+
+**Nota:** La "degradación progresiva" de TP53 +/- es por inestabilidad elevada, NO por pérdida de protección.
+La transformación neoplástica solo ocurre cuando TP53 = -/- (completamente deficiente).
 
 ### Probabilidades:
 - Todas las probabilidades de mutación se aplican **POR CICLO** (Fase 3)

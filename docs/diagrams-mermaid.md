@@ -54,29 +54,38 @@ stateDiagram-v2
     note right of PlusPlus
         Estado: +/+
         Homocigoto dominante
-        PROTEGIDO vs neoplasia
+        ✅ PROTEGIDO vs neoplasia
         TP53 totalmente funcional
+        inestabilidad = base
     end note
     
     note right of PlusMinus
         Estado: +/-
         Heterocigoto
-        Riesgo MODERADO
+        ✅ PROTEGIDO vs neoplasia
         TP53 parcialmente funcional
+        inestabilidad += low_delta
+        (degradación leve)
     end note
     
     note right of MinusMinus
         Estado: -/-
         Homocigoto recesivo
-        VULNERABLE vs neoplasia
+        ❌ NO PROTEGIDO vs neoplasia
         Sin protección TP53
+        inestabilidad += high_delta
+        (degradación severa)
     end note
 ```
 
 **Matemática:**
 - `P(+/+ → +/-) = μ₁ = threshold_TP53 × (1 + k_TP53) × genomic_instability`
 - `P(+/- → -/-) = μ₂ = threshold_TP53 × (1 + k_TP53) × genomic_instability`
-- **Reversible en población**: Las células TP53 +/+ pueden ser protegidas
+- **Protección contra neoplasia:** `status != "-/-"` → **PROTEGIDO** (tanto +/+ como +/-)
+- **Aumento de inestabilidad:** 
+  - TP53 `+/+` → inestabilidad base
+  - TP53 `+/-` → inestabilidad += `low_delta_instability`
+  - TP53 `-/-` → inestabilidad += `high_delta_instability`
 - **Escenario DEFAULT**: `μ₁ = μ₂ = 0.01` (1% por ciclo)
 
 ---
@@ -84,54 +93,67 @@ stateDiagram-v2
 ### 🔗 FSM Combinado: BRCA1 + TP53 (2D State Space)
 
 ```mermaid
-graph TB
-    subgraph Estados["ESPACIO DE ESTADOS 2D"]
-        S1["<b>BRCA1(+/-)</b><br/>TP53(+/+)<br/>━━━━━<br/>VIVO<br/>SEGURO"]
-        S2["<b>BRCA1(+/-)</b><br/>TP53(+/-)<br/>━━━━━<br/>VIVO<br/>RIESGO MODERADO"]
-        S3["<b>BRCA1(+/-)</b><br/>TP53(-/-)<br/>━━━━━<br/>VIVO<br/>RIESGO ALTO<br/>(Vulnerable neoplasia)"]
-        
-        D1["<b>BRCA1(-/-)</b><br/>TP53(+/+)<br/>━━━━━<br/>✗ MUERTE"]
-        D2["<b>BRCA1(-/-)</b><br/>TP53(+/-)<br/>━━━━━<br/>✗ MUERTE"]
-        D3["<b>BRCA1(-/-)</b><br/>TP53(-/-)<br/>━━━━━<br/>✗ MUERTE"]
-    end
+stateDiagram-v2
+    [*] --> S1
     
-    S1 -->|P(BRCA1 mut) = 0.01| D1
-    S1 -->|P(TP53 mut) = 0.01| S2
-    S1 -->|P(ambas) ≈ 0.0001| D2
-    S1 -->|P(sin mut) = 0.9801| S1
+    S1: BRCA1(+/-) + TP53(+/+)
+    S1: ✅ PROTEGIDO
+    S1: inestabilidad: base
+    S1: RIESGO: BAJO
     
-    S2 -->|P(BRCA1 mut) = 0.01| D2
-    S2 -->|P(TP53 mut) = 0.01| S3
-    S2 -->|P(ambas) ≈ 0.0001| D3
-    S2 -->|P(sin mut) = 0.9801| S2
+    S2: BRCA1(+/-) + TP53(+/-)
+    S2: ✅ PROTEGIDO
+    S2: inestabilidad: base+low
+    S2: RIESGO: MODERADO
     
-    S3 -->|P(BRCA1 mut) = 0.01| D3
-    S3 -->|P(sin mut) = 0.99| S3
+    S3: BRCA1(+/-) + TP53(-/-)
+    S3: ❌ NO PROTEGIDO
+    S3: inestabilidad: base+high
+    S3: RIESGO: ALTO
     
-    style S1 fill:#90EE90
-    style S2 fill:#FFD700
-    style S3 fill:#FF6347
-    style D1 fill:#808080
-    style D2 fill:#808080
-    style D3 fill:#808080
+    D1: ✗ MUERTE (Fase 1)
+    D1: BRCA1(-/-) + TP53(+/+)
+    
+    D2: ✗ MUERTE (Fase 1)
+    D2: BRCA1(-/-) + TP53(+/-)
+    
+    D3: ✗ MUERTE (Fase 1)
+    D3: BRCA1(-/-) + TP53(-/-)
+    
+    S1 --> D1: BRCA1 mut (1%)
+    S1 --> S2: TP53 mut (1%)
+    S1 --> D2: Ambas (0.01%)
+    S1 --> S1: Sin mut (98.01%)
+    
+    S2 --> D2: BRCA1 mut (1%)
+    S2 --> S3: TP53 mut (1%)
+    S2 --> D3: Ambas (0.01%)
+    S2 --> S2: Sin mut (98.01%)
+    
+    S3 --> D3: BRCA1 mut (1%)
+    S3 --> S3: Sin mut (99%)
+    
+    D1 --> [*]
+    D2 --> [*]
+    D3 --> [*]
 ```
 
 **Tabla de Transiciones (DEFAULT scenario):**
 
-| De estado | Evento | A estado | P(transición) | Resultado |
-|-----------|--------|----------|---------------|-----------|
-| (+/-,+/+) | BRCA1 mut | (-/-,+/+) | 0.0099 | ✗ MUERTE |
-| (+/-,+/+) | TP53 mut | (+/-,+/-) | 0.0100 | VIVO (riesgo moderado) |
-| (+/-,+/+) | Ambas | (-/-,+/-) | 0.0001 | ✗ MUERTE |
-| (+/-,+/+) | Sin mut | (+/-,+/+) | 0.9801 | VIVO (seguro) |
-| | | | | |
-| (+/-,+/-) | BRCA1 mut | (-/-,+/-) | 0.0099 | ✗ MUERTE |
-| (+/-,+/-) | TP53 mut | (+/-,-/-) | 0.0100 | VIVO (riesgo alto) |
-| (+/-,+/-) | Ambas | (-/-,-/-) | 0.0001 | ✗ MUERTE |
-| (+/-,+/-) | Sin mut | (+/-,+/-) | 0.9801 | VIVO (riesgo moderado) |
-| | | | | |
-| (+/-,-/-) | BRCA1 mut | (-/-,-/-) | 0.0100 | ✗ MUERTE |
-| (+/-,-/-) | Sin mut | (+/-,-/-) | 0.9900 | VIVO (riesgo alto) |
+| De estado | Evento | A estado | P(transición) | Protección | Inestabilidad | Resultado |
+|-----------|--------|----------|---------------|-----------|----------------|-----------|
+| (+/-,+/+) | BRCA1 mut | (-/-,+/+) | 0.0099 | ✅ | base | ✗ MUERTE (Fase 1) |
+| (+/-,+/+) | TP53 mut | (+/-,+/-) | 0.0100 | ✅ | base+low | VIVO (protegido, degradado) |
+| (+/-,+/+) | Ambas | (-/-,+/-) | 0.0001 | ✅ | base+low | ✗ MUERTE (Fase 1) |
+| (+/-,+/+) | Sin mut | (+/-,+/+) | 0.9801 | ✅ | base | VIVO (seguro) |
+| | | | | | | |
+| (+/-,+/-) | BRCA1 mut | (-/-,+/-) | 0.0099 | ✅ | base+low | ✗ MUERTE (Fase 1) |
+| (+/-,+/-) | TP53 mut | (+/-,-/-) | 0.0100 | ❌ | base+high | VIVO (vulnerable neoplasia) |
+| (+/-,+/-) | Ambas | (-/-,-/-) | 0.0001 | ❌ | base+high | ✗ MUERTE (Fase 1) |
+| (+/-,+/-) | Sin mut | (+/-,+/-) | 0.9801 | ✅ | base+low | VIVO (protegido, degradado) |
+| | | | | | | |
+| (+/-,-/-) | BRCA1 mut | (-/-,-/-) | 0.0100 | ❌ | base+high | ✗ MUERTE (Fase 1) |
+| (+/-,-/-) | Sin mut | (+/-,-/-) | 0.9900 | ❌ | base+high | VIVO (vulnerable neoplasia) |
 
 ---
 
@@ -156,8 +178,8 @@ graph TD
     G -->|No| H["<b>FASE 5</b><br/>Exocytosis<br/>──────<br/>Emite señales"]
     
     F --> I{Transformación?<br/>neoplasm_k ><br/>threshold}
-    I -->|TP53 = +/+| PROTEGIDA["<b>RECHAZA</b><br/>Protegida vs neoplasia"]
-    I -->|TP53 = +/- o -/-| NEOPLASTICA["<b>NEOPLÁSTICA</b><br/>Emite NeoplasmSignal<br/>Entra ciclo simplificado"]
+    I -->|TP53 ≠ -/-<br/>Protegido| PROTEGIDA["<b>RECHAZA</b><br/>Protegida vs neoplasia<br/>(tanto +/+ como +/-)"]
+    I -->|TP53 = -/-<br/>No protegido| NEOPLASTICA["<b>NEOPLÁSTICA</b><br/>Emite NeoplasmSignal<br/>Entra ciclo simplificado"]
     
     CLONA --> H
     PROTEGIDA --> H
@@ -329,10 +351,10 @@ graph LR
 - `genomic_instability` = Multiplicador de inestabilidad
 
 ### Estados Celulares:
-- 🔵 **VIVO SEGURO** = BRCA1(+/-) + TP53(+/+) → Bajo riesgo
-- 🟡 **RIESGO MODERADO** = BRCA1(+/-) + TP53(+/-) → Riesgo medio
-- 🔴 **RIESGO ALTO** = BRCA1(+/-) + TP53(-/-) → Alto riesgo neoplasia
-- ⚫ **NEOPLÁSTICA** = Transformada, emite señales
+- 🟢 **VIVO SEGURO** = BRCA1(+/-) + TP53(+/+) → Bajo riesgo, protegido
+- 🟡 **RIESGO MODERADO** = BRCA1(+/-) + TP53(+/-) → Riesgo medio, PROTEGIDO (inestabilidad elevada)
+- 🔴 **RIESGO ALTO** = BRCA1(+/-) + TP53(-/-) → Alto riesgo neoplasia (NO PROTEGIDO)
+- ⚫ **NEOPLÁSTICA** = TP53(-/-) + transformación → Emite señales, ciclo simplificado
 - ⚪ **MUERTE** = BRCA1(-/-) o apoptosis aceptada
 
 ### Colores:
@@ -345,17 +367,25 @@ graph LR
 
 ## 🔬 Cómo interpretar los diagramas
 
+**⚠️ PUNTO CRÍTICO: Protección TP53**
+- **TP53 +/+** → Protegido, inestabilidad base
+- **TP53 +/-** → **SIGUE PROTEGIDO**, pero inestabilidad aumenta (low_delta)
+- **TP53 -/-** → **NO PROTEGIDO**, inestabilidad muy elevada (high_delta), vulnerable a neoplasia
+
 **Para Biólogos:**
-- Enfocarse en FSM de genes (mutaciones biologicamente realistas)
+- Enfocarse en FSM de genes (mutaciones biológicamente realistas)
 - Ciclo de vida muestra checkpoints de viabilidad
+- TP53 +/- es una "degradación progresiva" de protección, no una pérdida total
 
 **Para Matemáticos:**
 - Ver matriz de transición (cadenas de Markov)
 - Probabilidades combinadas dan tasas de cambio de población
+- Inestabilidad crece cuadráticamente + deltas aditivos por TP53
 
 **Para Investigadores:**
 - Comparar 6 escenarios (impacto de mutaciones en población)
 - Predecir dinámica a largo plazo
+- Distinguir entre "protegido" (TP53 ≠ -/-) y "vulnerable" (TP53 = -/-)
 
 ---
 
