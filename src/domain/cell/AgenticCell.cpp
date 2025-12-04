@@ -186,8 +186,10 @@ namespace domain {
         if (tp53) {
              std::string st = tp53->status();
              if (st == "+/-") {
+                // Aplicar delta LOW multiplicado por parámetro configurable
                 next += low_delta_instability_;
              } else if (st == "-/-") {
+                // Aplicar delta HIGH multiplicado por parámetro configurable
                 next += high_delta_instability_;
              }
          }
@@ -197,6 +199,8 @@ namespace domain {
         genomic_instability_ = next;
 
         logger_->logCell("[Trace] genomic_instability: prev=" + std::to_string(previous) + " -> next=" + std::to_string(genomic_instability_)
+                      + " | low_delta=" + std::to_string(low_delta_instability_)
+                      + " | high_delta=" + std::to_string(high_delta_instability_)
                       + " | TP53=" + (tp53 ? tp53->status() : "?"));
     }
 

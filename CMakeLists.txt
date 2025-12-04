@@ -60,6 +60,17 @@ add_executable(single_cell_evolution app/single_cell_evolution.cpp
         ${COMMON_SOURCES}
         src/domain/tissue/Tissue.cpp)
 
+
+# Ejecutable: Captura completa de 6 escenarios (3 runs cada uno)
+add_executable(run_all_scenarios app/run_all_scenarios.cpp
+        src/application/simulation/PopulationTracker.cpp
+        src/application/simulation/PopulationTracker.h
+        src/application/config/SimulationConfig.cpp
+        src/application/config/SimulationConfig.h
+        ${COMMON_SOURCES}
+        src/domain/tissue/Tissue.cpp)
+
+
 # Añadir tests solo si BUILD_TESTS=ON (tests pueden descargar googletest)
 if (BUILD_TESTS)
     enable_testing()

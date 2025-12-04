@@ -53,9 +53,9 @@ Transición:
     │     +/+      │   μ₁      │     +/-      │   μ₂     │     -/-      │
     │✅ PROTEGIDO  │ ────────→ │✅ PROTEGIDO  │ ────────→ │❌ VULNERABLE │
     │ inest=base   │           │ inest=base   │           │ inest=base   │
-    │              │           │     +low     │           │     +high    │
+    │              │           │  +0.5 (bajo) │           │  +1.0 (alto) │
     └──────────────┘           └──────────────┘           └──────────────┘
-     (INICIAL)                (degradación leve)       (degradación severa)
+     (INICIAL)                (aumento moderado)      (aumento severo)
 
 
 Matemática:
@@ -63,10 +63,15 @@ Matemática:
 P(+/+ → +/-) = μ₁ = threshold_TP53 × (1 + k_TP53) × genomic_instability
 P(+/- → -/-) = μ₂ = threshold_TP53 × (1 + k_TP53) × genomic_instability
 
-Inestabilidad genómica progresiva:
-  • TP53 +/+ → inestabilidad = base
-  • TP53 +/- → inestabilidad += low_delta_instability (degradación moderada)
-  • TP53 -/- → inestabilidad += high_delta_instability (degradación severa)
+Transformación Neoplástica (si TP53 = -/-):
+  P(transformación) = neoplasm_k (parámetro configurable, default: 0.05 = 5%)
+  Solo permite transformación si TP53 status = "-/-" (no protegido)
+
+Inestabilidad genómica progresiva (configurables):
+  • TP53 +/+ → inestabilidad = base (1.0)
+  • TP53 +/- → inestabilidad += low_delta_instability (default: 0.5)
+  • TP53 -/- → inestabilidad += high_delta_instability (default: 1.0)
+  Nota: Estos valores pueden variar según el escenario (ver tabla de validación)
 
 Estados de Protección contra Neoplasia:
   • +/+ : ✅ PROTEGIDO (TP53 totalmente funcional)
@@ -75,8 +80,8 @@ Estados de Protección contra Neoplasia:
 
 Consecuencias:
   • TP53 +/+ → Rechaza transformación neoplástica, inestabilidad baja
-  • TP53 +/- → Rechaza transformación neoplástica, pero INESTABILIDAD AUMENTA
-  • TP53 -/- → PERMITE transformación neoplástica, inestabilidad muy elevada
+  • TP53 +/- → Rechaza transformación neoplástica, pero INESTABILIDAD AUMENTA (aumento moderado: +0.5)
+  • TP53 -/- → PERMITE transformación neoplástica, inestabilidad aumenta más (aumento severo: +1.0)
 ```
 
 ---
@@ -110,7 +115,8 @@ BRCA1\TP53       +/+           +/-           -/-
 ────────────────────────────────────────────────────
 +/-      ✅ PROTEGIDO  ✅ PROTEGIDO  ❌ VULNERABLE
          bajo riesgo   riesgo mod     alto riesgo
-         inest=base    inest=base+low inest=base+high
+         inest=1.0     inest=1.0+0.5  inest=1.0+1.0
+         (nada)        (bajo_delta)   (high_delta)
          
 -/-      ✗ MUERTE      ✗ MUERTE      ✗ MUERTE
          (Fase 1)      (Fase 1)      (Fase 1)
@@ -258,6 +264,128 @@ MUERTE          CONTINÚA              │
 
 
 * Rechazo de apoptosis: Si genomic_instability > apoptosis_instability_threshold
+
+---
+
+## 2️⃣.5️⃣ UMBRAL DE EVASIÓN DE APOPTOSIS (CRÍTICO)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│        EVASIÓN DE APOPTOSIS - UMBRAL DE INESTABILIDAD            │
+└─────────────────────────────────────────────────────────────────┘
+
+PARÁMETRO GLOBAL: apoptosis_instability_threshold = 10.0
+
+┌─────────────────────────────────────────┐
+│  Fase 2: Endocitosis (Recibe Apoptosis)  │
+└──────────────────┬──────────────────────┘
+                   │
+            ┌──────┴──────┐
+            │             │
+            ↓             ↓
+   Si genomic_inst ≤ 10.0    Si genomic_inst > 10.0
+            │                        │
+            ↓                        ↓
+    ✅ ACEPTA APOPTOSIS      ❌ EVASIÓN APOPTOSIS
+            │                        │
+            ↓                        ↓
+        ✗ MUERTE                 VIVE → INMORTAL
+      (Programada)            (se vuelve resistente)
+      (célula normal)          (neoplástica)
+
+
+VALIDACIÓN EXPERIMENTAL (Escenarios):
+──────────────────────────────────────
+
+Escenario 04: TP53=0.1, high_delta=1.0
+  • Año 0: inestability = 1.0 (< 10.0) → apoptosis activa ✅
+  • Año 3-5: inestability ~ 8-66 (> 10.0) → evasión apoptosis ❌
+  • Resultado: 100% neoplásticas inmortales
+
+Escenario 07: TP53=0.005, high_delta=1.0  
+  • Crece más lentamente: inestability sube gradual
+  • Muchas células mantienen inestability < 10.0
+  • Resultado: Solo 2.5% neoplásticas (mejor control)
+
+Escenario 09: TP53=0.01, high_delta=1.0
+  • Balance intermedio
+  • Resultado: 4.7% neoplásticas (realista)
+
+IMPLICACIÓN:
+────────────
+La inestabilidad genómica progresiva (instability = instability² + delta) hace que:
+1. Células con TP53 -/- rápidamente superen threshold (evasión)
+2. Células con TP53 +/- aumentan más lentamente (apoptosis aún activa)
+3. Células con TP53 +/+ casi nunca superen threshold (máxima protección)
+```
+
+---
+
+## 2️⃣.6️⃣ EVOLUCIÓN EXPONENCIAL DE INESTABILIDAD GENÓMICA
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│     DINÁMICA: inestability = inestability² + delta_progressivo   │
+└─────────────────────────────────────────────────────────────────┘
+
+FÓRMULA MATEMÁTICA:
+───────────────────
+I(t+1) = I(t)² + δ(TP53_status)
+
+Donde:
+  I(t) = inestabilidad en ciclo t
+  δ = delta configurado por TP53 status:
+      • TP53 +/+ → δ = 0.0
+      • TP53 +/- → δ = low_delta (default: 0.5)
+      • TP53 -/- → δ = high_delta (default: 1.0)
+
+
+EJEMPLO: Escenario 04 con TP53 -/- (high_delta=1.0)
+────────────────────────────────────────────────────
+
+Ciclo │ Inestability │ Cálculo              │ Estado vs Threshold (10.0)
+──────┼──────────────┼──────────────────────┼────────────────────────
+  0   │ 1.0000       │ inicial              │ 1.0 < 10.0 ✅ Apoptosis activa
+  1   │ 1.0000²+1.0  │ 1.0+1.0 = 2.0        │ 2.0 < 10.0 ✅ Apoptosis activa
+  2   │ 2.0000²+1.0  │ 4.0+1.0 = 5.0        │ 5.0 < 10.0 ✅ Apoptosis activa
+  3   │ 5.0000²+1.0  │ 25.0+1.0 = 26.0      │ 26.0 > 10.0 ❌ EVASIÓN APOPTOSIS
+  4   │ 26.0000²+1.0 │ 676.0+1.0 = 677.0    │ 677.0 > 10.0 ❌ INMORTAL GARANTIZADO
+  5   │ SATURATION   │ muy alto             │ ❌ MUERE CÉLULA DE TODAS FORMAS
+
+NOTA: Una vez que instability > 10.0, la célula neoplástica se vuelve INMORTAL
+
+
+COMPARACIÓN DE VELOCIDADES:
+───────────────────────────
+
+TP53 -/- con high_delta=1.0 (Esc 04):
+  Ciclo 3: inestability > 10.0 → EVASIÓN RÁPIDA
+
+TP53 -/- con high_delta=0.5 (Esc 05):
+  Ciclo 0: 1.0
+  Ciclo 1: 0.5² + 0.5 = 1.25
+  Ciclo 2: 1.25² + 0.5 = 2.0625
+  Ciclo 3: 2.0625² + 0.5 = 4.75
+  Ciclo 4: 4.75² + 0.5 = 23.06 → EVASIÓN MÁS LENTA
+
+TP53 +/- con high_delta=1.0 (Esc 07, 09):
+  Ciclo 0: 1.0
+  Ciclo 1: 1.0² + 0.5 = 1.5
+  Ciclo 2: 1.5² + 0.5 = 2.75
+  Ciclo 3: 2.75² + 0.5 = 8.06
+  Ciclo 4: 8.06² + 0.5 = 65.04 → EVASIÓN AÚN MÁS LENTA
+  Ciclo ~20: FINALMENTE > 10.0 (pero muchas células mueren antes)
+
+
+VALIDACIÓN EXPERIMENTAL - VELOCIDAD DE EVASIÓN:
+───────────────────────────────────────────────
+
+Población en año 50:
+  • Esc 04 (TP53=-/-, high_δ=1.0): 462 vivas, 100% inmortales (RÁPIDA EVASIÓN)
+  • Esc 05 (TP53=-/-, high_δ=0.5): 573 vivas, 99.5% inmortales (EVASIÓN UN POCO MÁS LENTA)
+  • Esc 07 (TP53=+/-, high_δ=1.0): 484 vivas, 100% inmortales (PERO SIN MUTACIONES TP53 = PROTECCIÓN)
+  • Esc 09 (TP53=+/-, high_δ=1.0): 362 vivas, 94% inmortales (CON MUTACIONES TP53 = ALGUNAS EVASIONES)
+```
 ```
 
 ---

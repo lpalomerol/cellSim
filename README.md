@@ -25,11 +25,12 @@ docs/                                # Documentación del proyecto
 
 ## Ejecutables
 
-| Ejecutable | Descripción |
-|-----------|------------|
-| **cellSim** | Simulación batch de 100 escenarios |
-| **interactive** | Modo interactivo con control manual de mutaciones |
-| **single_cell_evolution** | Análisis detallado de evolución de célula única |
+| Ejecutable | Descripción | Trazas |
+|-----------|------------|--------|
+| **cellSim** | Simulación batch de 100 escenarios | En memoria |
+| **interactive** | Modo interactivo con control manual | Verbose logging |
+| **single_cell_evolution** | Análisis detallado de célula única | single_cell_evolution_log.txt |
+| **run_all_scenarios** | ✨ **NUEVO**: Validación de 9 escenarios | Markdown + CSV |
 
 ## Refactor de Limpieza Reciente
 
@@ -114,6 +115,37 @@ Ejecuta 100 simulaciones con parámetros por defecto configurables en `Simulatio
 - Output: `single_cell_evolution_log.txt`
 - Rastreo de inestabilidad genómica
 - Detección de transiciones a neoplasia
+
+### ✨ Validación Experimental (9 Escenarios)
+```bash
+./cmake-build-debug/run_all_scenarios
+```
+Ejecuta y valida 9 escenarios científicos:
+- **2 controles basales** - Validación del modelo (sin mutaciones ±división)
+- **3 controles paramétricos** - Análisis de impacto (BRCA1 alto, TP53 alto, inestabilidad)
+- **4 escenarios realistas** - Validación biológica (parámetros moderados con división)
+
+**Resultados:** Trazas en `cmake-build-debug/traces/` (Markdown + CSV)
+- Tiempo: ~3.4 segundos (9 escenarios × 1000 células)
+- Reportes: `EXECUTIVE_DASHBOARD.md`, `VALIDATION_RESULTS_ANALYSIS.md`
+
+---
+
+## ✅ Validación 2025
+
+| Escenario | Vivas | Neoplásticas | Inmortales | Años | Hallazgo |
+|-----------|-------|--------------|-----------|------|----------|
+| 01 - Sin nada | 1000 | 0% | 0% | 10 | ✅ Estable (modelo OK) |
+| 02 - División 15% | 4955 | 0% | 0% | 10 | ✅ Crec 5× |
+| 03 - BRCA1=0.2 | 0 | 0% | 0% | 50 | ⚠️ Letal |
+| 04 - TP53=0.1 | 462 | 98% | 100% | 50 | ✅ Neoplasia |
+| 05 - TP53 + inest | 573 | 98% | 99.5% | 50 | ✅ Mayor resistencia |
+| 06 - Realista | 59 | 20% | 100% | 50 | ✅ Apoptosis activa |
+| 07 - TP53 baja | 484 | 2.5% | 100% | 80 | ✅ Protector |
+| 08 - TP53 + inest | 153 | 46% | 100% | 80 | ⚠️ Arriesgado |
+| 09 - Balanceado | 362 | 4.7% | 94% | 80 | ⭐ RECOMENDADO |
+
+**Conclusión:** Parámetros balanceados (escenario 09) son biológicamente realistas y reproducen fenotipos esperados.
 
 ## Modelo Biológico
 

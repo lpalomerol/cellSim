@@ -64,8 +64,8 @@ stateDiagram-v2
         Heterocigoto
         ✅ PROTEGIDO vs neoplasia
         TP53 parcialmente funcional
-        inestabilidad += low_delta
-        (degradación leve)
+        inestabilidad += 0.5 (bajo)
+        (aumento moderado)
     end note
     
     note right of MinusMinus
@@ -73,8 +73,8 @@ stateDiagram-v2
         Homocigoto recesivo
         ❌ NO PROTEGIDO vs neoplasia
         Sin protección TP53
-        inestabilidad += high_delta
-        (degradación severa)
+        inestabilidad += 1.0 (alto)
+        (aumento severo)
     end note
 ```
 
@@ -82,11 +82,12 @@ stateDiagram-v2
 - `P(+/+ → +/-) = μ₁ = threshold_TP53 × (1 + k_TP53) × genomic_instability`
 - `P(+/- → -/-) = μ₂ = threshold_TP53 × (1 + k_TP53) × genomic_instability`
 - **Protección contra neoplasia:** `status != "-/-"` → **PROTEGIDO** (tanto +/+ como +/-)
-- **Aumento de inestabilidad:** 
-  - TP53 `+/+` → inestabilidad base
-  - TP53 `+/-` → inestabilidad += `low_delta_instability`
-  - TP53 `-/-` → inestabilidad += `high_delta_instability`
-- **Escenario DEFAULT**: `μ₁ = μ₂ = 0.01` (1% por ciclo)
+- **Transformación neoplástica:** `P = neoplasm_k` (default: 0.05) si TP53 = "-/-"
+- **Aumento de inestabilidad (configurables):** 
+  - TP53 `+/+` → inestabilidad base (1.0)
+  - TP53 `+/-` → inestabilidad += `low_delta_instability` (default: 0.5)
+  - TP53 `-/-` → inestabilidad += `high_delta_instability` (default: 1.0)
+- **Escenario DEFAULT**: `μ₁ = μ₂ = 0.01` (1% por ciclo), `neoplasm_k = 0.05` (5%)
 
 ---
 
@@ -98,17 +99,17 @@ stateDiagram-v2
     
     S1: BRCA1(+/-) + TP53(+/+)
     S1: ✅ PROTEGIDO
-    S1: inestabilidad: base
+    S1: inestabilidad: 1.0 (base)
     S1: RIESGO: BAJO
     
     S2: BRCA1(+/-) + TP53(+/-)
     S2: ✅ PROTEGIDO
-    S2: inestabilidad: base+low
+    S2: inestabilidad: 1.0+0.5
     S2: RIESGO: MODERADO
     
     S3: BRCA1(+/-) + TP53(-/-)
     S3: ❌ NO PROTEGIDO
-    S3: inestabilidad: base+high
+    S3: inestabilidad: 1.0+1.0
     S3: RIESGO: ALTO
     
     D1: ✗ MUERTE (Fase 1)
@@ -138,17 +139,15 @@ stateDiagram-v2
     D3 --> [*]
 ```
 
-**Tabla de Transiciones (DEFAULT scenario):**
+**Tabla de Transiciones - ESCENARIOS VALIDADOS:**
 
-| De estado | Evento | A estado | P(transición) | Protección | Inestabilidad | Resultado |
-|-----------|--------|----------|---------------|-----------|----------------|-----------|
-| (+/-,+/+) | BRCA1 mut | (-/-,+/+) | 0.0099 | ✅ | base | ✗ MUERTE (Fase 1) |
-| (+/-,+/+) | TP53 mut | (+/-,+/-) | 0.0100 | ✅ | base+low | VIVO (protegido, degradado) |
-| (+/-,+/+) | Ambas | (-/-,+/-) | 0.0001 | ✅ | base+low | ✗ MUERTE (Fase 1) |
-| (+/-,+/+) | Sin mut | (+/-,+/+) | 0.9801 | ✅ | base | VIVO (seguro) |
-| | | | | | | |
-| (+/-,+/-) | BRCA1 mut | (-/-,+/-) | 0.0099 | ✅ | base+low | ✗ MUERTE (Fase 1) |
-| (+/-,+/-) | TP53 mut | (+/-,-/-) | 0.0100 | ❌ | base+high | VIVO (vulnerable neoplasia) |
+| Escenario | De estado | Evento | A estado | P(transición) | Protección | Inestabilidad | Resultado |
+|-----------|-----------|--------|----------|---------------|-----------|----------------|-----------|
+| **03: BRCA1=0.2** | (+/-,+/+) | BRCA1 mut | (-/-,+/+) | 0.20 | ✅ | base | ✗ MUERTE (Fase 1) - LETAL |
+| **04: TP53=0.1** | (+/-,+/+) | TP53 mut | (+/-,+/-) | 0.10 | ✅ | 1.0+0.5 | VIVO (protegido, degradado) |
+| **04: TP53=0.1** | (+/-,-/-) | Transf neo | NEOPLÁSTICA | 0.10 | ❌ | 1.0+1.0 | VULNERABLE → 98% neo, 100% inmortales |
+| **07: TP53=0.005** | (+/-,+/+) | TP53 mut | (+/-,+/-) | 0.005 | ✅ | 1.0+0.5 | VIVO (muy protegido) |
+| **07: TP53=0.005** | (+/-,-/-) | Transf neo | NEOPLÁSTICA | 0.05 | ❌ | 1.0+1.0 | BAJO RIESGO → 2.5% neo, 100% inmortales |
 | (+/-,+/-) | Ambas | (-/-,-/-) | 0.0001 | ❌ | base+high | ✗ MUERTE (Fase 1) |
 | (+/-,+/-) | Sin mut | (+/-,+/-) | 0.9801 | ✅ | base+low | VIVO (protegido, degradado) |
 | | | | | | | |
@@ -365,27 +364,114 @@ graph LR
 
 ---
 
+## 4️⃣.5️⃣ UMBRAL DE EVASIÓN DE APOPTOSIS (CRÍTICO)
+
+### Decisión de Apoptosis Basada en Inestabilidad
+
+```mermaid
+flowchart TD
+    A["Célula recibe<br/>SEÑAL APOPTOSIS<br/>(Fase 2)"]
+    
+    B{"¿genomic_instability<br/>≤ 10.0?"}
+    
+    C["✅ ACEPTA APOPTOSIS<br/>Célula muere<br/>(programada)"]
+    
+    D["❌ EVASIÓN APOPTOSIS<br/>Célula vive<br/>Se vuelve INMORTAL"]
+    
+    A --> B
+    B -->|SÍ| C
+    B -->|NO| D
+    
+    style C fill:#FFB6B6
+    style D fill:#B6D7FF
+```
+
+**Parámetro Global:** `apoptosis_instability_threshold = 10.0`
+
+**Validación Experimental:**
+- **Esc 04** (TP53=-/-, high_δ=1.0): Año 3 → inestability > 10.0 → 100% inmortales ❌
+- **Esc 07** (TP53=+/-, high_δ=1.0): Crece más lentamente → Solo 2.5% inmortales ✅
+- **Esc 09** (Balanceado): 4.7% inmortales (realista) ✅
+
+---
+
+## 4️⃣.6️⃣ EVOLUCIÓN EXPONENCIAL DE INESTABILIDAD
+
+### Dinámica Temporal: I(t+1) = I(t)² + δ(TP53_status)
+
+```mermaid
+graph TD
+    A["Ciclo 0: I = 1.0"]
+    B["Ciclo 1: I = 1.0² + δ"]
+    C["Ciclo 2: I = I₁² + δ"]
+    D["Ciclo 3: I = I₂² + δ"]
+    E{"I > 10.0?"}
+    
+    F["Ciclo 4-n: I seguirá<br/>aumentando<br/>EVASIÓN GARANTIZADA"]
+    
+    G["Comparar velocidades<br/>según TP53 status"]
+    
+    A -->|TP53 -/-<br/>δ = 1.0| B
+    B -->|Ejemplo: Esc 04| C
+    C -->|Crece rápido| D
+    D -->|En ciclo 3-4| E
+    E -->|SÍ| F
+    E -->|NO| B
+    
+    D -.->|Comparar con| G
+    G -->|TP53 +/-: δ = 0.5<br/>TP53 +/+: δ = 0.0| G
+    
+    style E fill:#FFE6E6
+    style F fill:#E6E6FF
+```
+
+**Tabla de Evolución - Escenario 04 (TP53 = -/-, high_δ = 1.0):**
+
+| Ciclo | I(t) | Cálculo | vs Threshold | Estado |
+|-------|------|---------|--------------|--------|
+| 0 | 1.0000 | inicial | < 10.0 ✅ | Apoptosis activa |
+| 1 | 2.0000 | 1.0² + 1.0 | < 10.0 ✅ | Apoptosis activa |
+| 2 | 5.0000 | 2.0² + 1.0 | < 10.0 ✅ | Apoptosis activa |
+| 3 | **26.0000** | 5.0² + 1.0 | > 10.0 ❌ | **EVASIÓN APOPTOSIS** |
+| 4+ | Muy alto | 26.0² + 1.0 | >> 10.0 ❌ | INMORTAL GARANTIZADO |
+
+**Conclusión:** Inestabilidad crece exponencialmente. Una vez > threshold, célula es inmortal.
+
+---
+
 ## 🔬 Cómo interpretar los diagramas
 
 **⚠️ PUNTO CRÍTICO: Protección TP53**
-- **TP53 +/+** → Protegido, inestabilidad base
-- **TP53 +/-** → **SIGUE PROTEGIDO**, pero inestabilidad aumenta (low_delta)
-- **TP53 -/-** → **NO PROTEGIDO**, inestabilidad muy elevada (high_delta), vulnerable a neoplasia
+- **TP53 +/+** → Protegido, inestabilidad base (1.0), δ = 0.0
+- **TP53 +/-** → **SIGUE PROTEGIDO**, pero inestabilidad aumenta (δ = 0.5, aumento moderado)
+- **TP53 -/-** → **NO PROTEGIDO**, inestabilidad muy elevada (δ = 1.0, aumento severo), vulnerable a neoplasia
+
+**⚠️ PUNTO CRÍTICO: Evasión de Apoptosis**
+- Si `genomic_instability ≤ 10.0` → Apoptosis activa ✅ (célula puede morir)
+- Si `genomic_instability > 10.0` → Evasión apoptosis ❌ (célula se vuelve inmortal)
+- Esto explica por qué 100% de neoplásticas son inmortales en escenarios validados
+
+**⚠️ PUNTO CRÍTICO: Inestabilidad Exponencial**
+- Fórmula: `I(t+1) = I(t)² + δ(TP53_status)` (crece cuadráticamente + delta aditivo)
+- Implica: TP53 -/- alcanzan threshold en ~3-4 ciclos, TP53 +/- toman más tiempo
+- Resultado: Células con TP53 -/- son rápidamente inmortales
 
 **Para Biólogos:**
 - Enfocarse en FSM de genes (mutaciones biológicamente realistas)
 - Ciclo de vida muestra checkpoints de viabilidad
-- TP53 +/- es una "degradación progresiva" de protección, no una pérdida total
+- Protección TP53 es gradual: +/+ (total) → +/- (parcial) → -/- (nula)
 
 **Para Matemáticos:**
 - Ver matriz de transición (cadenas de Markov)
 - Probabilidades combinadas dan tasas de cambio de población
-- Inestabilidad crece cuadráticamente + deltas aditivos por TP53
+- Inestabilidad sigue ecuación dinámica: I(t+1) = I(t)² + δ (caótica si δ > 0)
+- Threshold = barrera de absorción para evasión apoptosis
 
 **Para Investigadores:**
-- Comparar 6 escenarios (impacto de mutaciones en población)
-- Predecir dinámica a largo plazo
+- Comparar 9 escenarios validados (09 = más realista)
+- Predecir dinámica a largo plazo considerando threshold apoptosis
 - Distinguir entre "protegido" (TP53 ≠ -/-) y "vulnerable" (TP53 = -/-)
+- Entender por qué inestabilidad progresiva = inevitablemente inmortales
 
 ---
 

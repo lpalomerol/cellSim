@@ -68,6 +68,9 @@ namespace domain {
         // Expose cell age (useful for tests and tracing)
         std::uint64_t getAge() const { return age_; }
 
+        // Check if cell has evaded apoptosis (is immortal)
+        [[nodiscard]] bool hasEvasedApoptosis() const { return has_evaded_apoptosis_; }
+
         // ID management (implements ICell contract)
         void setId(std::uint64_t id) override;
         std::uint64_t id() const override;
