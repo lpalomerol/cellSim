@@ -64,7 +64,24 @@
 
 ---
 
-## 📁 Datos de Trazas (18 archivos)
+### 5. 💥 BIG_BANG_MODE.md (NUEVO)
+**Para:** Comprender el Modo Big Bang  
+**Lectura:** 25 minutos  
+**Contenido:**
+- Descripción del fenómeno Big Bang
+- Mecanismo biológico de transformación masiva
+- Fases de desarrollo temporal
+- Parámetros configurables específicos
+- Análisis clínico y biomarkers
+- Dinámica de inestabilidad genómica
+- Escenarios Big Bang prototípicos (10-14)
+- Aplicaciones clínicas y predicciones
+
+**Ubicación:** `/home/luis/CLionProjects/cellSim/docs/BIG_BANG_MODE.md`
+
+---
+
+## 📁 Datos de Trazas (28 archivos - 14 escenarios)
 
 **Ubicación Base:** `/home/luis/CLionProjects/cellSim/cmake-build-debug/traces/`
 
@@ -98,6 +115,38 @@
 09_realistic_balanced/
 (Cada uno con .md + .csv)
 ```
+
+### 💥 Modo Big Bang: Transformación Masiva Neoplástica (5 escenarios) - NUEVO
+
+```
+10_big_bang_tumoral_bajo_umbral/
+├── *_run1_POPULATION.md       (Bajo umbral, transformación progresiva)
+└── *_run1_POPULATION.csv      (Parameters: BRCA1=0.05, TP53=0.01, k=0.02, div=0.05)
+
+11_big_bang_tumoral_moderado/
+├── *_run1_POPULATION.md       (Transformación moderadamente acelerada)
+└── *_run1_POPULATION.csv      (Parameters: BRCA1=0.06, TP53=0.015, k=0.03, div=0.06)
+
+12_big_bang_tumoral_agresivo/
+├── *_run1_POPULATION.md       (Transformación muy rápida, 95%+ neoplásticas)
+└── *_run1_POPULATION.csv      (Parameters: BRCA1=0.08, TP53=0.02, k=0.05, div=0.08)
+
+13_big_bang_inestabilidad_extrema/
+├── *_run1_POPULATION.md       (Inestabilidad ultra-alta, 99%+ neoplásticas)
+└── *_run1_POPULATION.csv      (Parameters: high_δ=2.0, TP53=0.02, k=0.05)
+
+14_big_bang_control/
+├── *_run1_POPULATION.md       (Control reproducible, documentado)
+└── *_run1_POPULATION.csv      (Parameters: BRCA1=0.05, TP53=0.01, k=0.02, div=0.05)
+```
+
+**Características del Big Bang:**
+- ✅ Fase de latencia (0-30 años): Acumulación lenta
+- ⚡ Fase crítica (30-60 años): Explosión exponencial
+- 💥 Punto de ruptura (50-70 años): Transformación masiva
+- 📈 Dominio tumoral (70-80 años): 90-99% neoplásticas, 99%+ inmortales
+
+**Ver documentación completa:** `docs/BIG_BANG_MODE.md`
 
 ---
 

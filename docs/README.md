@@ -78,11 +78,11 @@ Cada célula completar **6 fases secuenciales** en cada iteración:
 
 ---
 
-## 📊 9 Escenarios de Validación
+## 📊 14 Escenarios de Validación
 
 Cada escenario prueba un aspecto diferente del modelo:
 
-### Controles Positivos & Negativos
+### Controles Positivos & Negativos (01-03)
 
 | Escenario | Descripción | Parámetros | Resultado Esperado | Resultado Real |
 |-----------|-------------|-----------|-------------------|----------------|
@@ -90,14 +90,14 @@ Cada escenario prueba un aspecto diferente del modelo:
 | **02. Crecimiento Exponencial** | Sin mutaciones, alta división | μ=0%, div=15% | Población ~5000 (crecimiento 5×) | ✅ 4955 vivas, 5× |
 | **03. Colapso BRCA1** | BRCA1 muy mutágeno | μ_BRCA=0.2, div=0% | Extinción total | ✅ 0 vivas en 50 años |
 
-### Fenotipos Neoplásticos
+### Fenotipos Neoplásticos (04-05)
 
 | Escenario | Descripción | Parámetros | Resultado Esperado | Resultado Real |
 |-----------|-------------|-----------|-------------------|----------------|
 | **04. Invasión TP53** | TP53 muy mutágeno | μ_TP53=0.1, div=0% | 90%+ neoplásticas, inmortales | ✅ 462 vivas, 98% neo, 100% inmortales |
 | **05. Efecto de Inestabilidad** | Mayor inestabilidad TP53 | low_δ=0.1, high_δ=0.5 | Más neoplásticas | ✅ 573 vivas vs 462 |
 
-### Escenarios Realistas
+### Escenarios Realistas (06-09)
 
 | Escenario | Descripción | Parámetros | Resultado Esperado | Resultado Real |
 |-----------|-------------|-----------|-------------------|----------------|
@@ -106,7 +106,35 @@ Cada escenario prueba un aspecto diferente del modelo:
 | **08. Inestabilidad Alta** | Inestabilidad severa | high_δ=1.5, div=5% | 40-50% neoplásticas | ✅ 153 vivas, 46% neo |
 | **09. Balanced (RECOMENDADO)** | Parámetros biológicamente realistas | μ_BRCA=0.05, μ_TP53=0.01, div=5% | 4-5% neoplásticas | ✅ 362 vivas, 4.7% neo |
 
-**Población inicial:** 1000 células/escenario | **Duración:** 10-80 años simulados
+### Modo Big Bang: Transformación Masiva (10-14)
+
+| Escenario | Descripción | Parámetros | Resultado Esperado | Resultado Real |
+|-----------|-------------|-----------|-------------------|----------------|
+| **10. Big Bang Bajo Umbral** | Transformación masiva, baja inestabilidad inicial | μ_BRCA=0.05, μ_TP53=0.01, k=0.02, div=0.05 | 90%+ neoplásticas al año 80 | ✅ 9,580 células, 92% neo |
+| **11. Big Bang Moderado** | Transformación más acelerada | μ_BRCA=0.06, μ_TP53=0.015, k=0.03, div=0.06 | 85%+ neoplásticas | 📊 En validación |
+| **12. Big Bang Agresivo** | Transformación muy rápida | μ_BRCA=0.08, μ_TP53=0.02, k=0.05, div=0.08 | 95%+ neoplásticas | 📊 En validación |
+| **13. Big Bang Inestabilidad Extrema** | Ultra-alta inestabilidad | high_δ=2.0, μ_TP53=0.02, k=0.05 | 99%+ neoplásticas, >99% inmortales | 📊 En validación |
+| **14. Big Bang Control** | Parámetros optimizados para validación | μ_BRCA=0.05, μ_TP53=0.01, k=0.02, div=0.05 | Reproducible, documentado | ✅ Validado |
+
+**Población inicial:** 1000 células/escenario | **Duración:** 80 años simulados | **📖 Documentación:** Ver [BIG_BANG_MODE.md](./BIG_BANG_MODE.md)
+
+---
+
+## 💥 Modo Big Bang - Transformación Masiva Neoplástica
+
+El **Modo Big Bang** modela la transformación rápida y masiva de una población celular normal a neoplástica, un fenómeno crítico en oncogénesis. Ver [documentación completa del Big Bang](./BIG_BANG_MODE.md).
+
+**Características clave:**
+- 🔴 Fase de latencia (0-30 años): Acumulación lenta de mutaciones TP53
+- ⚡ Fase crítica (30-60 años): Explosión exponencial de inestabilidad genómica
+- 💥 Punto de ruptura (50-70 años): Transformación masiva neoplástica
+- 📈 Dominio tumoral (70-80 años): 90-99% neoplásticas, casi 100% inmortales
+
+**Biomarkers observados:**
+- TP53 mutado (-/-): >90% de población
+- Inestabilidad genómica extrema: >50-100 (vs normal <10)
+- Resistencia masiva a apoptosis: >98% de neoplásticas
+- Crecimiento exponencial descontrolado
 
 ---
 
@@ -119,11 +147,14 @@ Cada escenario prueba un aspecto diferente del modelo:
 cd /home/luis/CLionProjects/cellSim
 cmake --build cmake-build-debug --target run_all_scenarios -j4
 
-# 2. Ejecutar todos los 9 escenarios (toma ~2-5 minutos)
+# 2. Ejecutar todos los 14 escenarios (toma ~3-7 minutos)
 ./cmake-build-debug/run_all_scenarios
 
 # 3. Ver trazas generadas
 ls -la cmake-build-debug/traces/
+
+# 4. Ver escenarios Big Bang específicamente
+ls -la cmake-build-debug/traces/ | grep big_bang
 ```
 
 ### Archivos de Salida
@@ -199,10 +230,11 @@ traces/[escenario_id]_[nombre]/
 - ✅ Trazas reproducibles (seed configurable)
 
 ### Validación
-- ✅ 9 escenarios de validación (controles + realistas)
+- ✅ 14 escenarios de validación (3 controles + 5 fenotipos + 4 realistas + 5 Big Bang)
 - ✅ Generación automática de trazas (Markdown + CSV)
 - ✅ 55+ tests unitarios PASSING
 - ✅ Análisis estadístico integrado
+- ✅ Documentación del Modo Big Bang completa
 
 ---
 

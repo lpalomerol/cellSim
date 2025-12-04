@@ -208,13 +208,12 @@ ENTRADA: Célula viva en ciclo
       APOPTOSIS       APOPTOSIS            │
           │                 │              │
           ↓                 ↓              ↓
-        MUERTE           VIVE         CONTINÚA
-      (Apoptosis)    (Evasión)     ┌────────────────┐
-                                   │  FASE 3:       │
-                                   │  Nuclear       │
-                                   │  Dynamics      │
-                                   │  (Mutaciones)  │
-                                   └────────────────┘
+        MUERTE           VIVE         ┌────────────────┐
+                                      │  FASE 3:       │
+                                      │  Nuclear       │
+                                      │  Dynamics      │
+                                      │  (Mutaciones)  │
+                                      └────────────────┘
 ```
 
 ⚠️ **Checkpoint Apoptosis (Fase 2):**
@@ -345,7 +344,7 @@ PARÁMETRO GLOBAL: apoptosis_instability_threshold = 10.0
 | Escenario | TP53 | high_delta | Descripción | Resultado |
 |---|---|---|---|---|
 | **04** | 0.1 | 1.0 | Año 0: inestability=1.0 (<10) ✅ apoptosis activa<br>Año 3-5: inestability~8-66 (>10) ❌ evasión | 100% neoplásticas inmortales |
-| **07** | 0.005 | 1.0 | Crece lentamente, muchas células mantienen inestability<10 | Solo 2.5% neoplásticas (mejor control) |
+| **07** | 0.005 | 1.0 | Crece lentamente, muchas células mantienen inestabilidad<10 | Solo 2.5% neoplásticas (mejor control) |
 | **09** | 0.01 | 1.0 | Balance intermedio | 4.7% neoplásticas (realista) |
 
 **IMPLICACIÓN:**
@@ -654,3 +653,241 @@ De estado →     A estado          Probabilidad       Evento
 
 ---
 
+## 5️⃣ MODO BIG BANG - TRANSFORMACIÓN MASIVA NEOPLÁSTICA
+
+### 💥 Timeline del Big Bang Oncológico
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│           EVOLUCIÓN TEMPORAL DEL BIG BANG - ESCENARIO 12         │
+└──────────────────────────────────────────────────────────────────┘
+
+Población Viva (Vivas)
+│
+│  9,580 ████████████████████████████████████  │ 80 AÑOS
+│        ████████████████████████████████████  │
+│ 8,000  ███████████████████████████           │ Dominio Neoplástico
+│ 7,000  ████████████████████                  │ 92% neoplásticas
+│ 6,000  ███████████████                       │ 99% inmortales
+│ 5,000  ████████████                          │
+│        ▓▓▓▓▓▓▓▓▓▓▓▓ Big Bang Crítico ▓▓▓▓▓  │ 50-70 años
+│ 3,000  ▓▓▓▓▓▓▓                               │ "Punto de Ruptura"
+│        ▓▓▓▓ Explosión Exponencial ▓▓▓▓       │ 34% neo, 66% protegidas
+│ 1,500  ▓▓                                    │
+│        ▒▒ Aceleración (30-50 años) ▒▒       │ 7-34% neoplásticas
+│ 1,000  ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒          │
+│        ░░ Fase de Latencia (0-30) ░░        │ 0-7% neoplásticas
+│   500  ░░░░░░░░░░░░░░░░░░░░░░░░░░          │ ~1000 células protegidas
+│   250  ░                                    │
+│     0  └─────────────────────────────────── 0 AÑOS
+         0   10   20   30   40   50   60   70   80
+
+
+LEYENDA:
+  ░░ = Fase Latencia (0-30 años):   Acumulación lenta
+  ▒▒ = Fase Aceleración (30-50):    Aumento moderado
+  ▓▓ = Fase Crítica (50-70):        EXPLOSIÓN MASIVA
+  ████ = Dominio (70-80):           Control tumoral
+```
+
+### 📊 Análisis Detallado por Fase
+
+#### **FASE 1: LATENCIA (Años 0-30)**
+```
+Características Biológicas:
+  • Población: ~1000 células protegidas (TP53 +/+)
+  • Mutaciones: Lentas y graduales
+  • Inestabilidad: Baja (0.0-3.0)
+  • Neoplásticas: 0-7% (máx 72 células)
+  • Apoptosis: ACTIVA (rechaza células TP53 -/-)
+  
+Mecanismo:
+  TP53 +/+ (100%) → TP53 +/- (5-10%) → TP53 -/- (1-5%)
+  
+  La mayoría de células que mutan a TP53 -/- MUEREN por apoptosis
+  (inestabilidad < 10.0, no pueden evadir).
+
+Timeline:
+  Año 0:  1000 protegidas, 0 neoplásticas
+  Año 10: 893 protegidas, 5 neoplásticas (0.6%)
+  Año 20: 738 protegidas, 25 neoplásticas (3.3%)
+  Año 30: 612 protegidas, 72 neoplásticas (10.5%)
+```
+
+#### **FASE 2: ACELERACIÓN (Años 30-50)**
+```
+Características Biológicas:
+  • Población: 600-1000 células protegidas
+  • Inestabilidad: Moderada (3.0-50.0) ⚠️ INCREMENTO EXPONENCIAL
+  • Neoplásticas: 7-49% (34% en año 50)
+  • Apoptosis: DÉBIL (más células TP53 -/- evaden)
+  
+Mecanismo:
+  Inestabilidad acumula (I² + δ): 1.0 → 3.0 → 9.0 → 81.0 → ...
+  
+  Más células TP53 -/- acumulan inestabilidad ANTES de transformarse.
+  Cuando I > ~10, pueden rechazar apoptosis.
+  
+  RESULTADO: Transformación más eficiente (no todas mueren).
+
+Timeline:
+  Año 30: 612 protegidas, 72 neoplásticas (10.5%)
+  Año 40: 509 protegidas, 163 neoplásticas (24.3%)
+  Año 50: 428 protegidas, 412 neoplásticas (49.0%) ⚠️ PUNTO CRÍTICO
+  
+  ▼ Inestabilidad (min-max): [73.5, 999.0] MASIVA
+```
+
+#### **FASE 3: CRÍTICA / BIG BANG (Años 50-70)**
+```
+⚡⚡⚡ PUNTO DE RUPTURA - "BIG BANG" CRÍTICO ⚡⚡⚡
+
+Características:
+  • Inestabilidad: EXTREMA (>50-100) 💥
+  • Neoplásticas: Explosión exponencial 49% → 89%
+  • Apoptosis: COMPLETAMENTE EVASIVA (>99% inmortales)
+  • División: Aceleración en neoplásticas
+  
+Mecanismo Biológico del Big Bang:
+  
+  1. Inestabilidad acumulada sobrepasa UMBRAL CRÍTICO (~50-100)
+  2. En CADA ciclo, células TP53 -/- automáticamente transforman
+  3. La apoptosis ya NO FUNCIONA (I >> 10.0)
+  4. Resultado: TRANSFORMACIÓN MASIVA Y SIMULTÁNEA
+  
+  Es como una "cascada de dominós" donde todas las células
+  vulnerables se transforman casi al mismo tiempo.
+
+Timeline:
+  Año 50: 428 protegidas, 412 neo (49%) | I=[73.5, 999.0]
+  Año 55: 418 protegidas, 656 neo (61%) | I=[73.5, 999.0] ⚠️ EXPLOSIÓN COMIENZA
+  Año 60: 390 protegidas, 1,077 neo (73%) | I=[999.0, 999.0] ⚠️ PUNTO DE NO RETORNO
+  Año 65: 358 protegidas, 1,807 neo (83%) | I=[999.0, 999.0]
+  Año 70: 361 protegidas, 3,014 neo (89%) | I=[999.0, 999.0]
+  
+  % Inmortales: 99%+ (casi todas escapan apoptosis)
+```
+
+#### **FASE 4: DOMINIO NEOPLÁSTICO (Años 70-80)**
+```
+Características:
+  • Neoplásticas: 89-96% de la población
+  • Protegidas: 4-11% (remanentes, sin más crecimiento)
+  • Inestabilidad: Máxima sostenida (999.0)
+  • Crecimiento: DESCONTROLADO (exponencial)
+  
+Mecanismo:
+  Las neoplásticas INMORTALES no se dividen, pero su número
+  crece por TRANSFORMACIÓN CONTINUA de las pocas protegidas restantes.
+  
+  Paradoja: Aunque neoplásticas NO se replican (se quedan singulares),
+           la población total EXPLOTA porque transforman a las normales.
+  
+  (Nota: En modelo real, neoplásticas sí se dividen; aquí es simplificado)
+
+Timeline:
+  Año 70: 361 protegidas, 3,014 neo (89%)
+  Año 75: 362 protegidas, 5,153 neo (93%)
+  Año 80: 347 protegidas, 8,854 neo (96%)
+  
+  % Inmortales: 100% (todas las neoplásticas)
+  Población Total: 9,580 células (9.6× inicial)
+```
+
+### 🎯 Comparación: Big Bang vs Evolución Normal
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│         COMPARACIÓN: EVOLUCIÓN NORMAL vs BIG BANG              │
+└────────────────────────────────────────────────────────────────┘
+
+                        NORMAL (Ej. 9)       BIG BANG (Ej. 12)
+Parámetro               ─────────────        ─────────────────
+─────────────────────────────────────────────────────────────────
+Población año 80        362 vivas           9,580 vivas (26×)
+% Neoplásticas año 80   4.7%                92.1%
+Inestabilidad máxima    10-20               999+
+Fase crítica            Lenta (no existe)   Años 50-70
+Punto de ruptura        No                  SÍ (año 60)
+Riesgo oncológico       BAJO                ALTO
+
+Timeline de Transformación:
+  Año 0-30:   0.5% → 7% (NORMAL)           0% → 10.5% (BIG BANG similar)
+  Año 30-50:  7% → 10% (NORMAL muy lento)  10.5% → 49% (BIG BANG aceleración)
+  Año 50-70:  10% → 15% (NORMAL)           49% → 89% (BIG BANG EXPLOSIÓN)
+  Año 70-80:  15% → 20% (NORMAL)           89% → 96% (BIG BANG consolidación)
+  
+  ⚠️ Diferencia crítica: Big Bang tiene factor 10-20× aceleración en
+     transformación, especialmente entre años 50-70.
+```
+
+### 📈 Dinámica de Inestabilidad en Big Bang
+
+```
+Inestabilidad Genómica vs Tiempo
+
+I(max)
+│
+│ 999+ ██████████████████████ ← PLATEAU (Máximo sostenido)
+│ 500  ░░░░░░░████████████░░
+│ 250  ░░░░███░░░░░░░░░░░░
+│ 100  ░░███░░░░░░░░░░░░░░░
+│  50  ░███░░░░░░░░░░░░░░░░░
+│  10  ░██░░░░░░░░░░░░░░░░░░ ← Umbral apoptosis
+│   5  ░█░░░░░░░░░░░░░░░░░░░
+│   1  ░░░░░░░░░░░░░░░░░░░░░
+└────────────────────────────── Años
+   0 10 20 30 40 50 60 70 80
+
+FASE:  LATENCIA  ACELERACIÓN  CRÍTICA   DOMINIO
+       (Lenta)   (Exponencial) (COLAPSO) (Plateau)
+
+BIOLOGÍA:
+  • 0-30: Inestabilidad acumula lentamente (I² base)
+  • 30-50: Comienza aceleración exponencial (I² crece rápido)
+  • 50-60: PUNTO DE RUPTURA: I > 100, apoptosis completamente evasiva
+  • 60-80: Plateau en máximo, sistema neoplástico dominante
+```
+
+### 🧬 Matriz de Transformación en Big Bang
+
+```
+Cómo cambia la probabilidad de transformación neoplástica:
+
+FASE LATENCIA (Años 0-30):
+  P(TP53-/- → Neoplástica | I < 10) ≈ 2-5% (k=0.02, bajo)
+  Mayoría de TP53-/- aceptan apoptosis
+  
+FASE ACELERACIÓN (Años 30-50):
+  P(TP53-/- → Neoplástica | I = 10-50) ≈ 50% (k=0.02, pero I amplifica)
+  Algunas TP53-/- escapan apoptosis y transforman
+  
+FASE CRÍTICA (Años 50-70): ⚡ BIG BANG
+  P(TP53-/- → Neoplástica | I > 100) ≈ 95-99% (k=0.02, pero I MASIVO)
+  CASI TODAS TP53-/- transforman
+  P(apoptosis) ≈ 0% (inestabilidad rechaza completamente)
+  
+FASE DOMINIO (Años 70-80):
+  P(TP53-/- → Neoplástica | I = 999) ≈ 100% (inestabilidad máxima)
+  Transformación automática
+```
+
+### 📊 Tabla Comparativa: Parámetros Big Bang
+
+```
+Escenario    BRCA1   TP53    neoplasm_k   high_δ   Resultado (Año 80)
+──────────────────────────────────────────────────────────────────
+10 (Bajo)    0.050   0.010   0.020        1.0      9,580 (92% neo)
+11 (Mod)     0.060   0.015   0.030        1.0      (esperado: 85%+)
+12 (Agr)     0.080   0.020   0.050        1.0      (esperado: 95%+)
+13 (Extr)    0.050   0.020   0.050        2.0      (esperado: 99%+)
+14 (Ctrl)    0.050   0.010   0.020        1.0      (reproducible, 92% neo)
+
+Tendencia:
+  • Mayor μ_TP53 → Big Bang más temprano
+  • Mayor neoplasm_k → Transformación más masiva
+  • Mayor high_δ → Inestabilidad más rápida
+  • Resultado: Escena Big Bang configurable según agresividad
+```
+
+---

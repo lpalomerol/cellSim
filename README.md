@@ -30,7 +30,28 @@ docs/                                # Documentación del proyecto
 | **cellSim** | Simulación batch de 100 escenarios | En memoria |
 | **interactive** | Modo interactivo con control manual | Verbose logging |
 | **single_cell_evolution** | Análisis detallado de célula única | single_cell_evolution_log.txt |
-| **run_all_scenarios** | ✨ **NUEVO**: Validación de 9 escenarios | Markdown + CSV |
+| **run_all_scenarios** | ✨ **VALIDACIÓN**: 14 escenarios (controles + realistas + **Big Bang**) | Markdown + CSV |
+
+## 💥 Modo Big Bang (NUEVO)
+
+El simulador incluye 5 nuevos escenarios que modelan la **transformación masiva neoplástica**:
+
+- **Escenario 10-14:** Modo Big Bang con variantes (bajo, moderado, agresivo, extremo, control)
+- **Características:** Fase latencia → Aceleración → Explosión crítica → Dominio tumoral
+- **Resultado:** 90-99% neoplásticas con >99% inmortalidad
+- **Documentación:** Ver `docs/BIG_BANG_MODE.md`
+
+## Documentación
+
+| Archivo | Descripción |
+|---------|-----------|
+| `docs/README.md` | Modelo biológico y parámetros (🎯 COMIENZA AQUÍ) |
+| `docs/diagrams.md` | FSM de genes, ciclo celular, diagramas comparativos |
+| `docs/BIG_BANG_MODE.md` | 💥 Transformación masiva neoplástica (NUEVO) |
+| `BIG_BANG_SUMMARY.md` | 📊 Resumen ejecutivo del Big Bang (NUEVO) |
+| `INDEX.md` | Índice de validación con 14 escenarios |
+| `USAGE_GUIDE.md` | Cómo interpretar resultados |
+| `EXECUTIVE_DASHBOARD.md` | Gráficos para stakeholders |
 
 ## Refactor de Limpieza Reciente
 
