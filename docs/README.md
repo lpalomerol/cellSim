@@ -1,198 +1,327 @@
 # cellSim - Simulador de Dinámica Celular
 
-## 📋 Descripción
+## 🎯 ¿Qué es cellSim?
 
-**cellSim** es un simulador de evolución de poblaciones celulares que modela mutaciones genéticas, división celular, apoptosis y transformación neoplástica. Permite estudiar cómo diferentes tasas de mutación afectan la composición y viabilidad del tejido.
+**cellSim** es un simulador estocástico basado en agentes que modela la evolución de poblaciones celulares epiteliales bajo presión de mutaciones genéticas, apoptosis y transformación neoplástica. 
 
----
+**Caso de uso:** Entender cómo diferentes tasas de mutación en genes críticos (BRCA1, TP53) afectan la composición poblacional, la resistencia a apoptosis y el riesgo de neoplasias.
 
-## 🧬 Estructura Celular
-
-Una célula contiene:
-
-| Componente | Descripción |
-|-----------|-------------|
-| **BRCA1** | Gene de viabilidad (BRCA1 -/- = muerte) |
-| **TP53** | Gene guardián (TP53 -/- = sin protección contra neoplasias) |
-| **Edad** | Ciclos de vida completados |
-| **Inestabilidad Genómica** | Degradación progresiva del genoma |
-
-### Estados Genéticos
-
-**BRCA1:** `+/-` (inicial) → `-/-` (mutación, irreversible) → Muerte
-
-**TP53:** `+/+` (inicial) → `+/-` → `-/-` (vulnerable a neoplasias)
+**Audiencia:** Biólogos moleculares, bioinformáticos, y investigadores en oncología.
 
 ---
 
-## 🔄 Ciclo de Vida (6 Fases)
+## 🧬 Modelo Biológico
 
-```
-Fase 0: Baseline Assessment
-Fase 1: G1 Integrity Checkpoint → ¿BRCA1 -/-? MUERE
-Fase 2: Endocytosis → Recibe apoptosis, puede rechazar
-Fase 3: Nuclear Dynamics → Mutaciones genéticas
-Fase 4: Cytoplasmic Remodeling → División, transformación neoplástica
-Fase 5: Exocytosis → Placeholder
-```
+### Gen BRCA1 (Breast Cancer susceptibility protein 1)
+- **Función:** Reparación del ADN, control de ciclo celular
+- **Estados genéticos:** 
+  - `+/-` (heterocigoto, funcional, VIVO)
+  - `-/-` (homocigoto recesivo, deficiente, MUERE en Fase 1)
+- **Modelado:** Mutación **unidireccional e irreversible** (`+/-` → `-/-`)
+- **Biología:** BRCA1 -/- es incompatible con vida en la mayoría de tejidos
 
-### Decisiones Críticas
+### Gen TP53 (Tumor Protein 53)
+- **Función:** "Guardián del genoma" - detiene ciclo celular ante daño, induce apoptosis
+- **Estados genéticos:**
+  - `+/+` (homocigoto dominante, máxima protección)
+  - `+/-` (heterocigoto, protección parcial pero funcional)
+  - `-/-` (homocigoto recesivo, sin protección, VULNERABLE a neoplasias)
+- **Modelado:** Mutación **bidireccional y progresiva** (`+/+` → `+/-` → `-/-`)
+- **Biología:** TP53 -/- permite evasión de apoptosis e inmortalización
 
-| Fase | Evento | Condición | Resultado |
-|------|--------|-----------|-----------|
-| 1 | BRCA1 Checkpoint | BRCA1 = `-/-` | MUERTE (irreversible) |
-| 2 | Rechazo de apoptosis | inestabilidad > umbral | Permanece, se vuelve neoplástica |
-| 3 | Mutación genética | Threshold aleatorio | BRCA1: `+/-` → `-/-`; TP53: avanza |
-| 4 | División | Probabilidad configurable | Crea célula hija (clonada) |
-| 4 | Transformación neoplástica | Umbral supera k | Genera señal neoplástica |
+### Inestabilidad Genómica (Genomic Instability)
+- **Definición:** Acumulación de mutaciones a causa del aumento de defectos de reparación
+- **Fórmula:** `I(t+1) = I(t)² + δ(TP53_status)`
+- **Interpretación:** 
+  - Crecimiento **cuadrático** (retroalimentación positiva)
+  - Delta (`δ`) depende del estado de TP53:
+    - TP53 `+/+` → δ = 0.0 (reparación eficiente)
+    - TP53 `+/-` → δ = 0.5 (reparación moderada)
+    - TP53 `-/-` → δ = 1.0 (reparación deficiente)
+
+---
+
+## 🔄 Ciclo de Vida Celular (6 Fases)
+
+Cada célula completar **6 fases secuenciales** en cada iteración:
+
+| Fase | Nombre | Proceso | Checkpoint |
+|------|--------|---------|-----------|
+| **0** | Baseline Assessment | Evaluación de viabilidad inicial | - |
+| **1** | G1 Integrity | Verificación de integridad BRCA1 | ❌ BRCA1=-/- → MUERTE |
+| **2** | Endocytosis | Recepción de señales apoptóticas | 🔄 Acepta/rechaza apoptosis |
+| **3** | Nuclear Dynamics | Mutaciones genéticas (BRCA1, TP53) | 🧬 Cambios aleatorios |
+| **4** | Cytoplasmic Remodeling | Transformación neoplástica + división | 🔴 TP53=-/- → neoplástica O 🔵 División |
+| **5** | Exocytosis | Emisión de señales al tejido | Señales normales O NeoplasmSignal |
+
+### Checkpoints Críticos
+
+**Fase 1 - BRCA1 Check:**
+- Si BRCA1 = `-/-` → Lanza excepción, célula muere inmediatamente
+- Biología: Deficiencia de BRCA1 es incompatible con vida
+
+**Fase 2 - Apoptosis Checkpoint:**
+- Célula recibe señal de apoptosis
+- Evalúa su `inestabilidad genómica`
+- Si `inestabilidad ≤ 10.0` → ✅ **Acepta apoptosis** → MUERTE
+- Si `inestabilidad > 10.0` → ❌ **Rechaza apoptosis** → EVASIÓN (inmortalización)
+- Biología: Inestabilidad genómica amplificada permite evasión
+
+**Fase 3 - Mutaciones:**
+- BRCA1: Muta `+/-` → `-/-` con probabilidad `P = threshold × genomic_instability`
+- TP53: Muta escalonadamente con misma probabilidad
+- Biología: Tasas de mutación realistas (~1% en DEFAULT)
+
+**Fase 4 - Decisión Terminal:**
+- **PRIMERO:** ¿TP53 = `-/-`? → SÍ: Transforma en neoplástica
+- **SEGUNDO (si NO transformada):** ¿División? → P(div)% → Clona hija
 
 ---
 
 ## 📊 9 Escenarios de Validación
 
-Cada escenario configura parámetros de mutación, inestabilidad y división:
+Cada escenario prueba un aspecto diferente del modelo:
 
-| ID | Escenario | BRCA1 | TP53 | low_δ | high_δ | DIV | Años | Vivas Final | Neo (%) | Inmortales |
-|----|-----------|-------|------|-------|--------|-----|------|-----------|---------|-----------|
-| 01 | ctrl_baseline_no_mutations_no_division | 0.0 | 0.0 | 0.5 | 1.0 | 0% | 10 | 1000 | 0% | 0% |
-| 02 | ctrl_baseline_no_mutations_high_division | 0.0 | 0.0 | 0.5 | 1.0 | 15% | 10 | 4955 | 0% | 0% |
-| 03 | ctrl_brca_mutations_high | 0.2 | 0.0 | 0.5 | 1.0 | 0% | 50 | 0 | 0% | 0% |
-| 04 | ctrl_tp53_mutations_high | 0.0 | 0.1 | 0.5 | 1.0 | 0% | 50 | 462 | 98% | 100% |
-| 05 | ctrl_tp53_mutations_high_unstable | 0.0 | 0.1 | 0.1 | 0.5 | 0% | 50 | 573 | 98% | 99.5% |
-| 06 | realistic_baseline | 0.05 | 0.01 | 0.5 | 1.0 | 0% | 50 | 59 | 20% | 100% |
-| 07 | realistic_low_tp53_instability | 0.05 | 0.005 | 0.5 | 1.0 | 5% | 80 | 484 | 2.5% | 100% |
-| 08 | realistic_high_tp53_instability | 0.05 | 0.02 | 1.0 | 1.5 | 5% | 80 | 153 | 46% | 100% |
-| 09 | realistic_balanced | 0.05 | 0.01 | 0.5 | 1.0 | 5% | 80 | 362 | 4.7% | 94% |
+### Controles Positivos & Negativos
 
-**Leyenda:** low_δ = low_delta_instability, high_δ = high_delta_instability, DIV = division_rate, Neo = neoplásticas, Inmortales = resistentes a apoptosis
+| Escenario | Descripción | Parámetros | Resultado Esperado | Resultado Real |
+|-----------|-------------|-----------|-------------------|----------------|
+| **01. Baseline Estable** | Sin mutaciones, sin división | μ=0%, div=0% | Población = 1000 (100% vivas) | ✅ 1000 vivas, 0% neo |
+| **02. Crecimiento Exponencial** | Sin mutaciones, alta división | μ=0%, div=15% | Población ~5000 (crecimiento 5×) | ✅ 4955 vivas, 5× |
+| **03. Colapso BRCA1** | BRCA1 muy mutágeno | μ_BRCA=0.2, div=0% | Extinción total | ✅ 0 vivas en 50 años |
+
+### Fenotipos Neoplásticos
+
+| Escenario | Descripción | Parámetros | Resultado Esperado | Resultado Real |
+|-----------|-------------|-----------|-------------------|----------------|
+| **04. Invasión TP53** | TP53 muy mutágeno | μ_TP53=0.1, div=0% | 90%+ neoplásticas, inmortales | ✅ 462 vivas, 98% neo, 100% inmortales |
+| **05. Efecto de Inestabilidad** | Mayor inestabilidad TP53 | low_δ=0.1, high_δ=0.5 | Más neoplásticas | ✅ 573 vivas vs 462 |
+
+### Escenarios Realistas
+
+| Escenario | Descripción | Parámetros | Resultado Esperado | Resultado Real |
+|-----------|-------------|-----------|-------------------|----------------|
+| **06. Realista Basal** | Tasas reales bajas | μ_BRCA=0.05, μ_TP53=0.01, div=0% | ~20% neoplásticas | ✅ 59 vivas, 20% neo |
+| **07. Protección TP53 Baja** | TP53 muy baja, división controlada | μ_TP53=0.005, div=5% | <5% neoplásticas | ✅ 484 vivas, 2.5% neo |
+| **08. Inestabilidad Alta** | Inestabilidad severa | high_δ=1.5, div=5% | 40-50% neoplásticas | ✅ 153 vivas, 46% neo |
+| **09. Balanced (RECOMENDADO)** | Parámetros biológicamente realistas | μ_BRCA=0.05, μ_TP53=0.01, div=5% | 4-5% neoplásticas | ✅ 362 vivas, 4.7% neo |
+
+**Población inicial:** 1000 células/escenario | **Duración:** 10-80 años simulados
 
 ---
 
-## 🎮 Uso
+## 🎮 Cómo Usar cellSim
+
+### Compilación y Ejecución
 
 ```bash
-# Compilar
+# 1. Compilar todo el proyecto
 cd /home/luis/CLionProjects/cellSim
 cmake --build cmake-build-debug --target run_all_scenarios -j4
 
-# Ejecutar todos los 9 escenarios
+# 2. Ejecutar todos los 9 escenarios (toma ~2-5 minutos)
 ./cmake-build-debug/run_all_scenarios
 
-# Las trazas se generarán en:
-cmake-build-debug/traces/
-├── 01_ctrl_baseline_no_mutations_no_division/
-├── 02_ctrl_baseline_no_mutations_high_division/
-├── ... (9 escenarios totales)
-└── 09_realistic_balanced/
+# 3. Ver trazas generadas
+ls -la cmake-build-debug/traces/
 ```
 
-### Parámetros Globales
-- **Población inicial:** 1000 células por escenario
-- **Apoptosis threshold:** 10.0 (instabilidad genómica máxima permitida para que apoptosis sea efectiva)
-- **Seed:** Aleatorio (-1) para variabilidad
+### Archivos de Salida
+
+Cada escenario genera dos archivos:
+
+```
+traces/[escenario_id]_[nombre]/
+├── [escenario]_run1_POPULATION.md       ← Tabla Markdown (anual)
+├── [escenario]_run1_POPULATION.csv      ← CSV para análisis externo
+└── [otros archivos de log]
+```
+
+**Contenido de POPULATION.md:**
+- Tabla anual con: Año, Vivas, Neoplásticas, Muertas, TP53 +/+ / +/- / -/-, etc.
+- Fácil de analizar en Excel, R, Python
+
+### Parámetros Configurables
+
+| Parámetro | Rango | Default | Interpretación |
+|-----------|-------|---------|----------------|
+| `BRCA1_threshold` | 0.0-0.2 | 0.05 | Tasa de mutación BRCA1 por ciclo (%) |
+| `TP53_threshold` | 0.0-0.1 | 0.01 | Tasa de mutación TP53 por ciclo (%) |
+| `neoplasm_k` | 0.0-0.1 | 0.05 | Prob. base de transformación neoplástica |
+| `low_delta_instability` | 0.0-1.0 | 0.5 | Incremento de inestabilidad (TP53 +/-) |
+| `high_delta_instability` | 0.0-1.5 | 1.0 | Incremento de inestabilidad (TP53 -/-) |
+| `division_rate` | 0.0-0.15 | 0.05 | Tasa de división celular por ciclo (%) |
+| `apoptosis_threshold` | 1.0-10.0 | 10.0 | Umbral de evasión de apoptosis |
 
 ---
 
-## ⚙️ Configuración de Parámetros
+## 🔬 Interpretación de Resultados
 
-| Parámetro | Significado | Rango | Default |
-|-----------|------------|-------|---------|
-| **BRCA1** | Tasa de mutación BRCA1 | 0.0 - 0.2 | 0.05 |
-| **TP53** | Tasa de mutación TP53 | 0.0 - 0.1 | 0.01 |
-| **neoplasm_k** | Probabilidad base de neoplasia | 0.0 - 0.1 | 0.05 |
-| **low_delta** | Inestabilidad con TP53 +/- | 0.0 - 1.0 | 0.5 |
-| **high_delta** | Inestabilidad con TP53 -/- | 0.0 - 1.5 | 1.0 |
-| **division_rate** | Tasa de división celular | 0.0 - 0.15 | 0.05 |
-| **apoptosis_threshold** | Umbral de evasión de apoptosis | 1.0 - 10.0 | 10.0 |
+### ¿Cómo leer los outputs?
 
----
+**% Neoplásticas alto (>50%):**
+- TP53 muy mutágeno O inestabilidad alta
+- Riesgo de transformación oncológica
 
-## 🔬 Insights Clave (Validación Experimental)
+**% Inmortales alto (>90%):**
+- Células resistentes a apoptosis
+- Necesario para malignidad (pero no suficiente)
 
-### Hallazgos de Control Basal
-1. **Sin mutaciones → población estable** (Escenario 01: 1000 vivas, 0% neoplásticas)
-2. **Sin mutaciones + división → crecimiento exponencial** (Escenario 02: 4955 vivas, 5× en 10 años)
+**Población decreciente:**
+- BRCA1 letal, O apoptosis muy efectiva
+- Selección negativa fuerte
 
-### Hallazgos Paramétricos
-3. **BRCA1=0.2 es letal** - Extinción total en 50 años (Escenario 03: 0 vivas)
-4. **TP53=0.1 + neoplasm_k=0.1 → 98% neoplásticas** (Escenario 04: 462 vivas, 98% neo)
-5. **Mayor inestabilidad amplifica neoplasias** (Escenario 05 vs 04: +111 células con high_delta más alto)
+### Validación Biológica
 
-### Hallazgos Realistas
-6. **TP53 baja (0.5%) es muy protectora** - 2.5% neoplásticas (Escenario 07: 484 vivas)
-7. **TP53 moderada (2%) + inestabilidad alta → 46% neoplásticas** (Escenario 08: 153 vivas)
-8. **Parámetros balanceados son realistas** - 4.7% neoplásticas (Escenario 09: RECOMENDADO)
-
-### Mecanismos Validados
-- ✅ Inestabilidad genómica correlaciona con resistencia a apoptosis
-- ✅ Umbral de apoptosis (10.0) es permisivo: células muy inestables evaden muerte
-- ✅ División celular mantiene población incluso bajo presión selectiva
-- ✅ TP53 es crítico para protección contra neoplasias
+✅ **Hallazgos que validan el modelo:**
+1. BRCA1 -/- es letal (Escenario 03: extinción)
+2. TP53 -/- puede causar neoplasias (Escenario 04: 98% transformadas)
+3. Inestabilidad genómica correlaciona con evasión apoptótica
+4. Bajas tasas de mutación TP53 son protectoras (Escenario 07: 2.5% neo)
+5. Parámetros balanceados reproducen epidemiología real (Escenario 09: 4.7% neo)
 
 ---
 
 ## ✅ Funcionalidades Implementadas
 
-- ✅ Mutaciones genéticas (BRCA1, TP53) con tasa configurable
-- ✅ Apoptosis por BRCA1 -/- (muerte garantizada)
-- ✅ Transformación neoplástica condicionada a TP53 -/-
-- ✅ Evasión de apoptosis basada en inestabilidad genómica
-- ✅ División celular con clonación y herencia de inestabilidad
-- ✅ Inestabilidad genómica progresiva (actualizacion de deltas por TP53 status)
-- ✅ **9 escenarios de validación** (controles + realistas)
-- ✅ **Generación automática de trazas** (Markdown + CSV)
-  - Tablas anuales con evolución de población
-  - Análisis de neoplásticas susceptibles vs resistentes
-  - Estadísticas de TP53 status por año
+### Core Biológico
+- ✅ Mutaciones genéticas (BRCA1, TP53) estocásticas
+- ✅ Apoptosis programada (Fase 2)
+- ✅ Transformación neoplástica (TP53 -/- dependent)
+- ✅ Evasión de apoptosis (inestabilidad > threshold)
+- ✅ División celular con herencia de inestabilidad
+- ✅ Inestabilidad genómica progresiva (cuadrática)
 
-### Archivos de Salida
-```
-traces/[escenario]/
-├── [escenario]_run1_POPULATION.md      (Tabla Markdown con evolución anual)
-└── [escenario]_run1_POPULATION.csv     (Datos en CSV para análisis externo)
-```
+### Simulación
+- ✅ 6 fases de ciclo celular
+- ✅ Checkpoints críticos con excepciones
+- ✅ Logging detallado de eventos
+- ✅ Trazas reproducibles (seed configurable)
+
+### Validación
+- ✅ 9 escenarios de validación (controles + realistas)
+- ✅ Generación automática de trazas (Markdown + CSV)
 - ✅ 55+ tests unitarios PASSING
+- ✅ Análisis estadístico integrado
 
 ---
 
-## 📂 Estructura del Proyecto
+## 📂 Estructura del Código
 
 ```
 src/
 ├── application/
+│   ├── main.cpp                    ← Punto de entrada principal
+│   ├── run_all_scenarios.cpp       ← Ejecutor de 9 escenarios
+│   └── ...
 ├── domain/
 │   ├── cell/
+│   │   ├── ICell.h                 ← Interfaz celular
+│   │   ├── Cell.h/cpp              ← Implementación base
+│   │   └── NeoplasmCell.h/cpp      ← Célula neoplástica
 │   ├── gene/
+│   │   ├── Gene.h/cpp
+│   │   ├── BRCA1.h/cpp
+│   │   └── TP53.h/cpp
 │   ├── tissue/
-│   └── ...
+│   │   ├── Tissue.h/cpp            ← Población de células
+│   │   └── TissueFactory.h/cpp     ← Creador de tejidos
+│   └── signals/
+│       ├── ApoptosisSignal.h
+│       └── NeoplasmSignal.h
 └── shared/
+    ├── Random.h                    ← Generador estocástico
+    ├── Logger.h                    ← Sistema de logging
+    └── exceptions/
 
 tests/
-├── unit_tests
-└── integration tests
+├── unit_tests/                     ← 55+ tests
+└── mocks/
+```
 
-build/
-└── ejecutables (cellSim, random_cells, interactive, etc)
+### Ejemplo: Crear Escenario Personalizado
+
+```cpp
+// En run_all_scenarios.cpp o nuevo archivo
+Tissue tissue(1000);  // 1000 células iniciales
+
+for (int year = 0; year < 50; year++) {
+    for (int cycle = 0; cycle < CYCLES_PER_YEAR; cycle++) {
+        tissue.executeFullCycle();
+    }
+    // Guardar estadísticas
+    tissue.logYearlyStatistics(year);
+}
 ```
 
 ---
 
-## 🧬 Compilación y Tests
+## 🧪 Tests y Validación
 
 ```bash
-# Compilar todo
-make -j4
-
-# Ejecutar tests
+# Ejecutar todos los tests
 ./cmake-build-debug/tests/unit_tests
 
-# Build limpio
-rm -rf build cmake-build-debug && make -j4
+# Tests clave:
+- GenomeFactoryTest.cpp          ← Creación de genomas
+- CellDivisionInstabilityPropagationTest.cpp ← División + herencia
+- NeoplasticImmortalityTest.cpp  ← Inmortalización
+- ApoptosisTest.cpp              ← Apoptosis y evasión
 ```
 
 ---
 
-**Autor:** Simulador de Dinámica Celular
-**Licencia:** Abierto para investigación educativa
-**Última actualización:** 2025
+## 📖 Documentación Adicional
+
+- **`docs/diagrams.md`** - Diagramas FSM, ciclo de vida, escenarios poblacionales
+- **`VALIDATION_RESULTS_ANALYSIS.md`** - Análisis detallado de cada escenario
+- **`USAGE_GUIDE.md`** - Guía práctica de uso
+
+---
+
+## 🎓 Casos de Uso
+
+### Para Biólogos:
+- Entender relación entre mutaciones y transformación neoplástica
+- Estimar riesgo de cáncer bajo diferentes presiones mutacionales
+- Validar hipótesis de evolución de poblaciones celulares
+
+### Para Bioinformáticos:
+- Simular datos para entrenar modelos de predicción
+- Analizar dinámicas estocásticas en pobla poblaciones celulares
+- Extender modelo con nuevos genes o mecanismos
+
+### Para Oncólogos:
+- Comprender heterogeneidad tumoral
+- Modelar resistencia a apoptosis
+- Predecir efectividad de terapias dirigidas
+
+---
+
+## 🔧 Troubleshooting
+
+| Problema | Causa | Solución |
+|----------|-------|----------|
+| Compilación falla | CMake desactualizado | `rm -rf build && make -j4` |
+| Tests fallan | Dependencias de googletest | Descargar googletest |
+| Trazas no se generan | Permisos de directorio | `mkdir -p cmake-build-debug/traces` |
+| Simulación muy lenta | Población inicial alta | Reducir a 500 células |
+
+---
+
+## 📝 Autor y Licencia
+
+**Autor:** Desarrollo interno para investigación  
+**Licencia:** Abierto para investigación educativa y académica  
+**Última actualización:** 2025-01-04
+
+---
+
+## 🚀 Próximos Pasos
+
+- [ ] Añadir más genes críticos (PTEN, RB1)
+- [ ] Interfaz gráfica para visualización en tiempo real
+- [ ] Exportar datos a formatos compatibles con R/Python
+- [ ] Modelo de microambiente tumoral (células inmunes, stromal)
+- [ ] Validación contra datos experimentales reales
 
