@@ -11,7 +11,7 @@
 
                     P(mutación) = threshold × genomic_instability
                                         ↓
-        ┌──────────────┐          ┌──────────────┐
+        ┌──────────────┐           ┌──────────────┐
         │              │ ────────→ │              │
         │     +/-      │   μ₁      │     -/-      │
         │   (vivo)     │ ────────→ │   (MUERE)    │
@@ -48,9 +48,9 @@ Transición:
 
                     P(mutación) = threshold × genomic_instability
                                         ↓
-    ┌──────────────┐          ┌──────────────┐          ┌──────────────┐
+    ┌──────────────┐           ┌──────────────┐           ┌──────────────┐
     │              │ ────────→ │              │ ────────→ │              │
-    │     +/+      │   μ₁      │     +/-      │   μ₂     │     -/-      │
+    │     +/+      │   μ₁      │     +/-      │   μ₂      │     -/-      │
     │✅ PROTEGIDO  │ ────────→ │✅ PROTEGIDO  │ ────────→ │❌ VULNERABLE │
     │ inest=base   │           │ inest=base   │           │ inest=base   │
     │              │           │  +0.5 (bajo) │           │  +1.0 (alto) │
@@ -205,8 +205,8 @@ ENTRADA: Célula viva en ciclo
       Instability      Instability    [sin decision]
        ≤ 10.0?          > 10.0?            │
           │                 │              │
-      ✅ ACEPTA        ❌ RECHAZA         │
-      APOPTOSIS       APOPTOSIS          │
+      ✅ ACEPTA        ❌ RECHAZA          │
+      APOPTOSIS       APOPTOSIS            │
           │                 │              │
           ↓                 ↓              ↓
         MUERTE           VIVE         CONTINÚA
@@ -318,13 +318,13 @@ ENTRADA: Célula viva en ciclo
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│        EVASIÓN DE APOPTOSIS - UMBRAL DE INESTABILIDAD            │
+│        EVASIÓN DE APOPTOSIS - UMBRAL DE INESTABILIDAD           │
 └─────────────────────────────────────────────────────────────────┘
 
 PARÁMETRO GLOBAL: apoptosis_instability_threshold = 10.0
 
 ┌─────────────────────────────────────────┐
-│  Fase 2: Endocitosis (Recibe Apoptosis)  │
+│  Fase 2: Endocitosis (Recibe Apoptosis) │
 └──────────────────┬──────────────────────┘
                    │
             ┌──────┴──────┐
@@ -361,7 +361,7 @@ La inestabilidad genómica progresiva (instability = instability² + delta) hace
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│     DINÁMICA: inestability = inestability² + delta_progressivo   │
+│     DINÁMICA: inestability = inestability² + delta_progressivo  │
 └─────────────────────────────────────────────────────────────────┘
 
 FÓRMULA MATEMÁTICA:
@@ -412,7 +412,7 @@ Donde:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│           DINÁMICA DE POBLACIÓN - 6 ESCENARIOS                   │
+│           DINÁMICA DE POBLACIÓN - 6 ESCENARIOS                  │
 └─────────────────────────────────────────────────────────────────┘
 
 ESCENARIO 1: DEFAULT (μ_BRCA1=0.01, μ_TP53=0.01, div=0%)
