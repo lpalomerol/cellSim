@@ -92,62 +92,35 @@ Consecuencias:
 ┌─────────────────────────────────────────────────────────────────┐
 │         FSM COMBINADO - 2D STATE SPACE (PROTECCIÓN)             │
 └─────────────────────────────────────────────────────────────────┘
+```
 
-                              TP53 STATE
-                         +/+     │     +/-      │     -/-
-                    ────────┼──────────┼──────────┼─────────
-                           │          │          │
-BRCA1    +/-    │ ✅ VIVO  │ ✅ VIVO  │ ❌ VIVO
-STATE           │ Seguro   │ Protegido│ Vulnerable
-                │ inest=   │ inest=   │ inest=
-                │ base     │ base+low │ base+high
-                ├──────────┼──────────┼──────────
-                │          │          │
-          -/-   │ ✗ MUERTE │ ✗ MUERTE │ ✗ MUERTE
-                │ (Fase1)  │ (Fase1)  │ (Fase1)
-                │          │          │
+#### TP53 STATE - BRCA1 STATE MATRIX:
 
+| BRCA1 STATE \ TP53 STATE | +/+ | +/- | -/- |
+|---|---|---|---|
+| **+/-** | ✅ VIVO<br>Seguro<br>inest=1.0 | ✅ VIVO<br>Protegido<br>inest=1.0+0.5 | ❌ VIVO<br>Vulnerable<br>inest=1.0+1.0 |
+| **-/-** | ✗ MUERTE<br>(Fase1) | ✗ MUERTE<br>(Fase1) | ✗ MUERTE<br>(Fase1) |
 
-Matriz de Protección contra Neoplasia:
-─────────────────────────────────────
+#### Tabla de Transiciones (por ciclo) - ESCENARIO DEFAULT:
 
-BRCA1\TP53       +/+           +/-           -/-
-────────────────────────────────────────────────────
-+/-      ✅ PROTEGIDO  ✅ PROTEGIDO  ❌ VULNERABLE
-         bajo riesgo   riesgo mod     alto riesgo
-         inest=1.0     inest=1.0+0.5  inest=1.0+1.0
-         (nada)        (bajo_delta)   (high_delta)
-         
--/-      ✗ MUERTE      ✗ MUERTE      ✗ MUERTE
-         (Fase 1)      (Fase 1)      (Fase 1)
+| De Estado | Evento | A Estado | P(trans) | Protección | Resultado |
+|---|---|---|---|---|---|
+| **(+/-, +/+)** | BRCA1 mutación | (-/-, +/+) | 0.0099 | ✅ → ❌ | ✗ MUERTE (Fase 1) |
+| | TP53 mutación | (+/-, +/-) | 0.0100 | ✅ → ✅ | VIVO (degradado) |
+| | Ambas mutaciones | (-/-, +/-) | 0.0001 | ✅ → ✅ | ✗ MUERTE (Fase 1) |
+| | Sin mutación | (+/-, +/+) | 0.9801 | ✅ → ✅ | VIVO (seguro) |
+| **(+/-, +/-)** | BRCA1 mutación | (-/-, +/-) | 0.0099 | ✅ → ✅ | ✗ MUERTE (Fase 1) |
+| | TP53 mutación | (+/-, -/-) | 0.0100 | ✅ → ❌ | VIVO (vulnerable) |
+| | Ambas mutaciones | (-/-, -/-) | 0.0001 | ✅ → ❌ | ✗ MUERTE (Fase 1) |
+| | Sin mutación | (+/-, +/-) | 0.9801 | ✅ → ✅ | VIVO (degradado) |
+| **(+/-, -/-)** | BRCA1 mutación | (-/-, -/-) | 0.0100 | ❌ → ❌ | ✗ MUERTE (Fase 1) |
+| | Sin cambio | (+/-, -/-) | 0.9900 | ❌ → ❌ | VIVO (vulnerable) |
 
-
-Tabla de Transiciones (por ciclo) - ESCENARIO DEFAULT:
-────────────────────────────────────────────────────────
-
-De Estado          Evento              A Estado           P(trans)    Protección  Resultado
-──────────────────────────────────────────────────────────────────────────────────────────────
-(+/-, +/+)   • BRCA1 mutación      → (-/-, +/+)        0.0099      ✅ → ❌     ✗ MUERTE (Fase 1)
-             • TP53 mutación       → (+/-, +/-)        0.0100      ✅ → ✅     VIVO (degradado)
-             • Ambas mutaciones    → (-/-, +/-)        0.0001      ✅ → ✅     ✗ MUERTE (Fase 1)
-             • Sin mutación        → (+/-, +/+)        0.9801      ✅ → ✅     VIVO (seguro)
-
-(+/-, +/-)   • BRCA1 mutación      → (-/-, +/-)        0.0099      ✅ → ✅     ✗ MUERTE (Fase 1)
-             • TP53 mutación       → (+/-, -/-)        0.0100      ✅ → ❌     VIVO (vulnerable)
-             • Ambas mutaciones    → (-/-, -/-)        0.0001      ✅ → ❌     ✗ MUERTE (Fase 1)
-             • Sin mutación        → (+/-, +/-)        0.9801      ✅ → ✅     VIVO (degradado)
-
-(+/-, -/-)   • BRCA1 mutación      → (-/-, -/-)        0.0100      ❌ → ❌     ✗ MUERTE (Fase 1)
-             • Sin cambio          → (+/-, -/-)        0.9900      ❌ → ❌     VIVO (vulnerable)
-
-
-PUNTOS CLAVE:
-─────────────
+#### PUNTOS CLAVE:
 1. ✅ PROTECCIÓN: status ≠ "-/-" (tanto +/+ como +/-)
 2. 📈 INESTABILIDAD: Aumenta con TP53 +/-, aumenta más con TP53 -/-
 3. ❌ VULNERABLE: Solo TP53 -/- permite transformación neoplástica
 4. 🔄 CICLO: Por cada ciclo, ~1% de probabilidad de mutación de cada gen
-```
 
 ---
 
@@ -266,6 +239,7 @@ MUERTE          CONTINÚA              │
 * Rechazo de apoptosis: Si genomic_instability > apoptosis_instability_threshold
 
 ---
+```
 
 ## 2️⃣.5️⃣ UMBRAL DE EVASIÓN DE APOPTOSIS (CRÍTICO)
 
@@ -292,32 +266,21 @@ PARÁMETRO GLOBAL: apoptosis_instability_threshold = 10.0
         ✗ MUERTE                 VIVE → INMORTAL
       (Programada)            (se vuelve resistente)
       (célula normal)          (neoplástica)
+```
 
+#### VALIDACIÓN EXPERIMENTAL (Escenarios):
 
-VALIDACIÓN EXPERIMENTAL (Escenarios):
-──────────────────────────────────────
+| Escenario | TP53 | high_delta | Descripción | Resultado |
+|---|---|---|---|---|
+| **04** | 0.1 | 1.0 | Año 0: inestability=1.0 (<10) ✅ apoptosis activa<br>Año 3-5: inestability~8-66 (>10) ❌ evasión | 100% neoplásticas inmortales |
+| **07** | 0.005 | 1.0 | Crece lentamente, muchas células mantienen inestability<10 | Solo 2.5% neoplásticas (mejor control) |
+| **09** | 0.01 | 1.0 | Balance intermedio | 4.7% neoplásticas (realista) |
 
-Escenario 04: TP53=0.1, high_delta=1.0
-  • Año 0: inestability = 1.0 (< 10.0) → apoptosis activa ✅
-  • Año 3-5: inestability ~ 8-66 (> 10.0) → evasión apoptosis ❌
-  • Resultado: 100% neoplásticas inmortales
-
-Escenario 07: TP53=0.005, high_delta=1.0  
-  • Crece más lentamente: inestability sube gradual
-  • Muchas células mantienen inestability < 10.0
-  • Resultado: Solo 2.5% neoplásticas (mejor control)
-
-Escenario 09: TP53=0.01, high_delta=1.0
-  • Balance intermedio
-  • Resultado: 4.7% neoplásticas (realista)
-
-IMPLICACIÓN:
-────────────
+**IMPLICACIÓN:**
 La inestabilidad genómica progresiva (instability = instability² + delta) hace que:
 1. Células con TP53 -/- rápidamente superen threshold (evasión)
 2. Células con TP53 +/- aumentan más lentamente (apoptosis aún activa)
 3. Células con TP53 +/+ casi nunca superen threshold (máxima protección)
-```
 
 ---
 
@@ -338,55 +301,37 @@ Donde:
       • TP53 +/+ → δ = 0.0
       • TP53 +/- → δ = low_delta (default: 0.5)
       • TP53 -/- → δ = high_delta (default: 1.0)
-
-
-EJEMPLO: Escenario 04 con TP53 -/- (high_delta=1.0)
-────────────────────────────────────────────────────
-
-Ciclo │ Inestability │ Cálculo              │ Estado vs Threshold (10.0)
-──────┼──────────────┼──────────────────────┼────────────────────────
-  0   │ 1.0000       │ inicial              │ 1.0 < 10.0 ✅ Apoptosis activa
-  1   │ 1.0000²+1.0  │ 1.0+1.0 = 2.0        │ 2.0 < 10.0 ✅ Apoptosis activa
-  2   │ 2.0000²+1.0  │ 4.0+1.0 = 5.0        │ 5.0 < 10.0 ✅ Apoptosis activa
-  3   │ 5.0000²+1.0  │ 25.0+1.0 = 26.0      │ 26.0 > 10.0 ❌ EVASIÓN APOPTOSIS
-  4   │ 26.0000²+1.0 │ 676.0+1.0 = 677.0    │ 677.0 > 10.0 ❌ INMORTAL GARANTIZADO
-  5   │ SATURATION   │ muy alto             │ ❌ MUERE CÉLULA DE TODAS FORMAS
-
-NOTA: Una vez que instability > 10.0, la célula neoplástica se vuelve INMORTAL
-
-
-COMPARACIÓN DE VELOCIDADES:
-───────────────────────────
-
-TP53 -/- con high_delta=1.0 (Esc 04):
-  Ciclo 3: inestability > 10.0 → EVASIÓN RÁPIDA
-
-TP53 -/- con high_delta=0.5 (Esc 05):
-  Ciclo 0: 1.0
-  Ciclo 1: 0.5² + 0.5 = 1.25
-  Ciclo 2: 1.25² + 0.5 = 2.0625
-  Ciclo 3: 2.0625² + 0.5 = 4.75
-  Ciclo 4: 4.75² + 0.5 = 23.06 → EVASIÓN MÁS LENTA
-
-TP53 +/- con high_delta=1.0 (Esc 07, 09):
-  Ciclo 0: 1.0
-  Ciclo 1: 1.0² + 0.5 = 1.5
-  Ciclo 2: 1.5² + 0.5 = 2.75
-  Ciclo 3: 2.75² + 0.5 = 8.06
-  Ciclo 4: 8.06² + 0.5 = 65.04 → EVASIÓN AÚN MÁS LENTA
-  Ciclo ~20: FINALMENTE > 10.0 (pero muchas células mueren antes)
-
-
-VALIDACIÓN EXPERIMENTAL - VELOCIDAD DE EVASIÓN:
-───────────────────────────────────────────────
-
-Población en año 50:
-  • Esc 04 (TP53=-/-, high_δ=1.0): 462 vivas, 100% inmortales (RÁPIDA EVASIÓN)
-  • Esc 05 (TP53=-/-, high_δ=0.5): 573 vivas, 99.5% inmortales (EVASIÓN UN POCO MÁS LENTA)
-  • Esc 07 (TP53=+/-, high_δ=1.0): 484 vivas, 100% inmortales (PERO SIN MUTACIONES TP53 = PROTECCIÓN)
-  • Esc 09 (TP53=+/-, high_δ=1.0): 362 vivas, 94% inmortales (CON MUTACIONES TP53 = ALGUNAS EVASIONES)
 ```
-```
+
+#### EJEMPLO: Escenario 04 con TP53 -/- (high_delta=1.0)
+
+| Ciclo | Inestability | Cálculo | Estado vs Threshold (10.0) |
+|---|---|---|---|
+| 0 | 1.0000 | inicial | 1.0 < 10.0 ✅ Apoptosis activa |
+| 1 | 1.0000²+1.0 | 1.0+1.0 = 2.0 | 2.0 < 10.0 ✅ Apoptosis activa |
+| 2 | 2.0000²+1.0 | 4.0+1.0 = 5.0 | 5.0 < 10.0 ✅ Apoptosis activa |
+| 3 | 5.0000²+1.0 | 25.0+1.0 = 26.0 | 26.0 > 10.0 ❌ EVASIÓN APOPTOSIS |
+| 4 | 26.0000²+1.0 | 676.0+1.0 = 677.0 | 677.0 > 10.0 ❌ INMORTAL GARANTIZADO |
+| 5 | SATURATION | muy alto | ❌ MUERE CÉLULA DE TODAS FORMAS |
+
+**Nota:** Una vez que instability > 10.0, la célula neoplástica se vuelve INMORTAL
+
+#### COMPARACIÓN DE VELOCIDADES:
+
+| Escenario | TP53 Status | Delta | Dinámica |
+|---|---|---|---|
+| **04** | -/- | 1.0 | Ciclo 0: 1.0 → Ciclo 1: 2.0 → Ciclo 2: 5.0 → **Ciclo 3: 26.0** ❌ EVASIÓN RÁPIDA |
+| **05** | -/- | 0.5 | Ciclo 0: 1.0 → Ciclo 1: 1.25 → Ciclo 2: 2.0625 → Ciclo 3: 4.75 → **Ciclo 4: 23.06** ❌ EVASIÓN MÁS LENTA |
+| **07/09** | +/- | 1.0 | Ciclo 0: 1.0 → Ciclo 1: 1.5 → Ciclo 2: 2.75 → Ciclo 3: 8.06 → **Ciclo 4: 65.04** ❌ EVASIÓN AÚN MÁS LENTA |
+
+#### VALIDACIÓN EXPERIMENTAL - VELOCIDAD DE EVASIÓN:
+
+| Escenario | TP53 | Delta | Población (año 50) | % Inmortales | Observación |
+|---|---|---|---|---|---|
+| **04** | -/- | 1.0 | 462 vivas | 100% | RÁPIDA EVASIÓN |
+| **05** | -/- | 0.5 | 573 vivas | 99.5% | EVASIÓN UN POCO MÁS LENTA |
+| **07** | +/- | 1.0 | 484 vivas | 100% | PERO SIN MUTACIONES TP53 = PROTECCIÓN |
+| **09** | +/- | 1.0 | 362 vivas | 94% | CON MUTACIONES TP53 = ALGUNAS EVASIONES |
 
 ---
 
@@ -533,6 +478,7 @@ Notación: (BRCA1 state, TP53 state)
 De estado →     A estado          Probabilidad       Evento
 ───────────────────────────────────────────────────────────────
 
+
 (+/-,+/+)   →   (+/-,+/-)         μ_TP53             BRCA1 estable, TP53 mutación
             →   (-/-,+/+)         μ_BRCA1            BRCA1 mutación → MUERTE (Fase 1)
             →   (-/-,+/-)         μ_BRCA1 × μ_TP53   Ambas → MUERTE
@@ -546,39 +492,33 @@ De estado →     A estado          Probabilidad       Evento
 (+/-,-/-)   →   (-/-,-/-)         μ_BRCA1            BRCA1 mutación → MUERTE
             →   (+/-,-/-)         1 - μ_BRCA1        Sin mutación (estado estable)
 
-
-ESCENARIO DEFAULT (threshold_BRCA1=0.01, threshold_TP53=0.01, genomic_instability=1.0):
-────────────────────────────────────────────────────────────────────────────────────
-
-                    De estado           A estado           P(transición)    %
-                    ──────────────────────────────────────────────────────────
-                    (+/-,+/+)     →     (+/-,+/+)          0.9801          98.01%  [No mutation]
-                                  →     (+/-,+/-)          0.0100          1.00%   [TP53 mut]
-                                  →     (-/-,+/+)          0.0099          0.99%   [BRCA1 mut → MUERTE]
-                                  →     (-/-,+/-)          0.0001          0.01%   [Both mut → MUERTE]
-
-                    (+/-,+/-)     →     (+/-,+/-)          0.9801          98.01%  [No mutation]
-                                  →     (+/-,-/-)          0.0100          1.00%   [TP53 mut]
-                                  →     (-/-,+/-)          0.0099          0.99%   [BRCA1 mut → MUERTE]
-                                  →     (-/-,-/-)          0.0001          0.01%   [Both mut → MUERTE]
-
-                    (+/-,-/-)     →     (+/-,-/-)          0.9900          99.00%  [No BRCA1 mut]
-                                  →     (-/-,-/-)          0.0100          1.00%   [BRCA1 mut → MUERTE]
-
-
-ESCENARIO HIGH_BRCA_APOPTOSIS (threshold_BRCA1=0.5, threshold_TP53=0.01, genomic_instability=1.0):
-──────────────────────────────────────────────────────────────────────────────────────────────────
-
-                    De estado           A estado           P(transición)    %
-                    ──────────────────────────────────────────────────────────
-
-                    (+/-,+/+)     →     (+/-,+/+)          0.4850          48.50%  [No mutation]
-                                  →     (+/-,+/-)          0.0100          1.00%   [TP53 mut]
-                                  →     (-/-,+/+)          0.5000          50.00%  [BRCA1 mut → MUERTE]
-                                  →     (-/-,+/-)          0.0050          0.50%   [Both mut → MUERTE]
-                    
-                    → RESULTADO: 50% de muertes CADA CICLO
 ```
+
+#### ESCENARIO DEFAULT (threshold_BRCA1=0.01, threshold_TP53=0.01, genomic_instability=1.0):
+
+| De Estado | A Estado | P(transición) | % | Descripción |
+|---|---|---|---|---|
+| **(+/-,+/+)** | (+/-,+/+) | 0.9801 | 98.01% | No mutation |
+| | (+/-,+/-) | 0.0100 | 1.00% | TP53 mut |
+| | (-/-,+/+) | 0.0099 | 0.99% | BRCA1 mut → MUERTE |
+| | (-/-,+/-) | 0.0001 | 0.01% | Both mut → MUERTE |
+| **(+/-,+/-)** | (+/-,+/-) | 0.9801 | 98.01% | No mutation |
+| | (+/-,-/-) | 0.0100 | 1.00% | TP53 mut |
+| | (-/-,+/-) | 0.0099 | 0.99% | BRCA1 mut → MUERTE |
+| | (-/-,-/-) | 0.0001 | 0.01% | Both mut → MUERTE |
+| **(+/-,-/-)** | (+/-,-/-) | 0.9900 | 99.00% | No BRCA1 mut |
+| | (-/-,-/-) | 0.0100 | 1.00% | BRCA1 mut → MUERTE |
+
+#### ESCENARIO HIGH_BRCA_APOPTOSIS (threshold_BRCA1=0.5, threshold_TP53=0.01, genomic_instability=1.0):
+
+| De Estado | A Estado | P(transición) | % | Descripción |
+|---|---|---|---|---|
+| **(+/-,+/+)** | (+/-,+/+) | 0.4850 | 48.50% | No mutation |
+| | (+/-,+/-) | 0.0100 | 1.00% | TP53 mut |
+| | (-/-,+/+) | 0.5000 | 50.00% | BRCA1 mut → MUERTE |
+| | (-/-,+/-) | 0.0050 | 0.50% | Both mut → MUERTE |
+
+**RESULTADO:** 50% de muertes CADA CICLO
 
 ---
 
