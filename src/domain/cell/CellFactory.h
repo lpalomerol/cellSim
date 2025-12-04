@@ -12,6 +12,8 @@ std::unique_ptr<ICell> createAgenticCell(unsigned seed, domain::Genome genome, d
     double low_delta_instability = 0.0001,
     double high_delta_instability = 0.0002,
     double division_rate = 0.001,
+    double neoplastic_division_rate = 0.001,
+    bool enable_big_bang_mode = false,
     double apoptosis_instability_threshold = 10.0,
     ports::ILoggerPtr logger = nullptr);
 
@@ -20,6 +22,8 @@ std::unique_ptr<ICell> createAgenticCell(std::unique_ptr<INoiseSource> noise, do
     double low_delta_instability = 0.0001,
     double high_delta_instability = 0.0002,
     double division_rate = 0.001,
+    double neoplastic_division_rate = 0.001,
+    bool enable_big_bang_mode = false,
     double apoptosis_instability_threshold = 10.0,
     ports::ILoggerPtr logger = nullptr);
 

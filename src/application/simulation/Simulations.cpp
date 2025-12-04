@@ -34,8 +34,10 @@ void Simulations::runAll() {
                     cfg_.neoplasm_k,
                     0.0001,  // low_delta_instability
                     0.0002,  // high_delta_instability
-                    0.001,
-                    10.0,
+                    0.001,   // division_rate
+                    0.001,   // neoplastic_division_rate (default)
+                    false,   // enable_big_bang_mode (default false)
+                    10.0,    // apoptosis_threshold
                     cfg_.logger)
             );
         }

@@ -42,6 +42,8 @@ int main() {
             0.0001,
             0.0002,
             config.division_rate,
+            config.neoplastic_division_rate,
+            config.enable_big_bang_mode,
             config.apoptosis_threshold,
             config.logger)
     );

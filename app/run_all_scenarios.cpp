@@ -96,6 +96,8 @@ struct ScenarioConfig {
     double low_delta;
     double high_delta;
     double division_rate;
+    double neoplastic_division_rate = 0.001;  // Para Big Bang (default = normal)
+    bool enable_big_bang_mode = false;        // Para Big Bang (default = desactivado)
     int max_t = 50;  // Duración en años (default 50)
 };
 
@@ -136,6 +138,8 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
             scenario.low_delta,
             scenario.high_delta,
             scenario.division_rate,
+            scenario.neoplastic_division_rate,
+            scenario.enable_big_bang_mode,
             base_cfg.apoptosis_threshold,
             base_cfg.logger
         );
@@ -183,9 +187,10 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
 
 int main() {
     std::cout << "\n╔═══════════════════════════════════════════════════════════════╗\n";
-    std::cout << "║  VALIDACIÓN - 9 ESCENARIOS DE CONTROL Y REALISTAS           ║\n";
+    std::cout << "║  VALIDACIÓN - 12 ESCENARIOS: 9 CONTROL + 3 BIG BANG       ║\n";
     std::cout << "║  Parámetros: BRCA1, TP53, neoplasm_k, low_delta,           ║\n";
-    std::cout << "║              high_delta, division_rate, years               ║\n";
+    std::cout << "║              high_delta, division_rate, neoplastic_div      ║\n";
+    std::cout << "║  Escenarios 10-12: Big Bang (TP53 -/- con división)         ║\n";
     std::cout << "║  Apoptosis threshold: 10.0 (instabilidad máxima permitida)  ║\n";
     std::cout << "╚═══════════════════════════════════════════════════════════════╝\n";
 
@@ -201,14 +206,18 @@ int main() {
          0.0, 0.0, 0.0,      // BRCA1=0, TP53=0, neoplasm_k=0
          0.5, 1.0,           // low_delta=0.5, high_delta=1.0
          0.0,                // division_rate=0
-         10},                // 10 años
+         0.0,                // neoplastic_division_rate=0
+         false,              // enable_big_bang_mode=false
+         10},                // max_t=10 años
 
         {"02_ctrl_baseline_no_mutations_high_division",
          "Baseline: Sin mutaciones, reproducción 15%",
          0.0, 0.0, 0.0,      // BRCA1=0, TP53=0, neoplasm_k=0
          0.5, 1.0,           // low_delta=0.5, high_delta=1.0
          0.15,               // division_rate=15%
-         10},                // 10 años (corto para evitar explosión celular)
+         0.0,                // neoplastic_division_rate=0
+         false,              // enable_big_bang_mode=false
+         10},                // max_t=10 años (corto para evitar explosión celular)
 
         // === CONTROLES PARAMÉTRICOS ===
         {"03_ctrl_brca_mutations_high",
@@ -216,21 +225,27 @@ int main() {
          0.2, 0.0, 0.0,      // BRCA1=0.2 (20%), TP53=0, neoplasm_k=0
          0.5, 1.0,           // low_delta=0.5, high_delta=1.0
          0.0,                // division_rate=0
-         50},                // 50 años
+         0.0,                // neoplastic_division_rate=0
+         false,              // enable_big_bang_mode=false
+         50},                // max_t=50 años
 
         {"04_ctrl_tp53_mutations_high",
          "Mutaciones TP53 altas (10%) con neoplasma",
          0.0, 0.10, 0.10,    // BRCA1=0, TP53=0.10 (10%), neoplasm_k=0.10
          0.5, 1.0,           // low_delta=0.5, high_delta=1.0
          0.0,                // division_rate=0
-         50},                // 50 años
+         0.0,                // neoplastic_division_rate=0
+         false,              // enable_big_bang_mode=false
+         50},                // max_t=50 años
 
         {"05_ctrl_tp53_mutations_high_unstable",
          "TP53 altas (10%) + inestabilidad alta",
          0.0, 0.10, 0.10,    // BRCA1=0, TP53=0.10 (10%), neoplasm_k=0.10
          0.1, 0.5,           // low_delta=0.1, high_delta=0.5 (más inestabilidad)
          0.0,                // division_rate=0
-         50},                // 50 años
+         0.0,                // neoplastic_division_rate=0
+         false,              // enable_big_bang_mode=false
+         50},                // max_t=50 años
 
         // === ESCENARIOS REALISTAS ===
         {"06_realistic_baseline",
@@ -238,28 +253,64 @@ int main() {
          0.05, 0.01, 0.05,   // BRCA1=0.05 (5%), TP53=0.01 (1%), neoplasm_k=0.05
          0.5, 1.0,           // low_delta=0.5, high_delta=1.0
          0.0,                // division_rate=0
-         50},                // 50 años
+         0.0,                // neoplastic_division_rate=0
+         false,              // enable_big_bang_mode=false
+         50},                // max_t=50 años
 
         {"07_realistic_low_tp53_instability",
          "Realista: TP53 baja (0.5%), inestabilidad moderada",
          0.05, 0.005, 0.05,  // BRCA1=0.05 (5%), TP53=0.005 (0.5%), neoplasm_k=0.05
          0.5, 1.0,           // low_delta=0.5, high_delta=1.0
          0.05,               // division_rate=5%
-         80},                // 80 años
+         0.0,                // neoplastic_division_rate=0
+         false,              // enable_big_bang_mode=false
+         80},                // max_t=80 años
 
         {"08_realistic_high_tp53_instability",
          "Realista: TP53 moderada (2%), inestabilidad alta",
          0.05, 0.02, 0.05,   // BRCA1=0.05 (5%), TP53=0.02 (2%), neoplasm_k=0.05
          1.0, 1.5,           // low_delta=1.0, high_delta=1.5 (inestabilidad más alta)
          0.05,               // division_rate=5%
-         80},                // 80 años
+         0.0,                // neoplastic_division_rate=0
+         false,              // enable_big_bang_mode=false
+         80},                // max_t=80 años
 
         {"09_realistic_balanced",
          "Realista: Parámetros balanceados",
          0.05, 0.01, 0.05,   // BRCA1=0.05 (5%), TP53=0.01 (1%), neoplasm_k=0.05
          0.5, 1.0,           // low_delta=0.5, high_delta=1.0
          0.05,               // division_rate=5%
-         80}                 // 80 años
+         0.0,                // neoplastic_division_rate=0
+         false,              // enable_big_bang_mode=false
+         80},                // max_t=80 años
+
+        // === BIG BANG TUMORAL ===
+        {"10_big_bang_tumoral",
+         "Big Bang Tumoral: TP53 -/- con división acelerada (20%)",
+         0.05, 0.02, 0.20,   // BRCA1=0.05 (5%), TP53=0.02 (2%), neoplasm_k=0.20
+         0.5, 1.0,           // low_delta=0.5, high_delta=1.0
+         0.0,                // division_rate=0 (células normales no se dividen)
+         0.20,               // neoplastic_division_rate=20% (células TP53 -/- dividen)
+         true,               // enable_big_bang_mode=true
+         30},                // max_t=30 años
+
+        {"11_big_bang_tumoral_reproduccion",
+         "Big Bang con Reproducción Normal: TP53 -/- (10%) + Normal (5%)",
+         0.05, 0.02, 0.20,   // BRCA1=0.05 (5%), TP53=0.02 (2%), neoplasm_k=0.20
+         0.5, 1.0,           // low_delta=0.5, high_delta=1.0
+         0.05,               // division_rate=5% (células normales sí se dividen)
+         0.10,               // neoplastic_division_rate=10% (células TP53 -/- dividen menos)
+         true,               // enable_big_bang_mode=true
+         30},                // max_t=30 años
+
+        {"12_big_bang_tumoral_low_threshold",
+         "Big Bang con Bajo Threshold TP53: TP53 -/- (10%) + Normal (5%)",
+         0.05, 0.01, 0.02,  // BRCA1=0.05 (5%), TP53=0.01 (1%), neoplasm_k=0.02
+         0.2, 0.4,          // low_delta=0.2, high_delta=0.4 (inestabilidad menor)
+         0.05,               // division_rate=5% (células normales sí se dividen)
+         0.10,               // neoplastic_division_rate=10% (células TP53 -/- dividen)
+         true,               // enable_big_bang_mode=true
+         80}                 // max_t=80 años
     };
 
     auto total_start = std::chrono::system_clock::now();
@@ -272,7 +323,11 @@ int main() {
     auto total_duration = std::chrono::duration_cast<std::chrono::seconds>(total_end - total_start);
 
     std::cout << "\n╔═══════════════════════════════════════════════════════════════╗\n";
-    std::cout << "║  ✓ VALIDACIÓN COMPLETADA                                    ║\n";
+    std::cout << "║  ✓ VALIDACIÓN COMPLETADA - 12 ESCENARIOS                     ║\n";
+    std::cout << "║  • Escenarios 1-9: Validación de controles (no Big Bang)     ║\n";
+    std::cout << "║  • Escenario 10: Big Bang puro (neoplasm=20%, div=20%)       ║\n";
+    std::cout << "║  • Escenario 11: Big Bang + reproducción normal (div=10%)    ║\n";
+    std::cout << "║  • Escenario 12: Big Bang bajo threshold TP53 (div=10%)      ║\n";
     std::cout << "║  Tiempo total: " << std::setw(2) << total_duration.count() << "s\n";
     std::cout << "╚═══════════════════════════════════════════════════════════════╝\n\n";
 

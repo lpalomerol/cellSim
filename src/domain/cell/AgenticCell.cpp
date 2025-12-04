@@ -19,11 +19,13 @@ namespace domain {
      */
     AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k,
                              double low_delta_instability, double high_delta_instability, double division_rate,
+                             double neoplastic_division_rate, bool enable_big_bang_mode,
                              double apoptosis_instability_threshold, ports::ILoggerPtr logger)
         : noise_(std::move(noise)), logger_(logger ? logger : std::make_shared<adapters::NullLogger>()),
           genome_(std::move(genome)), base_neoplasm_k_(neoplasm_k), neoplasm_k_(domain::shared::Threshold(neoplasm_k)),
           is_neoplastic_(false), low_delta_instability_(low_delta_instability),
           high_delta_instability_(high_delta_instability), division_rate_(division_rate),
+          neoplastic_division_rate_(neoplastic_division_rate), enable_big_bang_mode_(enable_big_bang_mode),
           apoptosis_instability_threshold_(apoptosis_instability_threshold) {
         // Inject the noise source into all genes via the Genome API
         genome_.setNoiseSourceForAll(noise_.get());
@@ -41,12 +43,20 @@ namespace domain {
      * Run a single cell cycle. Phases are executed in order; exceptions are
      * used to signal cell death or neoplastic conversion and stop further work.
      *
-     * Neoplastic cells process incoming messages (phase2) and emit signals (phase5)
-     * but skip growth phases (0,1,3,4).
+     * Neoplastic cells normally skip growth phases (0,1,3,4) and only process messages and emit signals.
+     * However, if Big Bang mode is enabled, neoplastic cells CAN divide via phase4.
      */
     void AgenticCell::live() {
         try {
-            // Neoplastic cells: process messages (to receive apoptosis) then emit signal
+            // Neoplastic cells in BIG BANG mode: allow phase4 (division) for rapid proliferation
+            if (is_neoplastic_ && enable_big_bang_mode_) {
+                phase2_Endocytosis();
+                phase4_CytoplasmicRemodeling();  // Allow division for Big Bang
+                phase5_Exocytosis();
+                return;
+            }
+
+            // Normal neoplastic cells: process messages (to receive apoptosis) then emit signal
             if (is_neoplastic_) {
                 phase2_Endocytosis();
                 phase5_Exocytosis();
@@ -203,6 +213,10 @@ namespace domain {
         if (next < 1.0) next = 1.0;
 
         genomic_instability_ = next;
+
+        if (genomic_instability_ > 999) {
+            genomic_instability_ = 999;
+        }
 
         logger_->logCell("[Trace] genomic_instability: prev=" + std::to_string(previous) + " -> next=" + std::to_string(genomic_instability_)
                       + " | low_delta=" + std::to_string(low_delta_instability_)
@@ -367,19 +381,33 @@ namespace domain {
 
     /**
      * Attempt cell division: sample noise and compare with division_rate.
-     * If random value < division_rate, the cell attempts to divide.
+     * If Big Bang mode is enabled and cell is neoplastic, use neoplastic_division_rate instead.
+     * If random value < rate, the cell attempts to divide.
      * Creates a daughter cell and emits a CellDivisionSignal to the tissue.
      */
     void AgenticCell::attemptDivision() {
-        if (division_rate_ <= 0.0) {
+        // Determine which division rate to use
+        double effective_division_rate = division_rate_;
+
+        if (enable_big_bang_mode_ && is_neoplastic_) {
+            // Big Bang mode: neoplastic cells use accelerated division rate
+            effective_division_rate = neoplastic_division_rate_;
+        }
+
+        if (effective_division_rate <= 0.0) {
             return; // Division disabled
         }
 
         double random_value = noise_->next().u01;
-        if (random_value < division_rate_) {
+        if (random_value < effective_division_rate) {
+            std::string neoplastic_str = is_neoplastic_ ? "yes" : "no";
+            std::string big_bang_str = enable_big_bang_mode_ ? "enabled" : "disabled";
+
             logger_->logCell("[Division] Cell [" + std::to_string(cell_id_) + "] attempting division "
-                          "(random=" + std::to_string(random_value) + " < division_rate=" + std::to_string(division_rate_) + ")"
-                          " | Parent: neoplasm_k=" + std::to_string(neoplasm_k_.value())
+                          "(random=" + std::to_string(random_value) + " < rate=" + std::to_string(effective_division_rate) + ")"
+                          " | neoplastic=" + neoplastic_str
+                          + " | big_bang_mode=" + big_bang_str
+                          + " | Parent: neoplasm_k=" + std::to_string(neoplasm_k_.value())
                           + " | BRCA1=" + getBRCA1()
                           + " | TP53=" + getTP53()
                           + " | genomic_instability=" + std::to_string(genomic_instability_));
@@ -428,6 +456,8 @@ namespace domain {
             low_delta_instability_,
             high_delta_instability_,
             division_rate_,
+            neoplastic_division_rate_,
+            enable_big_bang_mode_,
             apoptosis_instability_threshold_,
             logger_
         );

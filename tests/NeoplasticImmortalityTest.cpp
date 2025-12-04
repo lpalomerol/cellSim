@@ -47,6 +47,8 @@ TEST_F(NeoplasticImmortalityTest, NeoplasticCellBecomesImmortalAfterEvadingApopt
         0.0001,        // low_delta_instability
         1.5,           // high_delta_instability: HIGH to reach 2.5 instability
         0.0,           // division_rate: no division
+        0.0,           // neoplastic_division_rate
+        false,         // enable_big_bang_mode
         2.0,           // apoptosis_instability_threshold: low so cell will evade
         logger_
     );
@@ -130,6 +132,8 @@ TEST_F(NeoplasticImmortalityTest, ImmortalCellsPropagatImmunityToOffspring) {
         0.0001,
         1.5,
         0.01,  // division_rate: allow division
+        0.01,  // neoplastic_division_rate
+        false, // enable_big_bang_mode
         2.0,
         logger_
     );

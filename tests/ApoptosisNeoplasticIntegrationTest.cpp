@@ -63,6 +63,8 @@ TEST_F(ApoptosisNeoplasticDeathTest, NeoplasticCellDiesWhenGenomicInstabilityBel
         0.0001,        // low_delta_instability
         0.0002,        // high_delta_instability
         0.0,           // division_rate: no division
+        0.0,           // neoplastic_division_rate
+        false,         // enable_big_bang_mode
         5.0,           // apoptosis_instability_threshold: LOW (apoptosis works)
         logger_
     );
@@ -171,6 +173,8 @@ TEST_F(ApoptosisNeoplasticSurvivalTest, NeoplasticCellSurvivesWhenGenomicInstabi
         0.0001,        // low_delta_instability
         1.5,           // high_delta_instability: HIGH to increase instability faster (will exceed 2.0 threshold)
         0.0,           // division_rate: no division
+        0.0,           // neoplastic_division_rate
+        false,         // enable_big_bang_mode
         2.0,           // apoptosis_instability_threshold: threshold the cell will exceed
         logger_
     );

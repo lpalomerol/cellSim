@@ -42,6 +42,8 @@ TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsParentGenomicInst
         0.0001,        // low_delta_instability
         1.5,           // high_delta_instability: HIGH for quick instability growth
         0.01,          // division_rate: 1% to trigger division easily
+        0.01,          // neoplastic_division_rate
+        false,         // enable_big_bang_mode
         10.0,          // apoptosis_instability_threshold
         logger_
     );
@@ -94,6 +96,8 @@ TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsAccumulatedInstab
         0.0001,        // low_delta_instability
         1.5,           // high_delta_instability: HIGH
         0.01,          // division_rate
+        0.01,          // neoplastic_division_rate
+        false,         // enable_big_bang_mode
         10.0,          // apoptosis_instability_threshold
         logger_
     );

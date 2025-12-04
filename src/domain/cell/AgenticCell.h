@@ -24,6 +24,8 @@ namespace domain {
         // and allow move-semantics from caller. Noise source is owned via unique_ptr.
         // Added optional low/high genomic instability deltas (defaults kept for backward compatibility)
         // division_rate: probability that the cell divides during phase4 (default 0.001)
+        // neoplastic_division_rate: probability that neoplastic cells divide (Big Bang mode, default 0.001)
+        // enable_big_bang_mode: if true, neoplastic cells use neoplastic_division_rate instead of normal division_rate
         // logger: optional logger (if nullptr, NullLogger will be used by default)
         AgenticCell(std::unique_ptr<INoiseSource> noise,
                     Genome genome,
@@ -31,6 +33,8 @@ namespace domain {
                     double low_delta_instability = 0.0001,
                     double high_delta_instability = 0.0002,
                     double division_rate = 0.001,
+                    double neoplastic_division_rate = 0.001,
+                    bool enable_big_bang_mode = false,
                     double apoptosis_instability_threshold = 10.0,
                     ports::ILoggerPtr logger = nullptr);
 
@@ -110,6 +114,12 @@ namespace domain {
 
         // Division rate: probability that the cell divides during phase4 (default 0.001)
         double division_rate_ = 0.001;
+
+        // Neoplastic division rate: probability that neoplastic cells divide in Big Bang mode (default 0.001)
+        double neoplastic_division_rate_ = 0.001;
+
+        // Enable Big Bang mode: if true, neoplastic cells use neoplastic_division_rate_ instead of division_rate_
+        bool enable_big_bang_mode_ = false;
 
         // Apoptosis instability threshold: apoptosis is only effective if genomic_instability_ <= this value
         double apoptosis_instability_threshold_ = 10.0;

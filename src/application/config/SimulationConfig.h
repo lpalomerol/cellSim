@@ -19,7 +19,9 @@ namespace application {
         double neoplasm_k = 0.05;          // Probabilidad base de neoplasia
         bool verbose = false;               // Trazas verbose
         bool use_random_noise = true;       // true = RandomNoise, false = FixedNoise
-        double division_rate = 0.001;       // Tasa de división
+        double division_rate = 0.001;       // Tasa de división normal
+        double neoplastic_division_rate = 0.001;  // Tasa de división neoplástica (Big Bang)
+        bool enable_big_bang_mode = false;  // Activar Big Bang (división acelerada neoplástica)
         double apoptosis_threshold = 10.0;  // Threshold de apoptosis
 
         // Parámetros de genes
