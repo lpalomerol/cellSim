@@ -126,120 +126,193 @@ Consecuencias:
 
 ## 2️⃣ CICLO DE VIDA CELULAR (6 Fases)
 
+###  RESUMEN DEL FLUJO COMPLETO
+
+```
+ENTRADA: Célula viva en ciclo
+
+┌─ FASE 0-1: ¿BRCA1 viable?
+│  └─ NO → MUERTE (excepción)
+│  └─ SÍ → continúa
+│
+├─ FASE 2: ¿Apoptosis aceptada?
+│  └─ SÍ (instability ≤ 10) → MUERTE
+│  └─ NO (instability > 10) → continúa
+│
+├─ FASE 3: Mutaciones (independiente)
+│  └─ BRCA1 y TP53 pueden mutar
+│
+├─ FASE 4: Remodeling (Decisiones secuenciales)
+│  ├─ PRIMERO: ¿Transformación? (TP53 check)
+│  │  ├─ TP53 = -/- → TRANSFORMA (neoplástica) → Fase 5
+│  │  └─ TP53 ≠ -/- → PROTEGIDO (normal) → SEGUNDO: División
+│  │
+│  └─ SEGUNDO: ¿División? (solo si normal)
+│     ├─ P(div)% → Clona hija (edad=0)
+│     └─ Sin división → Continúa normal
+│
+├─ FASE 5: Exocytosis
+│  ├─ Células normales → Emite señales normales
+│  └─ Células neoplásticas → Emite NeoplasmSignal
+│
+└─ SALIDA: age++, siguiente ciclo
+
+```
+
+
+
+### 2️⃣.1️⃣ SUBDIAGRAMA 1: CHECKPOINT INICIAL (Fases 0-1)
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                 CICLO DE VIDA - 6 FASES CELULARES                │
+│              FASE 0 → FASE 1: INTEGRIDAD CELULAR                │
 └─────────────────────────────────────────────────────────────────┘
 
-                         ┌──────────────┐
-                         │  FASE 0:     │
-                         │  Baseline    │
-                         │ Assessment   │
-                         └──────┬───────┘
-                                │
-                                ↓
+    ┌──────────────┐         ┌──────────────┐     ┌─ BRCA1 ≠ -/-
+    │  FASE 0:     │         │  FASE 1:     │     │  (VIVO) → CONTINÚA
+    │  Baseline    │    →    │  G1 Integrity│  →  │
+    │  Assessment  │         │  Checkpoint  │     └─ BRCA1 = -/-
+    └──────────────┘         └──────────────┘        (MUERTE) → CellDeathException
+```
+
+✅ **Checkpoint BRCA1:** Verifica integridad del gen BRCA1
+- **Si BRCA1 ≠ -/-:** Célula viable, continúa al siguiente checkpoint
+- **Si BRCA1 = -/-:** Muerte garantizada → lanza excepción y sale del ciclo
+
+---
+
+### 2️⃣.2️⃣ SUBDIAGRAMA 2: DECISIÓN CRÍTICA (Fases 2-3)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│         FASE 2 → FASE 3: APOPTOSIS vs MUTACIÓN                  │
+└─────────────────────────────────────────────────────────────────┘
+
+                       ┌──────────────┐
+                       │  FASE 2:     │
+                       │  Endocytosis │
+                       │  (Mensajes)  │
+                       └──────┬───────┘
+                              │
+                   ┌──────────┴──────────┐
+                   │                     │
+                   ↓                     ↓
+          [ApoptosisSignal]    [Otros signals]
+                   │                     │
+          ┌────────┴────────┐           │
+          │                 │           │
+          ↓                 ↓           ↓
+      Instability      Instability    [sin decision]
+       ≤ 10.0?          > 10.0?            │
+          │                 │              │
+      ✅ ACEPTA        ❌ RECHAZA         │
+      APOPTOSIS       APOPTOSIS          │
+          │                 │              │
+          ↓                 ↓              ↓
+        MUERTE           VIVE         CONTINÚA
+      (Apoptosis)    (Evasión)     ┌────────────────┐
+                                   │  FASE 3:       │
+                                   │  Nuclear       │
+                                   │  Dynamics      │
+                                   │  (Mutaciones)  │
+                                   └────────────────┘
+```
+
+⚠️ **Checkpoint Apoptosis (Fase 2):**
+- Recibe señal de apoptosis → Evalúa instability genómica
+- **Si instability ≤ 10.0:** Acepta apoptosis → MUERTE
+- **Si instability > 10.0:** Rechaza apoptosis → EVASIÓN (sobrevive)
+
+📊 **Mutaciones (Fase 3):** 
+- Cada gen muta según: `P(mutación) = threshold × (1 + coef) × genomic_instability`
+- Independiente de apoptosis
+
+---
+
+### 2️⃣.3️⃣ SUBDIAGRAMA 3: SALIDA Y DESTINO (Fases 4-5)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│     FASE 4 → FASE 5: REMODELING → EXOCYTOSIS → DESTINO         │
+└─────────────────────────────────────────────────────────────────┘
+
                     ┌──────────────────────┐
-                    │  FASE 1:             │
-                    │  G1 Integrity        │
-                    │  Checkpoint          │
+                    │  FASE 4:             │
+                    │  Cytoplasmic         │
+                    │  Remodeling          │
                     └──────────┬───────────┘
                                │
                     ┌──────────┴──────────┐
                     │                     │
                     ↓                     ↓
-            [VIVO: BRCA1 ≠ -/-]   [MUERTE: BRCA1 = -/-]
+        ╔════════════════════╗  ╔════════════════════╗
+        ║  TP53 = -/-        ║  ║  TP53 ≠ -/-        ║
+        ║  (NO PROTEGIDO)    ║  ║  (PROTEGIDO)       ║
+        ╚════════╤═══════════╝  ╚════════╤═══════════╝
+                 │                       │
+                 ↓                       ↓
+        ┌─────────────────┐    ┌──────────────────┐
+        │ TRANSFORMA      │    │ ¿División?       │
+        │ (Neoplástica)   │    │ P(div)=x%        │
+        │                 │    └────────┬─────────┘
+        │ INMORTALIZA     │             │
+        │ EMITE           │    ┌────────┴────────┐
+        │ NeoplasmSignal  │    │                 │
+        │                 │    ↓                 ↓
+        │                 │  [SÍ]             [NO]
+        │                 │   │                 │
+        │                 │   ↓                 ↓
+        │                 │ CLONA HIJA    CONTINÚA
+        │                 │  (edad=0)      (sin div)
+        └─────────┬───────┘    │                 │
+                  │            └────────┬────────┘
+                  │                    │
+                  └────────────┬───────┘
+                               │
+                               ↓
+                    ┌──────────────────────┐
+                    │  FASE 5:             │
+                    │  Exocytosis          │
+                    │  (Emite señales)     │
+                    └──────────┬───────────┘
+                               │
+                    ┌──────────┴──────────┐
                     │                     │
-                    ↓                     ✗ EXCEPECIÓN
-                    │                       CellDeathException
-                    │
-                    ↓
-        ┌──────────────────────┐
-        │  FASE 2:             │
-        │  Endocytosis         │
-        │  (Recibe mensajes)   │
-        └──────────┬───────────┘
-                   │
-        ┌──────────┴──────────────────────┐
-        │                                  │
-        ↓                                  ↓
-    [Recibe Apoptosis]        [Recibe otras señales]
-        │                              │
-   ┌────┴─────────────┐               │
-   │                  │               │
-   ↓                  ↓               │
-[Acepta]         [Rechaza*]           │
-  │                  │                │
-  ↓                  ↓                │
-MUERTE          CONTINÚA              │
-  │                  │                │
-  │    ┌─────────────┴────────────────┤
-  │    │                              │
-  │    ↓                              │
-  │ ┌──────────────────────┐          │
-  │ │  FASE 3:             │          │
-  │ │  Nuclear Dynamics    │          │
-  │ │  (Mutaciones)        │          │
-  │ └──────────┬───────────┘          │
-  │            │                      │
-  │            ↓                      │
-  │    [Genes mutan según         [Genes mutan según
-  │     threshold + instability]   threshold + instability]
-  │            │                      │
-  └────────────┴──────────────────────┤
-               │                      │
-               ↓                      ↓
-        ┌──────────────────────┐
-        │  FASE 4:             │
-        │  Cytoplasmic         │
-        │  Remodeling          │
-        └──────────┬───────────┘
-                   │
-        ┌──────────┴──────────────────────────┐
-        │                                     │
-        ↓                                     ↓
-    [División?]                    [Transformación?]
-   P(div)=x%                      neoplasm_k > threshold
-        │                                     │
-   ┌────┴──────────┐                   ┌──────┴────────┐
-   │               │                   │               │
-   ↓               ↓                   ↓               ↓
-  SÍ              NO              TP53 ≠ -/-      TP53 = -/-
-   │               │            (protegido)     (no protegido)
-   ↓               ↓                   │               │
- CLONA         CONTINÚA         RECHAZA          TRANSFORMA
- HIJA           (sin div)     (protegido)      (neoplástica)
-   │               │           tanto +/+             │
-   │               │           como +/-)             │
-   │               │                   │             ↓
-   │               │                   │        EMITE SEÑAL
-   │               │                   │        NeoplasmSignal
-   │               │                   │             │
-   │               └───────────────────┴─────────────┘
-   │                                   │
-   │                                   ↓
-   │                    ┌──────────────────────┐
-   │                    │  FASE 5:             │
-   │                    │  Exocytosis          │
-   │                    │  (Emite señales)     │
-   │                    └──────────┬───────────┘
-   │                               │
-   └───────────────────────────────┤
-                                   │
-                                   ↓
-                            ┌──────────────┐
-                            │  CICLO        │
-                            │  COMPLETO     │
-                            │  (age++)      │
-                            └──────────────┘
-                                   │
-                                   ↓
-                          [Siguiente ciclo]
+                    ↓                     ↓
+        [NeoplasmSignal]    [Señales Normales]
+        (Célula neoplástica) (Células normales)
+                    │                     │
+                    └──────────┬──────────┘
+                               │
+                               ↓
+                    ┌──────────────────────┐
+                    │  CICLO COMPLETO      │
+                    │  age++               │
+                    │  → Siguiente ciclo   │
+                    └──────────────────────┘
+```
 
+🔄 **Salida (Fases 4-5) - DECISIONES SECUENCIALES:**
 
-* Rechazo de apoptosis: Si genomic_instability > apoptosis_instability_threshold
+**RAMA 1: Si TP53 = -/- (NO PROTEGIDO)**
+- ✗ **TRANSFORMA** en célula neoplástica
+- **NO se divide** (es singular, inmortal)
+- Emite **NeoplasmSignal** en Fase 5
+
+**RAMA 2: Si TP53 ≠ -/- (PROTEGIDO)**
+- **¿División?** (P=div%)
+  - Sí → Crea **CLONA HIJA** (edad=0)
+  - No → Continúa sin dividirse
+- Emite **Señales Normales** en Fase 5
+
+**Fase 5 - Exocytosis:** Convergen ambas ramas
+- Emiten sus respectivas señales al tejido
+- Completan ciclo: age++ → siguiente iteración
 
 ---
-```
+
+
+---
 
 ## 2️⃣.5️⃣ UMBRAL DE EVASIÓN DE APOPTOSIS (CRÍTICO)
 
