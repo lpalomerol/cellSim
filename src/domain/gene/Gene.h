@@ -14,7 +14,13 @@ namespace domain{
     public:
         enum class State { PlusPlus, PlusMinus, MinusMinus };
         // Name is taken by value and moved into the member to avoid unnecessary copies
-        explicit Gene(std::string name, State initial = State::PlusPlus, double mutation_threshold = 0.1, double mutation_instability_k = 0.0, ports::ILoggerPtr logger = nullptr);
+        explicit Gene(std::string name,
+            State initial = State::PlusPlus,
+            double mutation_threshold = 0.1,
+            double mutation_instability_k = 0.0,
+            ports::ILoggerPtr logger = nullptr
+        );
+
         [[nodiscard]] const std::string& name() const;
         [[nodiscard]] std::string status() const;
         // Return a detail string: "NAME[status] p(mut)=threshold", e.g. "TP53[+/-] p(mut)=0.1"

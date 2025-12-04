@@ -91,8 +91,6 @@ namespace domain {
         // Helper: find cell by ID (linear search)
         [[nodiscard]] ICell* findCellById(std::uint64_t cell_id);
 
-        // Helper: format genetic summary box with format "total(neo/active)"
-        [[nodiscard]] static std::string formatGeneticBox(int count, int neos, int active_neos);
 
         // Helper: handle neoplasm signal from cell
         void handleNeoplasmSignal(std::unique_ptr<ISignal> sig);

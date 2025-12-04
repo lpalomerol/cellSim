@@ -31,7 +31,9 @@ set(COMMON_SOURCES
         src/domain/gene/Genome.h
         src/domain/tissue/Tissue.cpp
         src/application/config/SimulationConfig.cpp
-        src/application/config/SimulationConfig.h)
+        src/application/config/SimulationConfig.h
+        src/application/presenter/GeneticSummaryPresenter.cpp
+        src/application/presenter/GeneticSummaryPresenter.h)
 
 add_executable(cellSim app/main.cpp
         src/application/simulation/Simulation.cpp

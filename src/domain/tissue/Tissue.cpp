@@ -2,13 +2,12 @@
 // Implementation for Tissue collection (moved to domain/tissue)
 
 #include "Tissue.h"
-#include <sstream>
-#include <iomanip>
 #include <algorithm>
 #include "GeneticTrackingService.h"
 #include "../signal/CellDivisionSignal.h"
 #include "../signal/ApoptosisSignal.h"
 #include "../adapters/NullLogger.h"
+#include "../../application/presenter/GeneticSummaryPresenter.h"
 
 namespace domain {
 
@@ -18,17 +17,6 @@ namespace domain {
         phase2_ExecuteCellCycles();
     }
 
-    // Helper: format genetic summary box with format "total(neo/active)"
-    std::string Tissue::formatGeneticBox(int count, int neos, int active_neos) {
-        std::ostringstream ss;
-        ss << count;
-        if (neos > 0 || active_neos > 0) {
-            ss << "(" << neos;
-            if (active_neos > 0) ss << "/" << active_neos;
-            ss << ")";
-        }
-        return ss.str();
-    }
 
     void Tissue::phase0_Description() const {
         auto tracking = getGeneticTracking();
@@ -38,22 +26,9 @@ namespace domain {
                       + " | identified_neoplasms=" + std::to_string(identified_neoplasms_.size())
                       + " | ACTIVE neoplasms=" + std::to_string(tracking.totalActiveNeoplasms()));
 
-        // Print genetic summary using helper
-        const int boxWidth = 12;
-
-        std::string b1 = formatGeneticBox(tracking.brca_het_tp53_hom_plus, tracking.neo_brca_het_tp53_hom_plus, tracking.active_neo_brca_het_tp53_hom_plus);
-        std::string b2 = formatGeneticBox(tracking.brca_het_tp53_het, tracking.neo_brca_het_tp53_het, tracking.active_neo_brca_het_tp53_het);
-        std::string b3 = formatGeneticBox(tracking.brca_het_tp53_hom_minus, tracking.neo_brca_het_tp53_hom_minus, tracking.active_neo_brca_het_tp53_hom_minus);
-        std::string b4 = formatGeneticBox(tracking.brca_hom_minus, -1, -1);
-
-        std::ostringstream summary;
-        summary << "  Resumen genético [total(neo/activo)]: |"
-                << std::setw(boxWidth) << b1 << " |"
-                << std::setw(boxWidth) << b2 << " |"
-                << std::setw(boxWidth) << b3 << " |"
-                << std::setw(boxWidth) << b4 << " |\n"
-                << "    [BRCA+/- TP53+/+] [BRCA+/- TP53+/-] [BRCA+/- TP53-/-] [BRCA-/-]";
-        logger_->logTissue(summary.str());
+        // Usar presenter de application layer para formatear
+        std::string summary = application::GeneticSummaryPresenter::formatGeneticSummary(tracking);
+        logger_->logTissue(summary);
 
         logger_->logTissue("[Active Neoplasms] "
                       "TP53+/+: " + std::to_string(tracking.active_neo_brca_het_tp53_hom_plus) + " | "
@@ -99,8 +74,7 @@ namespace domain {
             target_ids   // directed to the neoplastic cell
         );
 
-        ICell* target_cell = findCellById(source_id);
-        if (target_cell) {
+        if (ICell* target_cell = findCellById(source_id)) {
             target_cell->receiveMessage(std::move(apoptosis_sig));
             logger_->logTissue("[Tissue] Apoptosis signal sent to neoplastic cell id=" + std::to_string(source_id));
         }
@@ -108,10 +82,9 @@ namespace domain {
 
     // Helper: handle cell division signal from cell
     void Tissue::handleCellDivisionSignal(std::unique_ptr<ISignal> sig) {
-        auto* division_sig = dynamic_cast<CellDivisionSignal*>(sig.get());
-        if (division_sig) {
-            auto daughter = division_sig->takeDaughterCell();
-            if (daughter) {
+
+        if (auto* division_sig = dynamic_cast<CellDivisionSignal*>(sig.get())) {
+            if (auto daughter = division_sig->takeDaughterCell()) {
                 logger_->logTissue("[Tissue] Cell division signal detected from cell id=" + std::to_string(sig->sourceId()) + "; adding daughter cell");
                 addCell(std::move(daughter));
             }
