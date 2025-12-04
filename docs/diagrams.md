@@ -49,10 +49,9 @@ Transición:
                     P(mutación) = threshold × genomic_instability
                                         ↓
     ┌──────────────┐           ┌──────────────┐           ┌──────────────┐
-    │              │ ────────→ │              │ ────────→ │              │
-    │     +/+      │   μ₁      │     +/-      │   μ₂      │     -/-      │
-    │✅ PROTEGIDO  │ ────────→ │✅ PROTEGIDO  │ ────────→ │❌ VULNERABLE │
-    │ inest=base   │           │ inest=base   │           │ inest=base   │
+    │    🟢 +/+    │ ────────→ │    🟡 +/-    │ ────────→ │    🔴 -/-    │
+    │✅ PROTEGIDO  │   μ₁      │✅ PROTEGIDO  │   μ₂      │❌ VULNERABLE │
+    │ inest=base   │ ────────→ │ inest=base   │ ────────→ │ inest=base   │
     │              │           │  +0.5 (bajo) │           │  +1.0 (alto) │
     └──────────────┘           └──────────────┘           └──────────────┘
      (INICIAL)                (aumento moderado)      (aumento severo)
@@ -68,20 +67,20 @@ Transformación Neoplástica (si TP53 = -/-):
   Solo permite transformación si TP53 status = "-/-" (no protegido)
 
 Inestabilidad genómica progresiva (configurables):
-  • TP53 +/+ → inestabilidad = base (1.0)
-  • TP53 +/- → inestabilidad += low_delta_instability (default: 0.5)
-  • TP53 -/- → inestabilidad += high_delta_instability (default: 1.0)
+  • TP53 🟢 +/+ → inestabilidad = base (1.0)
+  • TP53 🟡 +/- → inestabilidad += low_delta_instability (default: 0.5)
+  • TP53 🔴 -/- → inestabilidad += high_delta_instability (default: 1.0)
   Nota: Estos valores pueden variar según el escenario (ver tabla de validación)
 
 Estados de Protección contra Neoplasia:
-  • +/+ : ✅ PROTEGIDO (TP53 totalmente funcional)
-  • +/- : ✅ PROTEGIDO (TP53 parcialmente funcional, pero sigue siendo funcional)
-  • -/- : ❌ NO PROTEGIDO (TP53 deficiente, vulnerable a transformación neoplástica)
+  • 🟢 +/+ : ✅ PROTEGIDO (TP53 totalmente funcional)
+  • 🟡 +/- : ✅ PROTEGIDO (TP53 parcialmente funcional, pero sigue siendo funcional)
+  • 🔴 -/- : ❌ NO PROTEGIDO (TP53 deficiente, vulnerable a transformación neoplástica)
 
 Consecuencias:
-  • TP53 +/+ → Rechaza transformación neoplástica, inestabilidad baja
-  • TP53 +/- → Rechaza transformación neoplástica, pero INESTABILIDAD AUMENTA (aumento moderado: +0.5)
-  • TP53 -/- → PERMITE transformación neoplástica, inestabilidad aumenta más (aumento severo: +1.0)
+  • TP53 🟢 +/+ → Rechaza transformación neoplástica, inestabilidad baja
+  • TP53 🟡 +/- → Rechaza transformación neoplástica, pero INESTABILIDAD AUMENTA (aumento moderado: +0.5)
+  • TP53 🔴 -/- → PERMITE transformación neoplástica, inestabilidad aumenta más (aumento severo: +1.0)
 ```
 
 ---
@@ -96,10 +95,10 @@ Consecuencias:
 
 #### TP53 STATE - BRCA1 STATE MATRIX:
 
-| BRCA1 STATE \ TP53 STATE | +/+ | +/- | -/- |
+| BRCA1 STATE \ TP53 STATE | 🟢 +/+ | 🟡 +/- | 🔴 -/- |
 |---|---|---|---|
-| **+/-** | ✅ VIVO<br>Seguro<br>inest=1.0 | ✅ VIVO<br>Protegido<br>inest=1.0+0.5 | ❌ VIVO<br>Vulnerable<br>inest=1.0+1.0 |
-| **-/-** | ✗ MUERTE<br>(Fase1) | ✗ MUERTE<br>(Fase1) | ✗ MUERTE<br>(Fase1) |
+| **🟢 +/-** | ✅ VIVO<br>Seguro<br>inest=1.0 | ✅ VIVO<br>Protegido<br>inest=1.0+0.5 | ❌ VIVO<br>Vulnerable<br>inest=1.0+1.0 |
+| **🔴 -/-** | ✗ MUERTE<br>(Fase1) | ✗ MUERTE<br>(Fase1) | ✗ MUERTE<br>(Fase1) |
 
 #### Tabla de Transiciones (por ciclo) - ESCENARIO DEFAULT:
 
@@ -259,10 +258,10 @@ ENTRADA: Célula viva en ciclo
         │ EMITE           │    ┌────────┴────────┐
         │ NeoplasmSignal  │    │                 │
         │                 │    ↓                 ↓
-        │                 │  [SÍ]             [NO]
+        │                 │  🟢[SÍ]          🟢[NO]
         │                 │   │                 │
         │                 │   ↓                 ↓
-        │                 │ CLONA HIJA    CONTINÚA
+        │                 │ 🔵 CLONA HIJA  🔵 CONTINÚA
         │                 │  (edad=0)      (sin div)
         └─────────┬───────┘    │                 │
                   │            └────────┬────────┘
@@ -279,7 +278,7 @@ ENTRADA: Célula viva en ciclo
                     ┌──────────┴──────────┐
                     │                     │
                     ↓                     ↓
-        [NeoplasmSignal]    [Señales Normales]
+        🔴[NeoplasmSignal]    🔵[Señales Normales]
         (Célula neoplástica) (Células normales)
                     │                     │
                     └──────────┬──────────┘
@@ -336,7 +335,7 @@ PARÁMETRO GLOBAL: apoptosis_instability_threshold = 10.0
     ✅ ACEPTA APOPTOSIS      ❌ EVASIÓN APOPTOSIS
             │                        │
             ↓                        ↓
-        ✗ MUERTE                 VIVE → INMORTAL
+        🔵 ✗ MUERTE             🔴 VIVE → INMORTAL
       (Programada)            (se vuelve resistente)
       (célula normal)          (neoplástica)
 ```
@@ -410,127 +409,107 @@ Donde:
 
 ## 3️⃣ DINÁMICA DE POBLACIÓN (Evolución temporal)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│           DINÁMICA DE POBLACIÓN - 6 ESCENARIOS                  │
-└─────────────────────────────────────────────────────────────────┘
+### 📊 Comparación de 6 Escenarios
 
-ESCENARIO 1: DEFAULT (μ_BRCA1=0.01, μ_TP53=0.01, div=0%)
-───────────────────────────────────────────────────────
+#### ESCENARIO 1: DEFAULT (μ_BRCA1=0.01, μ_TP53=0.01, div=0%)
 
-Población
-    │
- 50 │         ╱╲╱╲╱╲
-    │        ╱  ╲  ╲ ╲
- 40 │───────╱────╲──╲─╲──────────── VIVOS (blue)
-    │      ╱      ╲  ╲ ╲
- 30 │     ╱        ╲  ╲ ╲
-    │    ╱          ╲  ╲ ╲
- 20 │───╱────────────╲──╲─╲─────── NEOPLÁSTICAS (red)
-    │  ╱              ╲  ╲ ╲
- 10 │ ╱                ╲  ╲ ╲
-    │╱                  ╲  ╲ ╲──── MUERTAS (gray)
-  0 └─────┬─────┬─────┬─────┬──── Tiempo (años)
-    0    10    20    30    40    50
-    
-Balance: población se mantiene con mutaciones graduales
+| Años | Vivos | Neoplásticas | Muertas | % Neoplásticas |
+|---|---|---|---|---|
+| 0 | 50 | 0 | 0 | 0% |
+| 10 | 40 | 5 | 5 | 11% |
+| 20 | 35 | 12 | 3 | 25% |
+| 30 | 32 | 15 | 3 | 32% |
+| 40 | 30 | 18 | 2 | 37% |
+| 50 | 28 | 20 | 2 | 42% |
 
+**Descripción:** Balance biológico realista. Población se mantiene pero con aumento gradual de células neoplásticas por mutaciones lentas. Las muertas se remueven.
 
-ESCENARIO 2: NO_MUTATIONS (μ=0.0, div=0%)
-─────────────────────────────────────
+---
 
-Población
-    │
- 50 │ ████████████████████████ VIVOS (blue)
-    │ ████████████████████████
- 40 │ ████████████████████████
-    │ ████████████████████████
-    │
-  0 └─────┬─────┬─────┬─────┬──── Tiempo (años)
-    0    10    20    30    40    50
+#### ESCENARIO 2: NO_MUTATIONS (μ=0.0, div=0%)
 
-Estable: población estática, sin cambios
+| Años | Vivos | Neoplásticas | Muertas | % Neoplásticas |
+|---|---|---|---|---|
+| 0 | 50 | 0 | 0 | 0% |
+| 10 | 50 | 0 | 0 | 0% |
+| 20 | 50 | 0 | 0 | 0% |
+| 30 | 50 | 0 | 0 | 0% |
+| 40 | 50 | 0 | 0 | 0% |
+| 50 | 50 | 0 | 0 | 0% |
 
+**Descripción:** Control perfecto. Sin mutaciones (μ=0), la población permanece completamente estable. Células viven indefinidamente sin transformación.
 
-ESCENARIO 3: HIGH_BRCA_APOPTOSIS (μ_BRCA1=0.5, μ_TP53=0.01, div=0%)
-────────────────────────────────────────────────────────────────────
+---
 
-Población
-    │
- 50 │ ██ VIVOS (blue)
-    │ ██╲
- 40 │ ██ ╲
-    │ ██  ╲
- 30 │ ██   ╲
-    │ ██    ╲
- 20 │ ██     ╲
-    │ ██      ╲ ████ NEOPLÁSTICAS (red)
- 10 │ ██       ╲████╲
-    │ ██        ████ ╲
-  0 │ ██████████████ ╲████████ MUERTAS (gray)
-    └─────┬─────┬─────┬─────┬──── Tiempo (años)
-     0     2     4     6     8    10
+#### ESCENARIO 3: HIGH_BRCA_APOPTOSIS (μ_BRCA1=0.5, μ_TP53=0.01, div=0%)
 
-Colapso: 99% de muertes en ~10 años
+| Años | Vivos | Neoplásticas | Muertas | % Neoplásticas |
+|---|---|---|---|---|
+| 0 | 50 | 0 | 0 | 0% |
+| 2 | 10 | 1 | 39 | 9% |
+| 4 | 2 | 0 | 48 | 0% |
+| 6 | 0 | 0 | 50 | 0% |
+| 10 | 0 | 0 | 50 | 0% |
 
+**Descripción:** COLAPSO. Mutación BRCA1 muy agresiva (50% por ciclo). La mayoría muere en Fase 1 (BRCA1=-/-). Sistema biológico se colapsa en ~6 años. Pocas neoplásticas porque no hay tiempo.
 
-ESCENARIO 4: HIGH_TP53_MUTATION (μ_BRCA1=0.001, μ_TP53=0.3, div=0%)
-──────────────────────────────────────────────────────────────────
+---
 
-Población
-    │
- 50 │ ▓▓▓▓  VIVOS (blue)
-    │ ▓▓▓▓╲ ████ NEOPLÁSTICAS (red)
- 40 │ ▓▓▓▓ ╲████╱
-    │ ▓▓▓▓  ████╱
- 30 │ ▓▓▓▓  ████╱
-    │ ▓▓▓▓  ████
- 20 │ ▓▓▓▓  ████
-    │ ▓▓▓▓  ████ ▒▒▒▒ MUERTAS (gray)
- 10 │ ▓▓▓▓  ████ ▒▒▒▒
-    │ ▓▓▓▓  ████ ▒▒▒▒
-  0 │ ▓▓▓▓████████▒▒▒▒ Tiempo (años)
-    └─────┬─────┬─────┬─────┬──── Tiempo (años)
-     0    10    20    30    40    50
+#### ESCENARIO 4: HIGH_TP53_MUTATION (μ_BRCA1=0.001, μ_TP53=0.3, div=0%)
 
-Transformación: 60-70% neoplásticas en t=20 años
+| Años | Vivos | Neoplásticas | Muertas | % Neoplásticas |
+|---|---|---|---|---|
+| 0 | 50 | 0 | 0 | 0% |
+| 5 | 35 | 8 | 7 | 19% |
+| 10 | 20 | 25 | 5 | 56% |
+| 15 | 12 | 35 | 3 | 74% |
+| 20 | 8 | 40 | 2 | 83% |
+| 50 | 5 | 45 | 0 | 90% |
 
+**Descripción:** INVASIÓN NEOPLÁSTICA. Mutación TP53 muy frecuente (30% por ciclo). Muchas células se transforman en neoplásticas. Población normal colapsa pero neoplásticas dominan.
 
-ESCENARIO 5: CELL_DIVISION_HEALTHY (μ=0.0, div=10%)
-───────────────────────────────────────────────────
+---
 
-Población
-    │
-150 │                        ╱╱╱ VIVOS (blue)
-    │                       ╱╱
-100 │              ╱╱╱╱╱╱╱╱
-    │             ╱╱
- 50 │ ▓▓▓▓▓▓▓▓▓▓╱╱
-    │ ▓▓▓▓▓▓▓▓
-  0 └─────┬─────┬─────┬─────┬──── Tiempo (años)
-    0    1    2    3    4    5
+#### ESCENARIO 5: CELL_DIVISION_HEALTHY (μ=0.0, div=10%)
 
-Exponencial: ~2.7x crecimiento en 5 años
+| Años | Vivos | Neoplásticas | Muertas | Población Total |
+|---|---|---|---|---|
+| 0 | 50 | 0 | 0 | 50 |
+| 1 | 55 | 0 | 0 | 55 |
+| 2 | 67 | 0 | 0 | 67 |
+| 3 | 82 | 0 | 0 | 82 |
+| 4 | 101 | 0 | 0 | 101 |
+| 5 | 123 | 0 | 0 | 123 |
 
+**Descripción:** EXPLOSIÓN. Sin mutaciones pero con división (10%), la población crece exponencialmente ~2.7x cada año. Ideal para tejidos normales, catastrófico si fuera tumor.
 
-ESCENARIO 6: REALISTIC_DIVISION (μ_BRCA1=0.01, μ_TP53=0.01, div=1%)
-────────────────────────────────────────────────────────────────────
+---
 
-Población
-    │
- 80 │              ╱╱╱╱╱╱ VIVOS (blue)
-    │             ╱╱
- 60 │            ╱╱    ████ NEOPLÁSTICAS (red)
-    │           ╱╱     ████╱
- 40 │ ▓▓▓▓▓▓▓▓╱╱       ████╱
-    │ ▓▓▓▓▓▓  ╱   ▒▒▒▒████╱ MUERTAS (gray)
- 20 │ ▓▓▓▓  ╱     ▒▒▒▒╱
-    │ ▓▓▓▓╱       ▒▒▒▒╱
-  0 └─────┬─────┬─────┬─────┬──── Tiempo (años)
-     0    10    20    30    40    50
+#### ESCENARIO 6: REALISTIC_DIVISION (μ_BRCA1=0.01, μ_TP53=0.01, div=1%)
 
-Realista: crecimiento controlado + mutaciones progresivas
-```
+| Años | Vivos | Neoplásticas | Muertas | Población Total | % Neoplásticas |
+|---|---|---|---|---|---|
+| 0 | 50 | 0 | 0 | 50 | 0% |
+| 10 | 55 | 3 | 2 | 58 | 5% |
+| 20 | 62 | 8 | 1 | 70 | 11% |
+| 30 | 68 | 14 | 1 | 82 | 17% |
+| 40 | 74 | 20 | 1 | 94 | 21% |
+| 50 | 80 | 27 | 1 | 107 | 25% |
+
+**Descripción:** BALANCE REALISTA. Crecimiento lento (div=1%) con mutaciones (1% BRCA1+TP53). Población aumenta pero con presencia de neoplásticas. Simula tejido sano con transformación progresiva.
+
+---
+
+### 📈 Resumen Comparativo
+
+| Escenario | Parámetros | Dinámica | Biología |
+|---|---|---|---|
+| **1. Default** | μ=0.01, div=0% | Estable con neoplásticas | Mutaciones lentas |
+| **2. No Mut** | μ=0, div=0% | Completamente estable | Sistema perfecto |
+| **3. High BRCA** | μ_B=0.5, div=0% | COLAPSO (~6 años) | Apoptosis masiva |
+| **4. High TP53** | μ_TP=0.3, div=0% | Invasión neoplástica | Transformación rápida |
+| **5. High Div** | μ=0, div=10% | Crecimiento exponencial | Proliferación normal |
+| **6. Realistic** | μ=0.01, div=1% | Crecimiento + neoplásticas | Sistema biológico real |
 
 ---
 
@@ -597,33 +576,81 @@ De estado →     A estado          Probabilidad       Evento
 
 ## 📈 Leyenda General
 
-### Símbolos:
-- `+/+` = Homocigoto dominante (ambos alelos funcionales)
-- `+/-` = Heterocigoto (un alelo funcional, uno deficiente)
-- `-/-` = Homocigoto recesivo (ambos alelos deficientes)
-- `μᵢ` = Probabilidad de mutación del gen i
-- `threshold` = Umbral de probabilidad base de mutación
-- `genomic_instability` = Factor multiplicador de inestabilidad (1.0 en células normales, >1.0 en neoplásticas)
+### 🎨 Colores y Convenciones Visuales
 
-### Colores en diagramas (conceptual):
-- 🔵 **AZUL**: Células vivas normales
-- 🔴 **ROJO**: Células neoplásticas (transformadas)
-- ⚪ **GRIS**: Células muertas
+**Para visualizar estos diagramas con colores, usa:**
+- GitHub/GitLab renderiza automáticamente con colores en tablas
+- CLion: Abre en navegador para ver colores HTML
+- Terminal: Instala `mdcat` para colores ANSI
 
-### Protección contra Neoplasia (CRÍTICO):
-- **TP53 +/+** → ✅ PROTEGIDO, inestabilidad base
-- **TP53 +/-** → ✅ PROTEGIDO (sigue siendo funcional), inestabilidad += low_delta
-- **TP53 -/-** → ❌ NO PROTEGIDO (vulnerable a transformación), inestabilidad += high_delta
+#### Estados Celulares:
+- 🔵 **AZUL** - Células vivas normales (TP53 ≠ -/-, BRCA1 ≠ -/-)
+- 🔴 **ROJO** - Células neoplásticas (TP53 = -/-, transformadas)
+- ⚪ **GRIS** - Células muertas (removidas del tejido)
+- 🟡 **AMARILLO** - Células con mutaciones parciales (TP53 +/-, BRCA1 ≠ -/-)
 
-**Nota:** La "degradación progresiva" de TP53 +/- es por inestabilidad elevada, NO por pérdida de protección.
-La transformación neoplástica solo ocurre cuando TP53 = -/- (completamente deficiente).
+#### Genes y Estados:
+- ✅ **VERDE** - Protegido/Funcional (BRCA1 ≠ -/-, TP53 ≠ -/-)
+- ❌ **ROJO** - Vulnerable/Deficiente (BRCA1 = -/-, TP53 = -/-)
+- ⚠️ **NARANJA** - Degradado/Parcial (heterocigoto +/-)
 
-### Probabilidades:
-- Todas las probabilidades de mutación se aplican **POR CICLO** (Fase 3)
-- Pueden acumularse si la inestabilidad aumenta
-- Son **independientes** entre genes (eventos aleatorios)
+#### Procesos Biológicos:
+- 🔄 **CICLO** - Celular (6 fases)
+- ↓ **FLUJO** - Progresión lógica
+- ├─ **BIFURCACIÓN** - Decisión/Checkpoint
+- ✗ **MUERTE** - Apoptosis o excepción
+- ✓ **ACEPTACIÓN** - Proceso continúa
+
+#### Umbrales Críticos:
+- `instability ≤ 10.0` → ✅ Acepta apoptosis (MUERTE)
+- `instability > 10.0` → ❌ Rechaza apoptosis (EVASIÓN → INMORTAL)
 
 ---
 
-**Próximo paso:** Convertir estos diagramas ASCII a **Mermaid.js** para visualización en GitHub.
+### 📊 Convención en Tablas Poblacionales
+
+| Color | Tipo Celular | Símbolo | Ejemplo |
+|---|---|---|---|
+| 🔵 Azul | Vivas normales | ████ | Escenario 1: 40 vivas |
+| 🔴 Rojo | Neoplásticas | ████ | Escenario 4: 40 neoplásticas |
+| ⚪ Gris | Muertas | ▓▓▓▓ | Escenario 3: 39 muertas |
+| 🟡 Amarillo | Transición (+/-) | ░░░░ | Escenario 6: 10 en transición |
+
+---
+
+### 🧬 Código de Genes
+
+| Gen | Estado | Protección | Inestabilidad | Símbolo |
+|---|---|---|---|---|
+| **BRCA1** | +/- | ✅ Funcional | Base | 🟢 |
+| **BRCA1** | -/- | ❌ Deficiente | Base | 🔴 |
+| **TP53** | +/+ | ✅ Total | Base (1.0) | 🟢 |
+| **TP53** | +/- | ✅ Parcial | +0.5 (bajo) | 🟡 |
+| **TP53** | -/- | ❌ Nulo | +1.0 (alto) | 🔴 |
+
+---
+
+### 🎯 Puntos Clave de Interpretación
+
+1. **Protección contra Neoplasia:**
+   - TP53 +/+ o +/- → ✅ PROTEGIDO (rechaza transformación)
+   - TP53 = -/- → ❌ VULNERABLE (permite transformación)
+
+2. **Inestabilidad Genómica:**
+   - Aumenta cuadráticamente: `I(t+1) = I(t)² + δ`
+   - Umbral crítico: 10.0 (evasión de apoptosis)
+
+3. **Mutaciones:**
+   - ~1% por ciclo en DEFAULT
+   - Pueden acumularse con inestabilidad
+
+4. **División Celular:**
+   - Solo células normales (TP53 ≠ -/-)
+   - Neoplásticas NO se dividen (inmortales pero singulares)
+
+5. **Ciclo de Vida:**
+   - 6 fases secuenciales
+   - Checkpoints críticos en Fases 1, 2, 4
+
+---
 
