@@ -26,6 +26,8 @@ add_executable(unit_tests
         ../src/domain/cell/CellFactory.h
         ../src/domain/cell/AgenticCell.cpp
         ../src/domain/cell/AgenticCell.h
+        ../src/domain/cell/AgenticCell_v2.cpp
+        ../src/domain/cell/AgenticCell_v2.h
         ../src/domain/gene/Gene.cpp
         ../src/domain/gene/Gene.h
         ../src/domain/gene/Genome.cpp
