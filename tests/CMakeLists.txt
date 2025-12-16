@@ -20,6 +20,8 @@ add_executable(unit_tests
         ../src/domain/adapters/LogLevel.h
         ../src/domain/adapters/NullLogger.h
 
+        ../src/domain/cell/CellLifeStage.h
+        ../src/domain/cell/InstabilityDeltas.h
         ../src/domain/cell/CellFactory.cpp
         ../src/domain/cell/CellFactory.h
         ../src/domain/cell/AgenticCell.cpp

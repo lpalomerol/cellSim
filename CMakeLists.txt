@@ -21,7 +21,6 @@ set(COMMON_SOURCES
         src/domain/adapters/NullLogger.h
         src/domain/cell/CellFactory.cpp
         src/domain/cell/CellFactory.h
-        src/domain/cell/OncoState.h
         src/domain/cell/AgenticCell.cpp
         src/domain/cell/AgenticCell.h
         src/domain/gene/Gene.cpp
