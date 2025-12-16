@@ -34,6 +34,8 @@ namespace domain {
         /// @param enable_big_bang_mode If true, neoplastic cells divide faster (default false)
         /// @param apoptosis_instability_threshold Max D2 for apoptosis to work (default 10.0)
         /// @param logger Optional logger (default NullLogger)
+        /// @param d1_primer_threshold D1 threshold to enter PRIMER state (default 2.0)
+        /// @param d2_apoptosis_threshold D2 threshold to resist extrinsic apoptosis (default 5.0)
         AgenticCell_v2(std::unique_ptr<INoiseSource> noise,
                        Genome genome,
                        double neoplasm_k = 0.002,
@@ -43,7 +45,9 @@ namespace domain {
                        double neoplastic_division_rate = 0.001,
                        bool enable_big_bang_mode = false,
                        double apoptosis_instability_threshold = 10.0,
-                       const ports::ILoggerPtr& logger = nullptr);
+                       const ports::ILoggerPtr& logger = nullptr,
+                       double d1_primer_threshold = 2.0,
+                       double d2_apoptosis_threshold = 5.0);
 
         // === ILoggeable implementation ===
         std::string getLogCategory() const override { return "CELL_V2"; }
@@ -114,6 +118,13 @@ namespace domain {
 
         /// D2: Immunosuppression counter (immune evasion). Starts at 1.0, grows each tick in phase4
         double d2_immunosuppression_ = 1.0;
+
+        // === Thresholds (configurable) ===
+        /// D1 threshold to enter PRIMER state (default 2.0)
+        double d1_primer_threshold_ = 2.0;
+
+        /// D2 threshold to resist extrinsic apoptosis (default 5.0)
+        double d2_apoptosis_threshold_ = 5.0;
 
         // === Instability deltas (same as before) ===
         double low_delta_instability_ = 0.0001;

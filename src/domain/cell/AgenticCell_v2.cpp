@@ -21,7 +21,9 @@ namespace domain {
                                    double neoplastic_division_rate,
                                    bool enable_big_bang_mode,
                                    double apoptosis_instability_threshold,
-                                   const ports::ILoggerPtr& logger)
+                                   const ports::ILoggerPtr& logger,
+                                   double d1_primer_threshold,
+                                   double d2_apoptosis_threshold)
         : noise_(std::move(noise)),
           logger_(logger ? logger : std::make_shared<adapters::NullLogger>()),
           genome_(std::move(genome)),
@@ -35,12 +37,11 @@ namespace domain {
           low_delta_instability_(low_delta_instability),
           high_delta_instability_(high_delta_instability),
           d1_dna_damage_(1.0),
-          d2_immunosuppression_(1.0) {
+          d2_immunosuppression_(1.0),
+          d1_primer_threshold_(d1_primer_threshold),
+          d2_apoptosis_threshold_(d2_apoptosis_threshold) {
 
-        // Inject noise source into all genes
         genome_.setNoiseSourceForAll(noise_.get());
-
-        // Capture RNG seed for traceability
         if (noise_) {
             seed_ = noise_->getSeed();
         } else {
@@ -49,30 +50,38 @@ namespace domain {
 
         logger_->logCell("[Trace] AgenticCell_v2 constructed: seed=" + std::to_string(seed_)
                       + " | d1=" + std::to_string(d1_dna_damage_)
-                      + " | d2=" + std::to_string(d2_immunosuppression_));
+                      + " | d2=" + std::to_string(d2_immunosuppression_)
+                      + " | d1_threshold=" + std::to_string(d1_primer_threshold_)
+                      + " | d2_threshold=" + std::to_string(d2_apoptosis_threshold_));
     }
-
-    // ===== Getters: D1 and D2 =====
-
-    // Already declared inline in header:
-    // double getD1() const { return d1_dna_damage_; }
-    // double getD2() const { return d2_immunosuppression_; }
 
     // ===== Simple Status Queries =====
 
     bool AgenticCell_v2::alive() const {
-        const Gene* brca1 = genome_.getGene("BRCA1");
-
-        // Normal cells: BRCA1 must be enabled (+/+ or +/-)
-        // INTRINSIC APOPTOSIS: If BRCA1 -/-, cell is dead (DNA repair impossible)
-        // This is independent of TP53 and tissue signals
-        if (!has_evaded_apoptosis_) {
-            if (!brca1) return false;
-            std::string brca1_status = brca1->status();
-            return brca1_status != "-/-";  // BRCA1 -/- → dead (intrinsic apoptosis)
+        // If cell has evaded apoptosis (is neoplastic), always alive
+        if (has_evaded_apoptosis_) {
+            return true;
         }
 
-        // Immortal cells (evaded apoptosis): always alive
+        const Gene* brca1 = genome_.getGene("BRCA1");
+        const Gene* tp53 = genome_.getGene("TP53");
+
+        // BRCA1 missing or check: if not present, cell is dead
+        if (!brca1) {
+            return false;
+        }
+
+        // BRCA1 -/- is lethal ONLY if TP53 is functional
+        if (brca1->status() == "-/-") {
+            // TP53 -/- cannot kill the cell → alive
+            if (tp53 && tp53->status() == "-/-") {
+                return true;
+            }
+            // TP53 is functional (+/+ or +/-) → detects damage → dead
+            return false;
+        }
+
+        // BRCA1 +/- (normal case) → cell is alive
         return true;
     }
 
@@ -83,9 +92,6 @@ namespace domain {
     bool AgenticCell_v2::isNeoplasticProtected() const {
         const Gene* tp53 = genome_.getGene("TP53");
         if (!tp53) return false;
-
-        // TP53 +/+ and +/- protect from neoplasm
-        // Only TP53 -/- allows tumors
         std::string status = tp53->status();
         return status != "-/-";
     }
@@ -139,7 +145,7 @@ namespace domain {
         if (!signal) return;
 
         const auto& targets = signal->targetIds();
-        bool should_accept = targets.empty();  // broadcast
+        bool should_accept = targets.empty();
 
         if (!should_accept) {
             for (auto target_id : targets) {
@@ -153,8 +159,6 @@ namespace domain {
         if (should_accept) {
             incoming_messages_.push(std::move(signal));
             logger_->logCell("[Trace] Cell [" + std::to_string(cell_id_) + "] received message");
-        } else {
-            logger_->logCell("[Trace] Cell [" + std::to_string(cell_id_) + "] ignored message (not in targets)");
         }
     }
 
@@ -164,119 +168,217 @@ namespace domain {
         genome_.mutate(name);
     }
 
-    // ===== Placeholder: Methods to be implemented in later sub-steps =====
+    // ===== MAIN LIFECYCLE =====
 
     void AgenticCell_v2::live() {
-        // TODO: Implement full 6-phase lifecycle in sub-step 3.5
-        logger_->logCell("[Trace] AgenticCell_v2::live() - NOT YET IMPLEMENTED");
+        // Execute one complete cell cycle: 6 phases
+        try {
+            phase0_BaselineAssessment();
+            phase1_G1IntegrityCheckpoint();
+            phase2_Endocytosis();
+            phase3_NuclearDynamics();
+            phase4_CytoplasmicRemodeling();
+            phase5_Exocytosis();
+        } catch (const CellDeathException& e) {
+            logger_->logCell("[CellDeath] " + std::string(e.what()));
+            throw;
+        }
     }
 
     CellLifeStage AgenticCell_v2::getCurrentCellLifeStage() const {
-        // Derive cell life stage from: alive status, neoplastic status, TP53, BRCA1, D1
-        // Order of evaluation: BASELINE → UNSTABLE → UNPROTECTED → PRIMER → TUMORAL → DEAD (exception)
-
-        // Get gene statuses
-        std::string tp53_status = getTP53();   // "+/+", "+/-", "-/-", or "?"
-        std::string brca1_status = getBRCA1(); // "+/+", "+/-", "-/-", or "?"
-
-        // 1. BASELINE: TP53 +/+ && BRCA1 +/- (normal, fully protected)
-        if (tp53_status == "+/+" && brca1_status == "+/-") {
-            return CellLifeStage::BASELINE;
+        if (!alive()) {
+            return CellLifeStage::DEAD;
         }
 
-        // 2. UNSTABLE: TP53 +/- && BRCA1 +/- (heterozygous, somewhat protected)
-        if (tp53_status == "+/-" && brca1_status == "+/-") {
-            return CellLifeStage::UNSTABLE;
-        }
-
-        // 3. UNPROTECTED: TP53 -/- (no TP53 protection, vulnerable, D1 ≤ 2.0)
-        if (tp53_status == "-/-" && d1_dna_damage_ <= 2.0) {
-            return CellLifeStage::UNPROTECTED;
-        }
-
-        // 4. PRIMER: TP53 -/- && D1 > 2.0 (pre-tumoral, visible to tissue)
-        if (tp53_status == "-/-" && d1_dna_damage_ > 2.0) {
-            return CellLifeStage::PRIMER;
-        }
-
-        // 5. TUMORAL: Cell has completed neoplastic transformation
         if (is_neoplastic_) {
             return CellLifeStage::TUMORAL;
         }
 
-        // 6. DEAD: No valid genotype pattern matches
-        // Cell should have been caught by alive() check (BRCA1 -/-), but if we reach here,
-        // it means genotype is invalid. Throw exception instead of returning default.
-        logger_->logCell("[ERROR] Invalid genotype pattern: TP53=" + tp53_status +
-                      ", BRCA1=" + brca1_status + ". Throwing exception.");
-        throw NeoplasticException("Invalid cell state: unrecognized genotype");
+        std::string tp53_status = getTP53();
+        std::string brca1_status = getBRCA1();
+
+        if (tp53_status == "+/-" && brca1_status == "+/-") {
+            return CellLifeStage::UNSTABLE;
+        }
+
+        if (tp53_status == "+/+" && brca1_status == "+/-") {
+            return CellLifeStage::BASELINE;
+        }
+
+        if (tp53_status == "-/-") {
+            if (d1_dna_damage_ > d1_primer_threshold_) {
+                return CellLifeStage::PRIMER;
+            }
+            return CellLifeStage::UNPROTECTED;
+        }
+
+        logger_->logCell("[Trace] Unexpected genotype: TP53=" + tp53_status +
+                      ", BRCA1=" + brca1_status + ". Defaulting to DEAD.");
+        return CellLifeStage::DEAD;
     }
 
+    // ===== PHASES =====
+
     void AgenticCell_v2::phase0_BaselineAssessment() const {
-        // TODO: Implement in sub-step 3.5
+        CellLifeStage stage = getCurrentCellLifeStage();
+        logger_->logCell("[Phase0] Cycle start: stage=" + toString(stage) +
+                       ", age=" + std::to_string(age_) +
+                       ", d1=" + std::to_string(d1_dna_damage_) +
+                       ", d2=" + std::to_string(d2_immunosuppression_));
+
+        if (is_neoplastic_) {
+            logger_->logCell("[Phase0] Cell is NEOPLASTIC (is_neoplastic_=true)");
+        }
+        if (has_evaded_apoptosis_) {
+            logger_->logCell("[Phase0] Cell has EVADED apoptosis (immortal)");
+        }
     }
 
     void AgenticCell_v2::phase1_G1IntegrityCheckpoint() const {
-        // TODO: Implement in sub-step 3.5
-        // G1 Checkpoint: Validate cell is alive
-        // INTRINSIC APOPTOSIS CHECK:
-        // - If BRCA1 -/-, alive() returns false
-        // - Throws CellDeathException here (intrinsic apoptosis trigger)
-        // - Not affected by TP53 or tissue signals
-        // - Occurs independently in every cycle
+        if (!alive()) {
+            logger_->logCell("[Phase1] Cell is DEAD (intrinsic apoptosis: BRCA1 -/-)");
+            throw CellDeathException("intrinsic_apoptosis@phase1");
+        }
     }
 
     void AgenticCell_v2::phase2_Endocytosis() {
-        // TODO: Implement in sub-step 3.3
-        // Endocytosis: Process incoming signals
-        // EXTRINSIC APOPTOSIS CHECK:
-        // - Only if ApoptosisSignal received (from tissue)
-        // - Only triggered if cell is in PRIMER state (TP53 -/-, D1 > 2.0)
-        // - D2 decides outcome:
-        //   * D2 > 5.0: Resists apoptosis (immune evasion)
-        //   * D2 <= 5.0: Accepts apoptosis (immune clearance)
-        // - Different from intrinsic: can be evaded with high D2
+        while (!incoming_messages_.empty()) {
+            auto signal = std::move(incoming_messages_.front());
+            incoming_messages_.pop();
+
+            if (!signal) continue;
+
+            logger_->logCell("[Phase2] Processing signal type=" + std::to_string(static_cast<int>(signal->type())));
+
+            if (signal->type() == ISignal::Type::Apoptosis) {
+                // PART 1: Apoptosis (universal)
+                if (d2_immunosuppression_ > d2_apoptosis_threshold_) {
+                    logger_->logCell("[Apoptosis] Extrinsic BLOCKED: D2=" +
+                                   std::to_string(d2_immunosuppression_) + " > " +
+                                   std::to_string(d2_apoptosis_threshold_) + " (immune evasion)");
+
+                    // PART 2: Neoplasm (conditional, only if PRIMER)
+                    CellLifeStage current_stage = getCurrentCellLifeStage();
+                    if (current_stage == CellLifeStage::PRIMER && !is_neoplastic_) {
+                        logger_->logCell("[Phase2] Cell in PRIMER state - developing neoplasm");
+                        develop_neoplasm();
+                        logger_->logCell("[Phase2] Cell TRANSFORMED to TUMORAL (is_neoplastic_ = true)");
+                    }
+                } else {
+                    logger_->logCell("[Apoptosis] Extrinsic ACCEPTED: D2=" +
+                                   std::to_string(d2_immunosuppression_) + " <= " +
+                                   std::to_string(d2_apoptosis_threshold_) + " (immune clearance)");
+                    throw CellDeathException("extrinsic_apoptosis@phase2");
+                }
+            }
+        }
     }
 
     void AgenticCell_v2::phase3_NuclearDynamics() {
-        // TODO: Implement in sub-step 3.5
+        logger_->logCell("[Phase3] Nuclear dynamics: genome evolution");
+        logger_->logCell("[Phase3] Genome status: TP53=" + getTP53() +
+                       ", BRCA1=" + getBRCA1());
     }
 
     void AgenticCell_v2::phase4_CytoplasmicRemodeling() {
-        // TODO: Implement in sub-step 3.4
+        std::string tp53_status = getTP53();
+        std::string brca1_status = getBRCA1();
+        auto [delta_d1, delta_d2] = InstabilityDeltas::getDeltas(tp53_status, brca1_status);
+
+        double prev_d1 = d1_dna_damage_;
+        double prev_d2 = d2_immunosuppression_;
+
+        d1_dna_damage_ = std::min(d1_dna_damage_ * d1_dna_damage_ + delta_d1, 999.0);
+        d2_immunosuppression_ = std::min(d2_immunosuppression_ * d2_immunosuppression_ + delta_d2, 999.0);
+
+        logger_->logCell("[Phase4] d1_update: " + std::to_string(prev_d1) + " → " +
+                       std::to_string(d1_dna_damage_) + " (delta=" + std::to_string(delta_d1) + ")");
+        logger_->logCell("[Phase4] d2_update: " + std::to_string(prev_d2) + " → " +
+                       std::to_string(d2_immunosuppression_) + " (delta=" + std::to_string(delta_d2) + ")");
+
+        CellLifeStage current_stage = getCurrentCellLifeStage();
+        if (current_stage == CellLifeStage::PRIMER && !is_neoplastic_) {
+            logger_->logCell("[Phase4] Cell DETECTED in PRIMER state");
+            logger_->logCell("[Phase4]   Reason: TP53=" + tp53_status + ", D1=" +
+                           std::to_string(d1_dna_damage_) + " > 2.0");
+            logger_->logCell("[Phase4]   Status: UNPROTECTED (pretumoral, visible to tissue)");
+            logger_->logCell("[Phase4]   Waiting: Tissue will send apoptosis signal");
+        }
     }
 
     void AgenticCell_v2::phase5_Exocytosis() {
-        // TODO: Implement in sub-step 3.5
+        logger_->logCell("[Phase5] Exocytosis complete");
+        increaseAge();
     }
 
-    void AgenticCell_v2::updateInstability() {
-        // TODO: Implement in sub-step 3.4
+    // ===== HELPERS =====
+
+    void AgenticCell_v2::increaseAge() {
+        if (alive()) {
+            age_++;
+            logger_->logCell("[Misc] Age increased to " + std::to_string(age_));
+        }
     }
 
     void AgenticCell_v2::develop_neoplasm() {
-        // TODO: Implement in sub-step 3.5
-    }
-
-    void AgenticCell_v2::increaseAge() {
-        // TODO: Implement in sub-step 3.5
+        is_neoplastic_ = true;
+        has_evaded_apoptosis_ = true;
+        logger_->logCell("[Transform] Cell became NEOPLASTIC (is_neoplastic_=true, immortal)");
     }
 
     void AgenticCell_v2::adjust_neoplasm_k() {
-        // TODO: Implement in sub-step 3.5
+        // Placeholder: adjust neoplasm probability if needed
+    }
+
+    void AgenticCell_v2::updateInstability() {
+        // Placeholder: D1/D2 updated in phase4, not here
     }
 
     void AgenticCell_v2::attemptDivision() {
-        // TODO: Implement in sub-step 3.5
+        double rate = is_neoplastic_ && enable_big_bang_mode_ ? neoplastic_division_rate_ : division_rate_;
+        // Sample random value - use noise source if available
+        double rnd = 0.0;
+        if (noise_) {
+            rnd = noise_->next().u01;  // Get uniform [0,1) value
+        }
+
+        if (rnd < rate) {
+            logger_->logCell("[Misc] Cell division triggered (random=" + std::to_string(rnd) + " < rate=" + std::to_string(rate) + ")");
+        }
     }
 
     void AgenticCell_v2::attemptApoptosis() {
-        // TODO: Implement in sub-step 3.3
+        // Placeholder: apoptosis handled in phase2_Endocytosis
     }
 
     std::unique_ptr<AgenticCell_v2> AgenticCell_v2::clone() const {
-        // TODO: Implement in sub-step 3.5
-        return nullptr;
+        auto daughter = std::make_unique<AgenticCell_v2>(
+            std::make_unique<adapters::RandomNoise>(),
+            genome_,
+            base_neoplasm_k_,
+            low_delta_instability_,
+            high_delta_instability_,
+            division_rate_,
+            neoplastic_division_rate_,
+            enable_big_bang_mode_,
+            apoptosis_instability_threshold_,
+            logger_,
+            d1_primer_threshold_,      // Inherit thresholds
+            d2_apoptosis_threshold_
+        );
+
+        daughter->d1_dna_damage_ = d1_dna_damage_;
+        daughter->d2_immunosuppression_ = d2_immunosuppression_;
+
+        if (is_neoplastic_) {
+            daughter->is_neoplastic_ = true;
+            daughter->has_evaded_apoptosis_ = true;
+        }
+
+        logger_->logCell("[Misc] Cell cloned (daughter inherits d1=" + std::to_string(d1_dna_damage_) +
+                       ", d2=" + std::to_string(d2_immunosuppression_) + ")");
+
+        return daughter;
     }
 
 } // namespace domain

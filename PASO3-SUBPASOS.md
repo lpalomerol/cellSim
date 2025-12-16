@@ -126,12 +126,12 @@ while (!incoming_messages_.empty()) {
 
 ---
 
-### PASO 3.4: Phase 4 (Cytoplasmic Remodeling) - Transformación a TUMORAL (~90 líneas)
+### PASO 3.4: Phase 4 (Cytoplasmic Remodeling) - Detectar PRIMER (~90 líneas)
 **¿Qué hace?**
 - Actualiza D1 y D2 con matriz BRCA1×TP53
 - Detecta transición a PRIMER (si D1 > 2.0 y TP53 -/-)
-- **Transforma a TUMORAL si sobrevivió apoptosis en PRIMER**
-- Decide si desarrollar neoplasm
+- **IMPORTANTE: Solo detecta, NO desarrolla neoplasm aún**
+- El tejido enviará ApoptosisSignal en ciclo N+1
 
 **Lógica (orden de ejecución):**
 ```cpp
@@ -143,53 +143,52 @@ while (!incoming_messages_.empty()) {
 5. Detecta estado actual:
    - Si TP53==-/- && D1>2.0 → Estado es PRIMER (log)
 
-6. Si TP53 -/- && !is_neoplastic_:
-   └─ Desarrolla neoplasm:
-      develop_neoplasm();
-      // is_neoplastic_ = true
-      // Estado cambia a TUMORAL
+6. **NO desarrolla neoplasm aún** - es_neoplastic_ sigue siendo false
+   - Solo log: "Cell DETECTED in PRIMER state"
+   - Esperando ApoptosisSignal en próximo ciclo
 ```
 
-**Flujo específico PRIMER → TUMORAL:**
+**CLAVE: Ciclo N detecta, Ciclo N+1 decide**
 
 ```
-Ciclo t+1 (si sobrevivió apoptosis en Fase 2):
-  Fase 4 comienza:
-    - Actualiza D1, D2
-    - Detecta PRIMER (TP53 -/-, D1 > 2.0)
-    - develop_neoplasm() ejecuta
-    - is_neoplastic_ = true
-    
-  Estado: TUMORAL ✓
-  Ciclo t+2: Comportamiento neoplástico (fase5 emite NeoplasmSignal)
-```
+CICLO N (Entra PRIMER):
+  Fase 4:
+    ├─ Actualiza D1, D2
+    ├─ Detecta PRIMER (TP53 -/-, D1 > 2.0)
+    └─ Estado = PRIMER (visible para tejido)
+    → NO desarrolla neoplasm (es_neoplastic_ = false)
 
-**¿Por qué es el "corazón"?**
-- Aquí ocurren las **transiciones de estado** críticas
-- Donde D1 y D2 crecen
-- **Donde PRIMER → TUMORAL se completa**
+CICLO N+1 (Recibe Apoptosis):
+  Fase 2:
+    ├─ Recibe ApoptosisSignal
+    ├─ Si D2 > 5.0 → develop_neoplasm() → TUMORAL
+    └─ Si D2 ≤ 5.0 → throw CellDeathException (muere)
+
+CICLO N+2+ (TUMORAL si sobrevivió):
+  Si sobrevivió:
+    ├─ Estado = TUMORAL
+    └─ Comportamiento neoplástico
+```
 
 **Pseudo-código:**
 ```cpp
 void phase4_CytoplasmicRemodeling() {
     // 1. Actualizar D1 y D2
     auto [delta_d1, delta_d2] = InstabilityDeltas::getDeltas(tp53, brca1);
-    d1_dna_damage_ = min(d1² + delta_d1, 999);
-    d2_immunosuppression_ = min(d2² + delta_d2, 999);
+    d1_dna_damage_ = min(d1_dna_damage_ * d1_dna_damage_ + delta_d1, 999);
+    d2_immunosuppression_ = min(d2_immunosuppression_ * d2_immunosuppression_ + delta_d2, 999);
     
     // 2. Log de actualización
-    logger_->logCell("d1_update: " + prev_d1 + " → " + d1);
-    logger_->logCell("d2_update: " + prev_d2 + " → " + d2);
+    logger_->logCell("d1_update: " + prev_d1 + " → " + d1_dna_damage_);
+    logger_->logCell("d2_update: " + prev_d2 + " → " + d2_immunosuppression_);
     
-    // 3. Detectar PRIMER
-    if (tp53 == "-/-" && d1 > 2.0) {
-        logger_->logCell("Cell entered PRIMER state");
-    }
-    
-    // 4. Si pasó PRIMER (sobrevivió apoptosis), transformar
-    if (!isNeoplasticProtected()) {  // TP53 -/-
-        develop_neoplasm();
-        // is_neoplastic_ = true → Estado = TUMORAL
+    // 3. Detectar PRIMER (SIN DESARROLLAR NEOPLASM AÚN)
+    CellLifeStage stage = getCurrentCellLifeStage();
+    if (stage == CellLifeStage::PRIMER && !is_neoplastic_) {
+        logger_->logCell("Cell DETECTED in PRIMER state (TP53 -/-, D1 > 2.0)");
+        logger_->logCell("Waiting for apoptosis signal in next cycle...");
+        // is_neoplastic_ sigue siendo false
+        // El tejido enviará ApoptosisSignal en próximo ciclo
     }
 }
 ```
@@ -197,8 +196,8 @@ void phase4_CytoplasmicRemodeling() {
 **Validación:**
 - Compilar ✓
 - Test: verificar D1 y D2 crecen correctamente
-- Test: verificar transición a PRIMER (TP53 -/-, D1 > 2.0)
-- Test: verificar PRIMER → TUMORAL (sobrevivió apoptosis)
+- Test: verificar transición a PRIMER (TP53 -/-, D1 > 2.0) pero is_neoplastic_ = false
+- Test: verificar que NO desarrolla neoplasm en ciclo N
 
 ---
 
@@ -269,8 +268,8 @@ NOTA: Si BRCA1 -/-, NUNCA llega a PRIMER
 | Sub-paso | Contenido | Líneas | Duración | Status |
 |----------|-----------|--------|----------|--------|
 | 3.1 | Constructor + getters | ~80 | 15 min | ✅ HECHO |
-| 3.2 | getCurrentCellLifeStage() | ~40 | 15 min | ✅ HECHO |
-| 3.3 | Phase 2 (Endocytosis) | ~50 | 15 min | ⏳ TODO |
+| 3.2 | getCurrentCellLifeStage() | ~55 | 15 min | ✅ HECHO |
+| 3.3 | Phase 2 (Endocytosis) | ~40 | 15 min | ✅ HECHO |
 | 3.4 | Phase 4 (Cytoplasmic Remodeling) | ~90 | 20 min | ⏳ TODO |
 | 3.5 | Phases 0,1,3,5 + helpers | ~150 | 30 min | ⏳ TODO |
 | 3.6 | Tests (7 cases) | ~250 | 25 min | ⏳ TODO |
@@ -326,20 +325,21 @@ NOTA: Si BRCA1 -/-, NUNCA llega a PRIMER
 - [x] Orden de evaluación es correcto (DEAD → TUMORAL → UNPROTECTED → UNSTABLE → BASELINE) ✅
 
 ### 3.3: Phase 2 (Endocytosis)
-- [ ] Compila sin errores
-- [ ] Procesa ApoptosisSignal correctamente
-- [ ] Si D2 > 5.0 → cell.alive() == true (después de phase2)
-- [ ] Si D2 ≤ 5.0 → cell.alive() == false (lanza CellDeathException)
-- [ ] Log muestra decisión: "Apoptosis blocked: D2=X > 5.0" o "Apoptosis accepted: D2=X <= 5.0"
+- [x] Compila sin errores ✅
+- [x] Procesa ApoptosisSignal correctamente ✅
+- [x] Si D2 > 5.0 → cell sobrevive (no lanza excepción) ✅
+- [x] Si D2 ≤ 5.0 → cell muere (lanza CellDeathException) ✅
+- [x] Log muestra decisión: "Apoptosis blocked/accepted" con valor de D2 ✅
 
 ### 3.4: Phase 4 (Cytoplasmic Remodeling)
-- [ ] Compila sin errores
-- [ ] D1 crece: D1_new = min(D1_old² + delta_d1, 999)
-- [ ] D2 crece: D2_new = min(D2_old² + delta_d2, 999)
-- [ ] Deltas varían según BRCA1 × TP53 (matriz)
-- [ ] Detecta PRIMER cuando TP53 -/- && D1 > 2.0
-- [ ] **Transforma a TUMORAL si TP53 -/- (develop_neoplasm ejecuta)**
-- [ ] Logs muestran: "d1_update", "d2_update", "Cell entered PRIMER"
+- [x] Compila sin errores ✅
+- [x] D1 crece: D1_new = min(D1_old² + delta_d1, 999) ✅
+- [x] D2 crece: D2_new = min(D2_old² + delta_d2, 999) ✅
+- [x] Deltas varían según BRCA1 × TP53 (matriz) ✅
+- [x] Detecta PRIMER cuando TP53 -/- && D1 > 2.0 ✅
+- [x] **CLAVE: Detecta PRIMER pero NO desarrolla neoplasm (is_neoplastic_ sigue false)** ✅
+- [x] Estado = PRIMER pero es_neoplastic_ = false ✅
+- [x] Logs muestran: "d1_update", "d2_update", "Cell DETECTED in PRIMER state" ✅
 
 ### 3.5: Phases 0,1,3,5 + Helpers
 - [ ] Compila sin errores
@@ -349,15 +349,95 @@ NOTA: Si BRCA1 -/-, NUNCA llega a PRIMER
 - [ ] Tests viejos de AgenticCellTest pasan (adaptados para v2)
 
 ### 3.6: Tests CellLifeStageTransitionTest.cpp
-- [ ] Compila sin errores
-- [ ] **Test 1:** TP53 +/+ & BRCA1 +/- → BASELINE ✓
-- [ ] **Test 2:** TP53 +/- & BRCA1 +/- → UNSTABLE ✓
-- [ ] **Test 3:** TP53 -/- (any BRCA1) → UNPROTECTED ✓
-- [ ] **Test 4:** TP53 -/- & D1 >2.0 → PRIMER ✓
-- [ ] **Test 5:** PRIMER + apoptosis + D2 >5.0 → sobrevive (alive==true) ✓
-- [ ] **Test 6:** PRIMER + apoptosis + D2 ≤5.0 → muere (alive==false) ✓
-- [ ] **Test 7:** PRIMER + sobrevivió apoptosis → transforma a TUMORAL ✓
-- [ ] Logs muestran: "d1=X d2=Y" (no genomic_instability)
+- [x] Compila sin errores ✅
+- [x] **Test 1:** TP53 +/+ & BRCA1 +/- → BASELINE ✅
+- [x] **Test 2:** TP53 +/- & BRCA1 +/- → UNSTABLE ✅
+- [x] **Test 3:** TP53 -/- (low D1) → UNPROTECTED ✅
+- [x] **Test 4:** TP53 -/- & D1 >2.0 → PRIMER ✅
+- [x] **Test 5:** PRIMER detected but is_neoplastic_=false ✅
+- [x] **Test 6:** BRCA1 -/- & TP53 +/+ → DEAD (intrinsic apoptosis) ✅
+- [x] **Test 7:** BRCA1 -/- & TP53 -/- → DEAD ✅
+- [x] **Test 8:** D2 doesn't affect state classification ✅
+- [x] **Test 9:** DEAD when not alive ✅
+- [x] **Test 10:** TP53 +/+ & BRCA1 +/+ behavior ✅
+- [x] Logs muestran: "d1=X d2=Y" (no genomic_instability) ✅
+
+### 3.7: Parametrizar Thresholds
+- [x] Compila sin errores ✅
+- [x] Constructor acepta d1_primer_threshold (default 2.0) ✅
+- [x] Constructor acepta d2_apoptosis_threshold (default 5.0) ✅
+- [x] getCurrentCellLifeStage() usa d1_primer_threshold_ ✅
+- [x] phase2_Endocytosis() usa d2_apoptosis_threshold_ ✅
+- [x] clone() hereda thresholds a célula hija ✅
+- [x] Logs muestran valores de thresholds ✅
+
+---
+
+### PASO 3.7: Parametrizar Thresholds (~30 líneas)
+**¿Qué hace?**
+- Define constantes para los thresholds críticos:
+  - `D1_PRIMER_THRESHOLD = 2.0` (D1 mínimo para entrar en PRIMER)
+  - `D2_APOPTOSIS_THRESHOLD = 5.0` (D2 mínimo para resistir apoptosis extrínseca)
+- Añade parámetros opcionales al constructor para permitir configuración
+- Reemplaza valores hardcodeados en el código
+
+**¿Por qué?**
+- Los thresholds son críticos y pueden necesitar ajustes biológicos
+- Permitir parametrización sin recompilar
+- Facilita testing con diferentes valores
+- Mejora mantenibilidad del código
+
+**Archivos a modificar:**
+- `AgenticCell_v2.h`: Añadir parámetros opcionales al constructor
+- `AgenticCell_v2.cpp`: Usar constantes en lugar de hardcoded values
+- Método `getCurrentCellLifeStage()`: Usar `D1_PRIMER_THRESHOLD`
+- Método `phase2_Endocytosis()`: Usar `D2_APOPTOSIS_THRESHOLD`
+
+**Pseudo-código:**
+
+```cpp
+// En AgenticCell_v2.h - nuevos parámetros del constructor:
+AgenticCell_v2(
+    ...,
+    double d1_primer_threshold = 2.0,      // D1 threshold para PRIMER
+    double d2_apoptosis_threshold = 5.0,   // D2 threshold para resistir apoptosis
+    ...
+);
+
+// En AgenticCell_v2.cpp - miembros privados:
+double d1_primer_threshold_ = 2.0;
+double d2_apoptosis_threshold_ = 5.0;
+
+// En getCurrentCellLifeStage():
+if (tp53_status == "-/-" && d1_dna_damage_ > d1_primer_threshold_) {
+    return CellLifeStage::PRIMER;
+}
+
+// En phase2_Endocytosis():
+if (d2_immunosuppression_ > d2_apoptosis_threshold_) {
+    // Resiste apoptosis
+}
+```
+
+**Validación:**
+- Compilar ✓
+- Tests pasan con valores por defecto (2.0 y 5.0)
+- Constructor acepta parámetros opcionales
+
+---
+
+## Tabla Actualizada de Sub-pasos
+
+| Sub-paso | Contenido | Líneas | Duración | Status |
+|----------|-----------|--------|----------|--------|
+| 3.1 | Constructor + getters | ~80 | 15 min | ✅ HECHO |
+| 3.2 | getCurrentCellLifeStage() | ~55 | 15 min | ✅ HECHO |
+| 3.3 | Phase 2 (Endocytosis) | ~40 | 15 min | ✅ HECHO |
+| 3.4 | Phase 4 (Cytoplasmic Remodeling) | ~45 | 15 min | ✅ HECHO |
+| 3.5 | Phases 0,1,3,5 + helpers | ~150 | 30 min | ✅ HECHO |
+| 3.6 | Tests (10 cases) | ~250 | 25 min | ✅ HECHO |
+| 3.7 | Parametrizar Thresholds | ~30 | 15 min | ✅ HECHO |
+| **TOTAL** | **AgenticCell_v2.cpp + Tests** | **~470** | **~135 min** | ✅ 100% |
 
 ---
 
