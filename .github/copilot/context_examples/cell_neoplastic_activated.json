@@ -1,0 +1,132 @@
+{
+  "scenario": "cell_neoplastic_activated",
+  "description": "Cell that has undergone neoplastic transformation (TP53 -/-, became neoplastic)",
+  "timestamp": "Cycle 25, Age 100 ticks, Just transformed",
+
+  "context": {
+    "agent_type": "AgenticCell",
+
+    "identity": {
+      "role": "Transformed malignant cell (tumor cell)",
+      "id": 1010,
+      "tissue_id": 100,
+      "status": "NEOPLASTIC"
+    },
+
+    "constraints": [
+      "TP53 -/- (homozygous knockout) - necessary for neoplasia",
+      "Genome is HIGHLY UNSTABLE (is_unstable = true)",
+      "Genomic instability elevated: 2.5 (high mutation rate)",
+      "LIFECYCLE CHANGES: Skip phases 0, 1, 3 (growth phases)",
+      "Only execute: phase2 (process signals) → phase4 (division) → phase5 (emit)",
+      "If Big Bang mode OFF: Skip division, just process signals",
+      "If Big Bang mode ON: Use neoplastic_division_rate (can proliferate rapidly)",
+      "Apoptosis RESISTANT if genomic_instability > apoptosis_instability_threshold",
+      "Tissue will send apoptosis signals when neoplasm detected"
+    ],
+
+    "state": {
+      "cellular": {
+        "alive": true,
+        "neoplastic": true,
+        "age": 100,
+        "evaded_apoptosis": false,
+        "genomic_instability": 2.5
+      },
+      "genome": {
+        "TP53": "-/-",
+        "BRCA1": "-/-",
+        "is_unstable": true,
+        "other_genes": "Multiple mutations possible"
+      },
+      "parameters": {
+        "neoplasm_k": 0.002,
+        "division_rate": 0.001,
+        "neoplastic_division_rate": 0.01,
+        "enable_big_bang_mode": true,
+        "mutation_instability_k": 0.0002,
+        "apoptosis_instability_threshold": 10.0
+      },
+      "signals": {
+        "incoming": [
+          "ApoptosisSignal(tissue_id=100, source=100, target=1010, message='apoptosis_response_to_neoplasm')"
+        ],
+        "can_emit": true
+      }
+    },
+
+    "decision_context": {
+      "current_phase": 2,
+      "phase_name": "phase2_Endocytosis",
+      "phase_purpose": "Process incoming signals - likely apoptosis attempt",
+
+      "decisions": [
+        {
+          "name": "Should I undergo apoptosis?",
+          "trigger": "ApoptosisSignal received",
+          "precondition": "Cell alive AND genomic_instability <= apoptosis_instability_threshold",
+          "check": {
+            "cell_alive": true,
+            "genomic_instability": 2.5,
+            "apoptosis_threshold": 10.0,
+            "apoptosis_allowed": true,
+            "reason": "2.5 <= 10.0, so apoptosis CAN work"
+          },
+          "valid_outcomes": [
+            "undergo_apoptosis (likely)",
+            "survive_apoptosis (unlikely, depends on other factors)"
+          ],
+          "expected_outcome": "Cell likely DIES via apoptosis"
+        },
+        {
+          "name": "If survives to phase4: Should I divide?",
+          "trigger": "phase4_CytoplasmicRemodeling",
+          "precondition": "Cell still alive (apoptosis failed)",
+          "calculation": {
+            "u01_sample": "random",
+            "division_rate_used": "neoplastic_division_rate = 0.01 (Big Bang mode)",
+            "probability": "1% chance to divide per cycle"
+          },
+          "valid_outcomes": [
+            "divide_and_emit_signal (if u01 < 0.01)",
+            "do_not_divide (if u01 >= 0.01)"
+          ],
+          "expected_outcome": "High division probability in Big Bang mode"
+        }
+      ],
+
+      "expected_behavior": [
+        "PHASE 2: Drain message queue → find ApoptosisSignal",
+        "Check precondition: 2.5 <= 10.0? YES, apoptosis allowed",
+        "Throw CellDeathException → CELL DIES",
+        "Simulation stops further phases for this cell",
+        "Tissue catches exception, logs death"
+      ]
+    }
+  },
+
+  "alternative_scenario": {
+    "if_apoptosis_threshold_raised": "If apoptosis_instability_threshold = 2.0 (lower than current 2.5)",
+    "then": {
+      "apoptosis_allowed": false,
+      "reason": "2.5 > 2.0, so apoptosis BLOCKED",
+      "cell_fate": "Cell SURVIVES apoptosis signal",
+      "has_evaded_apoptosis": true,
+      "phase4_will": "Execute with high division_rate (0.01), potentially dividing"
+    }
+  },
+
+  "biological_significance": {
+    "current_stage": "Acute phase of neoplastic transformation",
+    "immediate_threat": "Immune system (tissue) detected tumor and sent apoptosis",
+    "tumor_resistance": "Whether tumor survives depends on genomic instability vs threshold",
+    "proliferation_mode": "If survives + Big Bang enabled: rapid proliferation (clonal expansion)"
+  },
+
+  "next_phases_preview": {
+    "most_likely": "Cell dies (apoptosis succeeds) → tumor eliminated",
+    "alternative": "Cell survives apoptosis → Enters phase 4 → May divide → Clone generation",
+    "cascade_effect": "Each daughter cell is also neoplastic with same TP53 -/- status"
+  }
+}
+

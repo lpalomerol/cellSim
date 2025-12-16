@@ -1,0 +1,98 @@
+{
+  "scenario": "cell_tp53_heterozygous_unstable",
+  "description": "Cell with TP53 +/- (heterozygous), genome is unstable, experiencing increased mutation rate",
+  "timestamp": "Cycle 15, Age 50 ticks",
+
+  "context": {
+    "agent_type": "AgenticCell",
+
+    "identity": {
+      "role": "Pre-neoplastic cell with compromised genome stability",
+      "id": 1005,
+      "tissue_id": 100
+    },
+
+    "constraints": [
+      "TP53 +/- (heterozygous) does NOT protect from neoplasia",
+      "Genome is UNSTABLE (genome.isUnstable() = true)",
+      "All gene mutations get penalty: mutation_instability_k added",
+      "Genomic instability factor increased: 1.2 instead of 1.0",
+      "Apoptosis still effective (instability 1.2 < threshold 10.0)",
+      "TP53 still needs to mutate to -/- for actual neoplasia"
+    ],
+
+    "state": {
+      "cellular": {
+        "alive": true,
+        "neoplastic": false,
+        "age": 50,
+        "evaded_apoptosis": false,
+        "genomic_instability": 1.2
+      },
+      "genome": {
+        "TP53": "+/-",
+        "BRCA1": "+/-",
+        "is_unstable": true
+      },
+      "parameters": {
+        "neoplasm_k": 0.002,
+        "division_rate": 0.001,
+        "mutation_instability_k": 0.0001,
+        "apoptosis_instability_threshold": 10.0
+      },
+      "signals": {
+        "incoming": [],
+        "can_emit": true
+      }
+    },
+
+    "decision_context": {
+      "current_phase": 3,
+      "phase_name": "phase3_NuclearDynamics",
+      "phase_purpose": "Genome mutation phase - affected by instability",
+
+      "decisions": [
+        {
+          "name": "Should each gene mutate?",
+          "trigger": "For each gene in genome.liveAllGenes()",
+          "factors": {
+            "base_mutation_threshold": 0.01,
+            "apply_instability": true,
+            "instability_penalty": 0.0001,
+            "genomic_instability_multiplier": 1.2,
+            "effective_threshold": 0.01322
+          },
+          "calculation": "threshold = (0.01 + 0.0001) * 1.2 = 0.0132",
+          "noise_sample": "random u01 [0, 1]",
+          "valid_outcomes": [
+            "mutate (if u01 < 0.0132)",
+            "do_not_mutate (if u01 >= 0.0132)"
+          ],
+          "expected_outcome": "HIGH probability of mutations (1.3% per gene)"
+        }
+      ],
+
+      "expected_behavior": [
+        "TP53 +/- → genome.isUnstable() = true",
+        "genome.liveAllGenes(1.2) increases mutation probability",
+        "BRCA1 likely to mutate +/- → -/-",
+        "Other genes may mutate",
+        "Cell is primed for neoplastic transformation in phase 4",
+        "If TP53 mutates to -/-, phase 4 neoplasia check will be critical"
+      ]
+    }
+  },
+
+  "biological_significance": {
+    "pre_condition": "Cell had mutation in one TP53 allele",
+    "current_state": "Accumulating additional mutations due to genomic instability",
+    "next_milestone": "If TP53 mutates to -/-, cell can become neoplastic in phase 4",
+    "clinical_analogy": "Li-Fraumeni syndrome: heterozygous TP53 individuals have very high cancer risk"
+  },
+
+  "next_phases_preview": {
+    "phase4": "Critical: If TP53 now -/-, neoplasia check will trigger. Otherwise remain normal but unstable.",
+    "phase5": "Will emit signals if neoplastic, or remain silent if still normal"
+  }
+}
+

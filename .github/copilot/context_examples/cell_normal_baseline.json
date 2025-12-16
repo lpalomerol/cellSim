@@ -1,0 +1,76 @@
+{
+  "scenario": "cell_normal_baseline",
+  "description": "Normal, healthy cell with wild-type genome, just entering phase0 baseline assessment",
+  "timestamp": "Cycle 5, Age 10 ticks",
+
+  "context": {
+    "agent_type": "AgenticCell",
+
+    "identity": {
+      "role": "Normal somatic cell in early lifecycle",
+      "id": 1001,
+      "tissue_id": 100
+    },
+
+    "constraints": [
+      "TP53 +/+ (wild-type) protects from neoplasia",
+      "Must execute all 6 lifecycle phases",
+      "Apoptosis is effective (instability is low)",
+      "Division probability = 0.001 (low)"
+    ],
+
+    "state": {
+      "cellular": {
+        "alive": true,
+        "neoplastic": false,
+        "age": 10,
+        "evaded_apoptosis": false,
+        "genomic_instability": 1.0
+      },
+      "genome": {
+        "TP53": "+/+",
+        "BRCA1": "+/+",
+        "is_unstable": false
+      },
+      "parameters": {
+        "neoplasm_k": 0.002,
+        "division_rate": 0.001,
+        "mutation_instability_k": 0.0001,
+        "apoptosis_instability_threshold": 10.0
+      },
+      "signals": {
+        "incoming": [],
+        "can_emit": true
+      }
+    },
+
+    "decision_context": {
+      "current_phase": 0,
+      "phase_name": "phase0_BaselineAssessment",
+      "phase_purpose": "Snapshot current state for logging/visualization",
+
+      "decisions": [
+        {
+          "name": "What to log?",
+          "trigger": "Every cycle in phase 0",
+          "valid_outcomes": ["log_current_state | skip_logging"]
+        }
+      ],
+
+      "expected_behavior": [
+        "Log cell ID, age, genome status",
+        "Log neoplastic status (should be false)",
+        "Continue to phase 1"
+      ]
+    }
+  },
+
+  "next_phases_preview": {
+    "phase1": "Will check: is cell alive? → Should be YES",
+    "phase2": "Will process incoming signals → Queue is empty",
+    "phase3": "Will mutate genome → Low probability, genome is stable",
+    "phase4": "Will check division/neoplasia → Both unlikely (TP53 protects)",
+    "phase5": "Will emit any signals → Likely none"
+  }
+}
+
