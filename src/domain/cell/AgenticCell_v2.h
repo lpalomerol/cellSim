@@ -43,7 +43,7 @@ namespace domain {
                        double neoplastic_division_rate = 0.001,
                        bool enable_big_bang_mode = false,
                        double apoptosis_instability_threshold = 10.0,
-                       ports::ILoggerPtr logger = nullptr);
+                       const ports::ILoggerPtr& logger = nullptr);
 
         // === ILoggeable implementation ===
         std::string getLogCategory() const override { return "CELL_V2"; }

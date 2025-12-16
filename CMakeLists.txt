@@ -40,7 +40,8 @@ add_executable(cellSim app/main.cpp
         src/application/simulation/Simulations.cpp
         src/application/simulation/Simulations.h
         ${COMMON_SOURCES}
-        src/domain/tissue/Tissue.cpp)
+        src/domain/tissue/Tissue.cpp
+        src/domain/cell/AgenticCell_v2.cpp)
 
 # Ejecutable interactivo: reutiliza las mismas fuentes para enlazar correctamente
 add_executable(interactive app/main_interactive.cpp

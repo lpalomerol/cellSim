@@ -21,7 +21,7 @@ namespace domain {
                                    double neoplastic_division_rate,
                                    bool enable_big_bang_mode,
                                    double apoptosis_instability_threshold,
-                                   ports::ILoggerPtr logger)
+                                   const ports::ILoggerPtr& logger)
         : noise_(std::move(noise)),
           logger_(logger ? logger : std::make_shared<adapters::NullLogger>()),
           genome_(std::move(genome)),
@@ -64,10 +64,12 @@ namespace domain {
         const Gene* brca1 = genome_.getGene("BRCA1");
 
         // Normal cells: BRCA1 must be enabled (+/+ or +/-)
+        // INTRINSIC APOPTOSIS: If BRCA1 -/-, cell is dead (DNA repair impossible)
+        // This is independent of TP53 and tissue signals
         if (!has_evaded_apoptosis_) {
             if (!brca1) return false;
             std::string brca1_status = brca1->status();
-            return brca1_status != "-/-";
+            return brca1_status != "-/-";  // BRCA1 -/- → dead (intrinsic apoptosis)
         }
 
         // Immortal cells (evaded apoptosis): always alive
@@ -170,8 +172,44 @@ namespace domain {
     }
 
     CellLifeStage AgenticCell_v2::getCurrentCellLifeStage() const {
-        // TODO: Implement in sub-step 3.2
-        return CellLifeStage::BASELINE;
+        // Derive cell life stage from: alive status, neoplastic status, TP53, BRCA1, D1
+        // Order of evaluation: BASELINE → UNSTABLE → UNPROTECTED → PRIMER → TUMORAL → DEAD (exception)
+
+        // Get gene statuses
+        std::string tp53_status = getTP53();   // "+/+", "+/-", "-/-", or "?"
+        std::string brca1_status = getBRCA1(); // "+/+", "+/-", "-/-", or "?"
+
+        // 1. BASELINE: TP53 +/+ && BRCA1 +/- (normal, fully protected)
+        if (tp53_status == "+/+" && brca1_status == "+/-") {
+            return CellLifeStage::BASELINE;
+        }
+
+        // 2. UNSTABLE: TP53 +/- && BRCA1 +/- (heterozygous, somewhat protected)
+        if (tp53_status == "+/-" && brca1_status == "+/-") {
+            return CellLifeStage::UNSTABLE;
+        }
+
+        // 3. UNPROTECTED: TP53 -/- (no TP53 protection, vulnerable, D1 ≤ 2.0)
+        if (tp53_status == "-/-" && d1_dna_damage_ <= 2.0) {
+            return CellLifeStage::UNPROTECTED;
+        }
+
+        // 4. PRIMER: TP53 -/- && D1 > 2.0 (pre-tumoral, visible to tissue)
+        if (tp53_status == "-/-" && d1_dna_damage_ > 2.0) {
+            return CellLifeStage::PRIMER;
+        }
+
+        // 5. TUMORAL: Cell has completed neoplastic transformation
+        if (is_neoplastic_) {
+            return CellLifeStage::TUMORAL;
+        }
+
+        // 6. DEAD: No valid genotype pattern matches
+        // Cell should have been caught by alive() check (BRCA1 -/-), but if we reach here,
+        // it means genotype is invalid. Throw exception instead of returning default.
+        logger_->logCell("[ERROR] Invalid genotype pattern: TP53=" + tp53_status +
+                      ", BRCA1=" + brca1_status + ". Throwing exception.");
+        throw NeoplasticException("Invalid cell state: unrecognized genotype");
     }
 
     void AgenticCell_v2::phase0_BaselineAssessment() const {
@@ -180,10 +218,24 @@ namespace domain {
 
     void AgenticCell_v2::phase1_G1IntegrityCheckpoint() const {
         // TODO: Implement in sub-step 3.5
+        // G1 Checkpoint: Validate cell is alive
+        // INTRINSIC APOPTOSIS CHECK:
+        // - If BRCA1 -/-, alive() returns false
+        // - Throws CellDeathException here (intrinsic apoptosis trigger)
+        // - Not affected by TP53 or tissue signals
+        // - Occurs independently in every cycle
     }
 
     void AgenticCell_v2::phase2_Endocytosis() {
         // TODO: Implement in sub-step 3.3
+        // Endocytosis: Process incoming signals
+        // EXTRINSIC APOPTOSIS CHECK:
+        // - Only if ApoptosisSignal received (from tissue)
+        // - Only triggered if cell is in PRIMER state (TP53 -/-, D1 > 2.0)
+        // - D2 decides outcome:
+        //   * D2 > 5.0: Resists apoptosis (immune evasion)
+        //   * D2 <= 5.0: Accepts apoptosis (immune clearance)
+        // - Different from intrinsic: can be evaded with high D2
     }
 
     void AgenticCell_v2::phase3_NuclearDynamics() {
