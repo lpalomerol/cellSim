@@ -15,7 +15,18 @@ Reglas del repositorio:
 - Hacer cambios mínimos, más vale ir poco a poco y seguro.
 
 
-Lenguaje: C++
+Lenguaje: {{LANG}}
+
+TAREA A REALIZAR:
+{{TASK}}
+
+REQUISITOS Y RESTRICCIONES:
+{{REQUIREMENTS}}
+
+CONTEXTO / INPUTS:
+{{INPUTS}}
+
+---
 
 CONTEXTO Y RESOURCES DISPONIBLES:
 
