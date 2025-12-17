@@ -37,30 +37,44 @@ set(COMMON_SOURCES
 add_executable(cellSim app/main.cpp
         src/application/simulation/Simulation.cpp
         src/application/simulation/Simulation.h
+        src/application/simulation/TissueV2Adapter.h
         src/application/simulation/Simulations.cpp
         src/application/simulation/Simulations.h
         ${COMMON_SOURCES}
         src/domain/tissue/Tissue.cpp
-        src/domain/cell/AgenticCell_v2.cpp)
+        src/domain/tissue/TissueV2.cpp
+        src/domain/tissue/TissueV2.h
+        src/domain/cell/AgenticCell_v2.cpp
+        src/domain/cell/AgenticCell_v2.h)
 
 # Ejecutable interactivo: reutiliza las mismas fuentes para enlazar correctamente
 add_executable(interactive app/main_interactive.cpp
         src/application/simulation/Simulation.cpp
         src/application/simulation/Simulation.h
+        src/application/simulation/TissueV2Adapter.h
         src/application/simulation/InteractiveSimulation.cpp
         src/application/simulation/InteractiveSimulation.h
         ${COMMON_SOURCES}
-        src/domain/tissue/Tissue.cpp)
+        src/domain/tissue/Tissue.cpp
+        src/domain/tissue/TissueV2.cpp
+        src/domain/tissue/TissueV2.h
+        src/domain/cell/AgenticCell_v2.cpp
+        src/domain/cell/AgenticCell_v2.h)
 
 
 # Ejecutable para evaluar evolución de una única célula
 add_executable(single_cell_evolution app/single_cell_evolution.cpp
         src/application/simulation/Simulation.cpp
         src/application/simulation/Simulation.h
+        src/application/simulation/TissueV2Adapter.h
         src/application/simulation/InteractiveSimulation.cpp
         src/application/simulation/InteractiveSimulation.h
         ${COMMON_SOURCES}
-        src/domain/tissue/Tissue.cpp)
+        src/domain/tissue/Tissue.cpp
+        src/domain/tissue/TissueV2.cpp
+        src/domain/tissue/TissueV2.h
+        src/domain/cell/AgenticCell_v2.cpp
+        src/domain/cell/AgenticCell_v2.h)
 
 
 # Ejecutable: Captura completa de 6 escenarios (3 runs cada uno)
@@ -70,11 +84,23 @@ add_executable(run_all_scenarios app/run_all_scenarios.cpp
         src/application/config/SimulationConfig.cpp
         src/application/config/SimulationConfig.h
         ${COMMON_SOURCES}
-        src/domain/tissue/Tissue.cpp)
+        src/domain/tissue/Tissue.cpp
+        src/domain/tissue/TissueV2.cpp
+        src/domain/tissue/TissueV2.h
+        src/domain/cell/CellFactory_v2.cpp
+        src/domain/cell/CellFactory_v2.h
+        src/domain/cell/AgenticCell_v2.cpp
+        src/domain/cell/AgenticCell_v2.h)
 
 
 # Añadir tests solo si BUILD_TESTS=ON (tests pueden descargar googletest)
 if (BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+
+    # Target auxiliar para CLion: ejecutar todos los tests
+    add_custom_target(run_tests
+            COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+            DEPENDS unit_tests
+            COMMENT "Ejecutando todos los tests...")
 endif()

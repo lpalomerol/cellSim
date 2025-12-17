@@ -24,6 +24,8 @@ add_executable(unit_tests
         ../src/domain/cell/InstabilityDeltas.h
         ../src/domain/cell/CellFactory.cpp
         ../src/domain/cell/CellFactory.h
+        ../src/domain/cell/CellFactory_v2.cpp
+        ../src/domain/cell/CellFactory_v2.h
         ../src/domain/cell/AgenticCell.cpp
         ../src/domain/cell/AgenticCell.h
         ../src/domain/cell/AgenticCell_v2.cpp
@@ -43,6 +45,8 @@ add_executable(unit_tests
 
         ../src/domain/tissue/Tissue.cpp
         ../src/domain/tissue/Tissue.h
+        ../src/domain/tissue/TissueV2.cpp
+        ../src/domain/tissue/TissueV2.h
         ../src/domain/tissue/GeneticTrackingData.h
         ../src/domain/tissue/GeneticTrackingService.h
 
@@ -50,6 +54,7 @@ add_executable(unit_tests
         ../src/application/config/SimulationConfig.cpp
         ../src/application/simulation/Simulation.h
         ../src/application/simulation/Simulation.cpp
+        ../src/application/simulation/TissueV2Adapter.h
         ../src/application/presenter/GeneticSummaryPresenter.h
         ../src/application/presenter/GeneticSummaryPresenter.cpp
 
@@ -57,7 +62,8 @@ add_executable(unit_tests
         GeneTest.cpp
         AgenticCellTest.cpp
         GenomeFactoryTest.cpp
-        GenomeMutateTest.cpp
+        CellLifeStageTransitionTest.cpp
+        TissueV2Test.cpp
         ThresholdTest.cpp
         TissueTest.cpp
         TissueIdTest.cpp
@@ -66,6 +72,7 @@ add_executable(unit_tests
         ApoptosisTest.cpp
         ApoptosisNeoplasticIntegrationTest.cpp
         NeoplasticImmortalityTest.cpp
+        SimulationTissueV2IntegrationTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales

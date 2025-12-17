@@ -11,12 +11,52 @@ namespace application {
         cell_state_counter_ = std::vector(max_t_, std::array<int, 3>{0, 0});
     }
 
+    // PASO 6: Habilitar/deshabilitar TissueV2 como Population Orchestrator
+    void Simulation::enableTissueV2(bool enable) {
+        use_tissue_v2_ = enable;
+        if (enable && !tissue_adapter_) {
+            tissue_adapter_ = std::make_unique<TissueV2Adapter>();
+            // Si ya hay células en cells_, transferirlas al adaptador
+            for (auto& cell : cells_) {
+                if (cell) {
+                    tissue_adapter_->addCell(std::move(cell));
+                }
+            }
+            cells_.clear();  // Vaciar vector original, ahora gestiona TissueV2
+        } else if (!enable && tissue_adapter_) {
+            // Transferir células de vuelta al vector original
+            for (std::size_t i = 0; i < tissue_adapter_->size(); ++i) {
+                auto* cell = tissue_adapter_->getCell(i);
+                if (cell) {
+                    // Necesitamos clonar aquí; por ahora, documentar limitación
+                    // TODO: Implementar método de transferencia en ICell
+                }
+            }
+            tissue_adapter_.reset();
+        }
+    }
+
     void Simulation::addCell(std::unique_ptr<domain::ICell> cell) {
-        cells_.emplace_back(std::move(cell));
+        // ...existing code...
     }
 
     // Helper: ejecuta un ciclo celular y devuelve el conteo de células neoplásticas
     int Simulation::executeCellCycle() {
+        // PASO 6: Usar TissueV2Adapter si está habilitado, sino usar lógica original
+        if (use_tissue_v2_ && tissue_adapter_) {
+            tissue_adapter_->live();
+            // Contar neoplásticas en el adaptador
+            int neoplastic_count = 0;
+            for (std::size_t i = 0; i < tissue_adapter_->size(); ++i) {
+                auto* cell = tissue_adapter_->getCell(i);
+                if (cell && cell->isNeoplastic()) {
+                    neoplastic_count++;
+                }
+            }
+            return neoplastic_count;
+        }
+
+        // Código original: usa cells_ directamente
         int neoplastic_count = 0;
         for (auto& c : cells_) {
             c->live();

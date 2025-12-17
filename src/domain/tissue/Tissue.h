@@ -21,7 +21,12 @@ namespace domain {
     // Tissue: simple collection of ICell instances that can be stepped as a group.
     // Behaves like an AgenticCellCollection: add cells, query count/access by index
     // and run a collective live() across all contained cells.
-    class Tissue : public ports::ILoggeable {
+    //
+    // ⚠️  DEPRECATED: Use TissueV2 instead (see PASO7 and ADR-0007 when created)
+    // Migration path:
+    // - Tests: Replace domain::Tissue with domain::TissueV2
+    // - Application: Replace with domain::TissueV2 or use application::TissueV2Adapter
+    class [[deprecated("Use TissueV2 instead")]] Tissue : public ports::ILoggeable {
     public:
         // Constructor: accepts optional logger (if nullptr, NullLogger will be used by default)
         explicit Tissue(ports::ILoggerPtr logger = nullptr)

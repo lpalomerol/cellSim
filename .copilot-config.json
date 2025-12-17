@@ -1,0 +1,17 @@
+{
+  "context": [
+    "docs/adr/README.md",
+    "docs/adr/*.md"
+  ],
+  "constraints": [
+    "Siempre revisar las ADRs antes de hacer cambios arquitectónicos",
+    "Respetar las decisiones documentadas en /docs/adr/",
+    "Si se propone una decisión nueva, crear una ADR"
+  ],
+  "guidelines": {
+    "architecture": "Seguir la arquitectura de capas definida en ADR-0001",
+    "patterns": "Usar el patrón Agentic Cell como se define en ADR-0002",
+    "coding_style": "Mantener consistencia con decisiones previas"
+  }
+}
+

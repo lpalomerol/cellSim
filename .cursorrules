@@ -1,0 +1,81 @@
+# Cursor Rules for cellSim Project
+
+## Architecture Decision Records (ADRs)
+
+**CRÍTICO**: Siempre consulta `/docs/adr/` antes de hacer cambios arquitectónicos.
+
+### ADR-0001: Arquitectura de 3 Capas
+- `src/application/`: Use cases, orquestación, controllers
+- `src/domain/`: Lógica pura de negocio (Cell, Tissue, Genome)
+- `src/shared/`: Utilidades, excepciones, logger
+
+**Regla**: Lógica de NEGOCIO en Domain. Application solo orquesta.
+
+### ADR-0002: Patrón Agentic Cell
+- Las células son agentes autónomos con D1 (DNA damage) + D2 (Immunosuppression)
+- Cada célula progresa por 5 fases en `live()`: Check → Intrinsic AP → Extrinsic AP → Neoplasm → Remodeling
+- 6 CellLifeStages derivadas del estado genético + D1 + D2
+- No modificar ciclo de fases sin actualizar ADR-0002
+
+Véase: `src/domain/cell/AgenticCell_v2.h`, `CellLifeStage.h`, `docs/adr/0002-agentic-cell-pattern.md`
+
+### ADR-0003+: Pendientes
+Ver `docs/adr/README.md` para lista completa y estado.
+
+## Estructura del Proyecto
+
+```
+src/
+├── application/     # Use cases, scenarios
+├── domain/          # Lógica de negocio
+│   ├── cell/       # AgenticCell_v2, CellLifeStage
+│   ├── tissue/     # Tissue (contenedor de cells)
+│   ├── genome/     # Genes, mutaciones
+│   ├── exception/  # CellDeathException, etc
+│   ├── signal/     # CellDivisionSignal, etc
+│   └── ports/      # ICell, INoiseSource, ILogger
+└── shared/         # Utilidades, logger
+```
+
+## Patrones Clave
+
+- **Exception-based Cell Death**: Las células lanzan `CellDeathException` cuando mueren
+- **Signal-based Division**: Division signal → Tissue procesa y agrega hija
+- **Lazy CellLifeStage**: Se calcula on-the-fly del estado genético + D1 + D2
+- **Immutable Genome**: Una vez creado, el genoma no cambia (las mutaciones afectan D1/D2, no el genoma)
+
+## Tipos Críticos
+
+- `CellLifeStage` (6 etapas: DEAD, BASELINE, UNSTABLE, UNPROTECTED, PRIMER, TUMORAL)
+- `D1`, `D2` (acumuladores de inestabilidad)
+- `TP53`, `BRCA1` (genes protectores, estados: +/+, +/-, -/-)
+
+## Reglas de Código
+
+1. Usar `unique_ptr` para memoria dinámica
+2. Raw pointers SOLO en getters
+3. Excepciones para flujo anómalo (cell death)
+4. Lógica de negocio en Domain, no en Application
+5. Usar enums para estados bien definidos
+6. Logging vía `ILogger` interface
+
+## Cuando hagas cambios:
+1. ✅ Verifica si existe una ADR relacionada
+2. ✅ Si no existe y es decisión arquitectónica, crea una nueva ADR
+3. ✅ Documenta el POR QUÉ, no solo el QUÉ
+4. ✅ Referencias cruzadas entre ADRs
+
+## Referencias
+
+- `/docs/adr/`: Todas las decisiones arquitectónicas
+- `/docs/adr/QUICK-REFERENCE.md`: Resumen rápido (leer primero)
+- `CONTEXT.md`: Contexto general del proyecto
+- `GUIDE-agenticCellRefactor.md`: Guía del refactor
+- `README.md`: Overview general
+
+## Quick ADR Links
+
+- **ADR-0001**: `docs/adr/0001-arquitectura-capas.md`
+- **ADR-0002**: `docs/adr/0002-agentic-cell-pattern.md`
+- **ADR-0003+**: Pendientes (ver `docs/adr/README.md`)
+

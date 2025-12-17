@@ -7,14 +7,14 @@
 #include <filesystem>
 #include "../src/application/simulation/PopulationTracker.h"
 #include "../src/application/config/SimulationConfig.h"
-#include "../src/domain/cell/CellFactory.h"
+#include "../src/domain/cell/CellFactory_v2.h"
 #include "../src/domain/gene/GenomeFactory.h"
-#include "../src/domain/tissue/Tissue.h"
+#include "../src/domain/tissue/TissueV2.h"
 #include "../src/domain/adapters/RandomNoise.h"
 
 namespace fs = std::filesystem;
 
-void captureSnapshotFromTissue(domain::Tissue* tissue, int year,
+void captureSnapshotFromTissue(domain::TissueV2* tissue, int year,
                               application::PopulationTracker& tracker,
                               int* previous_alive,
                               int* cumulative_dead) {
@@ -39,14 +39,14 @@ void captureSnapshotFromTissue(domain::Tissue* tissue, int year,
 
             if (cell->isNeoplastic()) {
                 neoplastic_alive++;
-                auto* agentic = dynamic_cast<domain::AgenticCell*>(cell);
-                if (agentic && agentic->hasEvasedApoptosis()) {
-                    neoplastic_resistant++;
-                } else {
-                    neoplastic_susceptible++;
-                }
-                if (agentic) {
-                    double inst = agentic->getGenomicInstability();
+                auto* agentic_v2 = dynamic_cast<domain::AgenticCell_v2*>(cell);
+                if (agentic_v2) {
+                    if (agentic_v2->getD2() >= 5.0) {  // D2 > 5.0 = resistente a apoptosis
+                        neoplastic_resistant++;
+                    } else {
+                        neoplastic_susceptible++;
+                    }
+                    double inst = agentic_v2->getD1();  // D1 es la instabilidad
                     min_instability = std::min(min_instability, inst);
                     max_instability = std::max(max_instability, inst);
                 }
@@ -118,7 +118,7 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
     auto start_time = std::chrono::high_resolution_clock::now();
 
     // Crear Tissue
-    auto tissue = std::make_unique<domain::Tissue>(base_cfg.logger);
+    auto tissue = std::make_unique<domain::TissueV2>(base_cfg.logger);
 
     // Crear células
     for (int i = 0; i < base_cfg.n_cells; ++i) {
@@ -131,9 +131,8 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
         unsigned unique_seed = 100 + i;
         auto noise = std::make_unique<domain::adapters::RandomNoise>(unique_seed);
 
-        auto cell = domain::cell_factory::createAgenticCell(
-            std::move(noise),
-            std::move(genome),
+        auto cell = domain::CellFactory_v2::createCustomCell(
+            genome,
             scenario.neoplasm_k,
             scenario.low_delta,
             scenario.high_delta,
@@ -141,6 +140,8 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
             scenario.neoplastic_division_rate,
             scenario.enable_big_bang_mode,
             base_cfg.apoptosis_threshold,
+            2.0,  // d1_primer_threshold
+            5.0,  // d2_apoptosis_threshold
             base_cfg.logger
         );
 

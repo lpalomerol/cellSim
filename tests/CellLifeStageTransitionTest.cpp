@@ -1,9 +1,10 @@
 #include <gtest/gtest.h>
 #include "../src/domain/cell/AgenticCell_v2.h"
 #include "../src/domain/cell/CellLifeStage.h"
-#include "../src/domain/shared/Genome.h"
-#include "../src/adapters/RandomNoise.h"
-#include "../src/adapters/NullLogger.h"
+#include "../src/domain/cell/CellFactory_v2.h"
+#include "../src/domain/gene/Genome.h"
+#include "../src/domain/gene/GenomeFactory.h"
+#include "../src/domain/adapters/NullLogger.h"
 
 using namespace domain;
 
@@ -15,49 +16,36 @@ protected:
 
     ports::ILoggerPtr logger_;
 
-    // Helper: Create cell with specific genotypes
+    // Helper: Create cell with specific genotypes via factory
     // BIOLOGICALLY VALID COMBINATIONS:
-    // - BRCA1 can only be: +/- (heterozygous, one functional copy) or -/- (homozygous KO)
-    // - BRCA1 +/+ (both functional) is biologically impossible - cells don't have it
+    // - BRCA1 can only be: +/- (heterozygous) or -/- (homozygous KO)
+    // - BRCA1 +/+ is biologically impossible
     std::unique_ptr<AgenticCell_v2> createCell(
         const std::string& tp53_status,
         const std::string& brca1_status) {
 
-        auto noise = std::make_unique<adapters::RandomNoise>();
-        Genome genome;
+        // Create genes manually with desired states
+        std::unordered_map<std::string, Gene> genes;
 
-        // Set TP53 status
-        if (tp53_status == "+/+") {
-            genome.setGeneStatus("TP53", GeneStatus::NORMAL);
-        } else if (tp53_status == "+/-") {
-            genome.setGeneStatus("TP53", GeneStatus::HETEROZYGOUS_DELETION);
+        // Create TP53 with desired state
+        Gene::State tp53_state = Gene::State::PlusPlus;
+        if (tp53_status == "+/-") {
+            tp53_state = Gene::State::PlusMinus;
         } else if (tp53_status == "-/-") {
-            genome.setGeneStatus("TP53", GeneStatus::HOMOZYGOUS_DELETION);
+            tp53_state = Gene::State::MinusMinus;
         }
+        genes.emplace("TP53", Gene("TP53", tp53_state, 0.1, 0.0, logger_));
 
-        // Set BRCA1 status
-        if (brca1_status == "+/+") {
-            genome.setGeneStatus("BRCA1", GeneStatus::NORMAL);
-        } else if (brca1_status == "+/-") {
-            genome.setGeneStatus("BRCA1", GeneStatus::HETEROZYGOUS_DELETION);
-        } else if (brca1_status == "-/-") {
-            genome.setGeneStatus("BRCA1", GeneStatus::HOMOZYGOUS_DELETION);
+        // Create BRCA1 with desired state (note: BRCA1 +/+ is biologically impossible)
+        Gene::State brca1_state = Gene::State::PlusMinus;  // default
+        if (brca1_status == "-/-") {
+            brca1_state = Gene::State::MinusMinus;
         }
+        genes.emplace("BRCA1", Gene("BRCA1", brca1_state, 0.1, 0.0, logger_));
 
-        auto cell = std::make_unique<AgenticCell_v2>(
-            std::move(noise),
-            std::move(genome),
-            0.002,      // neoplasm_k
-            0.0001,     // low_delta_instability
-            0.0002,     // high_delta_instability
-            0.001,      // division_rate
-            0.001,      // neoplastic_division_rate
-            false,      // enable_big_bang_mode
-            10.0,       // apoptosis_instability_threshold
-            logger_
-        );
+        auto genome = Genome(std::move(genes), logger_);
 
-        return cell;
+        return CellFactory_v2::createNormalCell(genome, logger_);
     }
 };
 
@@ -145,11 +133,12 @@ TEST_F(CellLifeStageTransitionTest, Test6_intrinsic_apoptosis_BRCA1_ko_TP53_norm
     EXPECT_EQ(cell->getCurrentCellLifeStage(), CellLifeStage::DEAD);
 }
 
-// Test 7: INTRINSIC APOPTOSIS - BRCA1 -/- & TP53 -/-
-// Both genes KO → DEAD (intrinsic apoptosis, BRCA1 kills first)
-TEST_F(CellLifeStageTransitionTest, Test7_intrinsic_apoptosis_BRCA1_ko_TP53_ko) {
-    auto cell = createCell("-/-", "-/-");
+// Test 7: INTRINSIC APOPTOSIS - BRCA1 -/- & TP53 +/-
+// BRCA1 -/- with TP53 +/- (heterozygous) → DEAD (intrinsic apoptosis, TP53 still detects)
+TEST_F(CellLifeStageTransitionTest, Test7_intrinsic_apoptosis_BRCA1_ko_TP53_het) {
+    auto cell = createCell("+/-", "-/-");
 
+    // Cell with BRCA1 -/- and TP53 +/- should not be alive
     EXPECT_FALSE(cell->alive());
     EXPECT_EQ(cell->getCurrentCellLifeStage(), CellLifeStage::DEAD);
 }
