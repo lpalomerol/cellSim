@@ -28,7 +28,6 @@ set(COMMON_SOURCES
         src/domain/gene/Genome.cpp
         src/domain/gene/GenomeFactory.cpp
         src/domain/gene/Genome.h
-        src/domain/tissue/Tissue.cpp
         src/application/config/SimulationConfig.cpp
         src/application/config/SimulationConfig.h
         src/application/presenter/GeneticSummaryPresenter.cpp
@@ -41,7 +40,6 @@ add_executable(cellSim app/main.cpp
         src/application/simulation/Simulations.cpp
         src/application/simulation/Simulations.h
         ${COMMON_SOURCES}
-        src/domain/tissue/Tissue.cpp
         src/domain/tissue/TissueV2.cpp
         src/domain/tissue/TissueV2.h
         src/domain/cell/AgenticCell_v2.cpp
@@ -55,7 +53,6 @@ add_executable(interactive app/main_interactive.cpp
         src/application/simulation/InteractiveSimulation.cpp
         src/application/simulation/InteractiveSimulation.h
         ${COMMON_SOURCES}
-        src/domain/tissue/Tissue.cpp
         src/domain/tissue/TissueV2.cpp
         src/domain/tissue/TissueV2.h
         src/domain/cell/AgenticCell_v2.cpp
@@ -70,9 +67,10 @@ add_executable(single_cell_evolution app/single_cell_evolution.cpp
         src/application/simulation/InteractiveSimulation.cpp
         src/application/simulation/InteractiveSimulation.h
         ${COMMON_SOURCES}
-        src/domain/tissue/Tissue.cpp
         src/domain/tissue/TissueV2.cpp
         src/domain/tissue/TissueV2.h
+        src/domain/cell/CellFactory_v2.cpp
+        src/domain/cell/CellFactory_v2.h
         src/domain/cell/AgenticCell_v2.cpp
         src/domain/cell/AgenticCell_v2.h)
 
@@ -84,7 +82,6 @@ add_executable(run_all_scenarios app/run_all_scenarios.cpp
         src/application/config/SimulationConfig.cpp
         src/application/config/SimulationConfig.h
         ${COMMON_SOURCES}
-        src/domain/tissue/Tissue.cpp
         src/domain/tissue/TissueV2.cpp
         src/domain/tissue/TissueV2.h
         src/domain/cell/CellFactory_v2.cpp

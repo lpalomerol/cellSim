@@ -43,8 +43,6 @@ add_executable(unit_tests
         ../src/domain/signal/ApoptosisSignal.h
         ../src/domain/signal/CellDivisionSignal.h
 
-        ../src/domain/tissue/Tissue.cpp
-        ../src/domain/tissue/Tissue.h
         ../src/domain/tissue/TissueV2.cpp
         ../src/domain/tissue/TissueV2.h
         ../src/domain/tissue/GeneticTrackingData.h
@@ -65,12 +63,8 @@ add_executable(unit_tests
         CellLifeStageTransitionTest.cpp
         TissueV2Test.cpp
         ThresholdTest.cpp
-        TissueTest.cpp
-        TissueIdTest.cpp
-        CellDivisionIntegrationTest.cpp
         CellDivisionInstabilityPropagationTest.cpp
         ApoptosisTest.cpp
-        ApoptosisNeoplasticIntegrationTest.cpp
         NeoplasticImmortalityTest.cpp
         SimulationTissueV2IntegrationTest.cpp
 )

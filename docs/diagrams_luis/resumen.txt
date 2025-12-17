@@ -1,0 +1,36 @@
+Resumen del meet:
+
+Una de las cosas que yo (Luis) no terminaba de entender era que la célula no pasaba de estable a tumoral de forma _inmediata_ (o cuando supera los thresholds de turno). Esto lo liaba todo.
+
+estado_1.png
+
+Hemos estado revisando los diagramas de estado_1.png y ya nos hemos aclarado. Ahora la célula tiene 5 estadios: Baseline, Estado intermedio 1, Estadio intermedio 2, Primer (pretumoral) y Tumoral. Por otro lado, si tenemos en cuenta que podemos tener células Primer y Tumorales con BRCA1 +/- o bien con BRCA1 -/-, sale este modelo, el cual ya empieza a ser bastante complicado.
+
+estado_2_base.png
+
+Si os fijáis, a partir del St 2 tenemos dos flujos muy similares (St 2 -> Primer -> Tumor), donde la única diferencia es BRCA ... y las flechas de acumulación de inestabilidad e inmunosupresión. Esto es señal de que se puede simplificar. 
+
+Así, si ignoramos estas duplicidades nos quedaría este diagrama inferior. Ojo, que tiene muchas sutilezas.
+
+estado_2_simplificado.png
+
+En este modelo convertimos la célula en un objeto interno con 4 atributos: BRCA1, TP53, D1 y D2. De esta manera, los excluimos de la matriz de transición.
+
+Por otro lado, al añadir el estado de transición PRIMER, que sucede cuando la célula no está protegida (P53KO) añadimos un estado intermedio donde la célula es pretumoral. Al detectarla, el tejido la intenta matar. Si D2 es bajo, la célula muere, pero si es alto, la célula sobrevive y puede reproducirse. 
+
+Por otro lado, la célula tiene el estado interno con sus 4 atributos, los cuales evolucionan de manera independiente al tejido, solo según la edad y sus mutaciones acumuladas. Es decir, según pasa el tiempo, la célula siempre acumula mutaciones que afectan a D1 y D2. La única diferencia es que el incremental es distinto según el estado mutacional de la célula.
+
+
+celula.png
+
+Así, por ejemplo:
+- Una célula que pierda BRCA antes que P53 muere por apoptosis interna
+- Una célula que pierde P53 antes que BRCA se queda en estado 'no protegido' acumulando D1 y D2, y tiene un comportamiento distinto según su grado de D1 y D2.
+---- POCO D1 Y POCO D2 -> Se queda acumulando mutaciones según TP53 y BRCA
+---- MUCHO D1 Y POCO D2 -> Transita a Primer, y como tiene poco D2, muere por apoptosis extrínseca
+---- POCO D1 Y MUCHO D2 -> Se queda acumulando mutaciones según TP53 y BRCA
+---- MUCHO D1 Y MUCHO D2 -> Transita a Primer, y como tiene mucho D2, puede seguir transitando a Tumoral
+
+Notas:
+- La transición pretumoral -> primer -> tumoral (o apoptosis) es consecutiva
+- Por ahora D1 y D2 van a crecer de forma lineal
