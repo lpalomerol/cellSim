@@ -7,7 +7,10 @@ std::unique_ptr<AgenticCell> CellFactory::createNormalCell(
     const Genome& genome,
     const ports::ILoggerPtr& logger) {
 
+    auto noise = std::make_unique<adapters::RandomNoise>();
+
     return createCustomCell(
+        std::move(noise),
         genome,
         Defaults::NEOPLASM_K,
         Defaults::LOW_DELTA_INSTABILITY,
@@ -23,6 +26,7 @@ std::unique_ptr<AgenticCell> CellFactory::createNormalCell(
 }
 
 std::unique_ptr<AgenticCell> CellFactory::createCustomCell(
+    std::unique_ptr<INoiseSource> noise,
     const Genome& genome,
     double neoplasm_k,
     double low_delta_instability,
@@ -35,7 +39,6 @@ std::unique_ptr<AgenticCell> CellFactory::createCustomCell(
     double d2_apoptosis_threshold,
     const ports::ILoggerPtr& logger) {
 
-    auto noise = std::make_unique<adapters::RandomNoise>();
 
     return std::make_unique<AgenticCell>(
         std::move(noise),

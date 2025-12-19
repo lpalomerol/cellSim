@@ -19,6 +19,7 @@ public:
 
     /// Create an AgenticCell with custom parameters
     static std::unique_ptr<AgenticCell> createCustomCell(
+        std::unique_ptr<INoiseSource> noise,
         const Genome& genome,
         double neoplasm_k,
         double low_delta_instability,

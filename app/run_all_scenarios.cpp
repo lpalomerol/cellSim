@@ -132,6 +132,7 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
         auto noise = std::make_unique<domain::adapters::RandomNoise>(unique_seed);
 
         auto cell = domain::CellFactory::createCustomCell(
+            std::move(noise),  // Pasar noise con seed única
             genome,
             scenario.neoplasm_k,
             scenario.low_delta,
@@ -316,8 +317,12 @@ int main() {
 
     auto total_start = std::chrono::system_clock::now();
 
+    // Ejecutar solo el escenario 02
     for (const auto& scenario : scenarios) {
-        runScenario(scenario, cfg);
+        if (scenario.name == "02_ctrl_baseline_no_mutations_high_division") {
+            runScenario(scenario, cfg);
+            break;  // Solo ejecutar el segundo
+        }
     }
 
     auto total_end = std::chrono::system_clock::now();

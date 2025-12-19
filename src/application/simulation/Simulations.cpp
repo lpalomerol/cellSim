@@ -27,8 +27,10 @@ void Simulations::runAll() {
                 cfg_.gene_instability_k,
                 cfg_.logger
             );
+            auto noise = std::make_unique<domain::adapters::RandomNoise>();
             sim.addCell(
                 domain::CellFactory::createCustomCell(
+                    std::move(noise),
                     std::move(genome),
                     cfg_.neoplasm_k,
                     0.0001,  // low_delta_instability

@@ -309,6 +309,8 @@ namespace domain {
     }
 
     void AgenticCell::phase5_Exocytosis() {
+        logger_->logCell("[Phase5] Exocytosis: attempting cell division");
+        pending_daughter_ = attemptDivision();
         logger_->logCell("[Phase5] Exocytosis complete");
         increaseAge();
     }
@@ -336,7 +338,7 @@ namespace domain {
         // Placeholder: D1/D2 updated in phase4, not here
     }
 
-    void AgenticCell::attemptDivision() {
+    std::unique_ptr<AgenticCell> AgenticCell::attemptDivision() {
         double rate = is_neoplastic_ && enable_big_bang_mode_ ? neoplastic_division_rate_ : division_rate_;
         // Sample random value - use noise source if available
         double rnd = 0.0;
@@ -345,8 +347,16 @@ namespace domain {
         }
 
         if (rnd < rate) {
-            logger_->logCell("[Misc] Cell division triggered (random=" + std::to_string(rnd) + " < rate=" + std::to_string(rate) + ")");
+            logger_->logCell("[Division] Cell division triggered (random=" + std::to_string(rnd) + " < rate=" + std::to_string(rate) + ")");
+
+            // Create and return daughter cell (clone)
+            auto daughter = clone();
+            logger_->logCell("[Division] Daughter cell created from cell " + std::to_string(cell_id_));
+            return daughter;
         }
+
+        // No division occurred
+        return nullptr;
     }
 
     void AgenticCell::attemptApoptosis() {
@@ -354,8 +364,12 @@ namespace domain {
     }
 
     std::unique_ptr<AgenticCell> AgenticCell::clone() const {
+        // Generate unique seed for daughter cell based on mother's seed and current state
+        // This ensures each daughter has a different random sequence
+        unsigned daughter_seed = static_cast<unsigned>(seed_ + age_ + cell_id_);
+
         auto daughter = std::make_unique<AgenticCell>(
-            std::make_unique<adapters::RandomNoise>(),
+            std::make_unique<adapters::RandomNoise>(daughter_seed),
             genome_,
             base_neoplasm_k_,
             low_delta_instability_,
@@ -378,7 +392,8 @@ namespace domain {
         }
 
         logger_->logCell("[Misc] Cell cloned (daughter inherits d1=" + std::to_string(d1_dna_damage_) +
-                       ", d2=" + std::to_string(d2_immunosuppression_) + ")");
+                       ", d2=" + std::to_string(d2_immunosuppression_) +
+                       ", daughter_seed=" + std::to_string(daughter_seed) + ")");
 
         return daughter;
     }

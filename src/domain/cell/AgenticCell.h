@@ -85,6 +85,10 @@ namespace domain {
         bool hasEvasedApoptosis() const { return has_evaded_apoptosis_; }
         std::unique_ptr<AgenticCell> clone() const;
 
+        /// Take ownership of pending daughter cell (if any) after live() cycle
+        /// Returns nullptr if no division occurred this cycle
+        std::unique_ptr<AgenticCell> takePendingDaughter() { return std::move(pending_daughter_); }
+
     private:
         // === Dependencies ===
         std::unique_ptr<INoiseSource> noise_;
@@ -130,6 +134,9 @@ namespace domain {
         double low_delta_instability_ = 0.0001;
         double high_delta_instability_ = 0.0002;
 
+        // === Pending daughter cell (for division without signals) ===
+        std::unique_ptr<AgenticCell> pending_daughter_;
+
         // === Private lifecycle phases ===
         void phase0_BaselineAssessment() const;
         void phase1_G1IntegrityCheckpoint() const;
@@ -142,7 +149,7 @@ namespace domain {
         void develop_neoplasm();
         void increaseAge();
         void adjust_neoplasm_k();
-        void attemptDivision();
+        std::unique_ptr<AgenticCell> attemptDivision();
         void attemptApoptosis();
 
         /// Update D1 and D2 based on BRCA1 and TP53 status

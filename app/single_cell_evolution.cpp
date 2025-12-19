@@ -59,6 +59,7 @@ int main(int argc, char* argv[]) {
 
     // Crear célula única (AgenticCell)
     auto single_cell = domain::CellFactory::createCustomCell(
+        std::move(noise),
         genome,
         config.neoplasm_k,
         0.0001,      // low_delta_instability

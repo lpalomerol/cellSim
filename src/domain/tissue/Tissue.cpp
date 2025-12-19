@@ -6,12 +6,23 @@ namespace domain {
 
 void Tissue::live() {
     std::vector<std::size_t> dead_indices;
+    std::vector<std::unique_ptr<ICell>> new_daughters;
 
     for (std::size_t i = 0; i < cells_.size(); ++i) {
         if (!cells_[i]) continue;
 
         try {
             cells_[i]->live();
+
+            // Check if cell divided (only AgenticCell supports this)
+            auto* agentic_cell = dynamic_cast<AgenticCell*>(cells_[i].get());
+            if (agentic_cell) {
+                auto daughter = agentic_cell->takePendingDaughter();
+                if (daughter) {
+                    logger_->logCell("[TissueV2] Cell " + std::to_string(agentic_cell->id()) + " divided, daughter will be added");
+                    new_daughters.push_back(std::move(daughter));
+                }
+            }
         } catch (const CellDeathException& e) {
             logger_->logCell("[TissueV2] Cell died: " + std::string(e.what()));
             dead_indices.push_back(i);
@@ -24,6 +35,11 @@ void Tissue::live() {
     // Remove dead cells (from back to front to preserve indices)
     for (auto it = dead_indices.rbegin(); it != dead_indices.rend(); ++it) {
         cells_.erase(cells_.begin() + *it);
+    }
+
+    // Add new daughter cells
+    for (auto& daughter : new_daughters) {
+        addCell(std::move(daughter));
     }
 }
 

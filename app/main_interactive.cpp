@@ -34,8 +34,10 @@ int main() {
     }
 
     // Crear célula
+    auto cell_noise = std::make_unique<domain::adapters::RandomNoise>(42);
     sim.addCell(
         domain::CellFactory::createCustomCell(
+            std::move(cell_noise),
             std::move(genome),
             config.neoplasm_k,
             0.0001,
