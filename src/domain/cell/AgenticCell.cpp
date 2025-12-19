@@ -310,9 +310,22 @@ namespace domain {
         if (current_stage == CellLifeStage::PRIMER && !is_neoplastic_) {
             logger_->logCell("[Phase4] Cell DETECTED in PRIMER state");
             logger_->logCell("[Phase4]   Reason: TP53=" + tp53_status + ", D1=" +
-                           std::to_string(d1_dna_damage_) + " > 2.0");
-            logger_->logCell("[Phase4]   Status: UNPROTECTED (pretumoral, visible to tissue)");
-            logger_->logCell("[Phase4]   Waiting: Tissue will send apoptosis signal");
+                           std::to_string(d1_dna_damage_) + " > " + std::to_string(d1_primer_threshold_));
+
+            // Check if cell can evade immune surveillance (D2 > threshold)
+            if (d2_immunosuppression_ > d2_apoptosis_threshold_) {
+                logger_->logCell("[Phase4]   D2=" + std::to_string(d2_immunosuppression_) +
+                               " > " + std::to_string(d2_apoptosis_threshold_) +
+                               " → IMMUNE EVASION");
+                logger_->logCell("[Phase4]   Cell TRANSFORMING to NEOPLASTIC (autonomous transformation)");
+                develop_neoplasm();
+            } else {
+                logger_->logCell("[Phase4]   D2=" + std::to_string(d2_immunosuppression_) +
+                               " <= " + std::to_string(d2_apoptosis_threshold_) +
+                               " → IMMUNE SYSTEM DETECTS pretumoral cell");
+                logger_->logCell("[Phase4]   Cell ELIMINATED by extrinsic apoptosis (immune surveillance)");
+                throw CellDeathException("extrinsic_apoptosis@phase4_immune_surveillance");
+            }
         }
     }
 

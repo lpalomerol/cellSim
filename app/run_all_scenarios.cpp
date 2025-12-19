@@ -147,7 +147,7 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
     for (int i = 0; i < base_cfg.n_cells; ++i) {
         domain::Genome genome = domain::genome_factory::makeDefaultGenome(
             {{"BRCA1", scenario.brca1_threshold}, {"TP53", scenario.tp53_threshold}},
-            {{"BRCA1", 0.01}, {"TP53", 0.01}},
+            {{"BRCA1", 0.0}, {"TP53", 0.0}},  // instability_k = 0.0 (sin mutaciones base)
             base_cfg.logger
         );
 
@@ -255,9 +255,9 @@ int main() {
          50},                // max_t=50 años
 
         {"04_ctrl_tp53_mutations_high",
-         "Mutaciones TP53 altas (10%) con neoplasma",
+         "Mutaciones TP53 altas (10%) con neoplasma - SIN incremento D1/D2",
          0.0, 0.10, 0.10,    // BRCA1=0, TP53=0.10 (10%), neoplasm_k=0.10
-         0.5, 1.0,           // low_delta=0.5, high_delta=1.0
+         0.0, 0.0,           // low_delta=0.0, high_delta=0.0 (D1/D2 NO aumentan)
          0.0,                // division_rate=0
          0.0,                // neoplastic_division_rate=0
          false,              // enable_big_bang_mode=false
@@ -303,7 +303,7 @@ int main() {
         {"09_realistic_balanced",
          "Realista: Parámetros balanceados",
          0.05, 0.01, 0.05,   // BRCA1=0.05 (5%), TP53=0.01 (1%), neoplasm_k=0.05
-         0.5, 1.0,           // low_delta=0.5, high_delta=1.0
+         0.1, 0.3,           // low_delta=0.1, high_delta=0.3 (↑ aumentado para evasión inmune)
          0.05,               // division_rate=5%
          0.0,                // neoplastic_division_rate=0
          false,              // enable_big_bang_mode=false
@@ -313,7 +313,7 @@ int main() {
         {"10_big_bang_tumoral",
          "Big Bang Tumoral: TP53 -/- con división acelerada (20%)",
          0.05, 0.02, 0.20,   // BRCA1=0.05 (5%), TP53=0.02 (2%), neoplasm_k=0.20
-         0.5, 1.0,           // low_delta=0.5, high_delta=1.0
+         0.5, 1.0,           // low_delta=0.5, high_delta=1.0 (↑ aumentado para evasión inmune)
          0.0,                // division_rate=0 (células normales no se dividen)
          0.20,               // neoplastic_division_rate=20% (células TP53 -/- dividen)
          true,               // enable_big_bang_mode=true
@@ -322,7 +322,7 @@ int main() {
         {"11_big_bang_tumoral_reproduccion",
          "Big Bang con Reproducción Normal: TP53 -/- (10%) + Normal (5%)",
          0.05, 0.02, 0.20,   // BRCA1=0.05 (5%), TP53=0.02 (2%), neoplasm_k=0.20
-         0.5, 1.0,           // low_delta=0.5, high_delta=1.0
+         0.5, 1.0,           // low_delta=0.5, high_delta=1.0 (↑ aumentado para evasión inmune)
          0.05,               // division_rate=5% (células normales sí se dividen)
          0.10,               // neoplastic_division_rate=10% (células TP53 -/- dividen menos)
          true,               // enable_big_bang_mode=true
@@ -331,7 +331,7 @@ int main() {
         {"12_big_bang_tumoral_low_threshold",
          "Big Bang con Bajo Threshold TP53: TP53 -/- (10%) + Normal (5%)",
          0.05, 0.01, 0.02,  // BRCA1=0.05 (5%), TP53=0.01 (1%), neoplasm_k=0.02
-         0.2, 0.4,          // low_delta=0.2, high_delta=0.4 (inestabilidad menor)
+         0.2, 0.5,          // low_delta=0.2, high_delta=0.5 (↑ aumentado para evasión inmune)
          0.05,               // division_rate=5% (células normales sí se dividen)
          0.10,               // neoplastic_division_rate=10% (células TP53 -/- dividen)
          true,               // enable_big_bang_mode=true
@@ -340,9 +340,9 @@ int main() {
 
     auto total_start = std::chrono::system_clock::now();
 
-    // Ejecutar solo el escenario 01 para pruebas
+    // Ejecutar solo el escenario 09 para validar cambios
     for (const auto& scenario : scenarios) {
-        if (scenario.name == "04_ctrl_tp53_mutations_high") {
+        if (scenario.name == "09_realistic_balanced") {
             runScenario(scenario, cfg);
             break;
         }

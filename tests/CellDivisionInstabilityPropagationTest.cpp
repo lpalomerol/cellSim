@@ -38,9 +38,9 @@ TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsParentGenomicInst
     auto parent = std::make_unique<AgenticCell>(
         std::move(fixed_noise),
         genome,
-        0.002,         // neoplasm_k
+        0.000,         // neoplasm_k
         0.0001,        // low_delta_instability
-        1.5,           // high_delta_instability: HIGH for quick instability growth
+        0.5,           // high_delta_instability: HIGH for quick instability growth
         0.01,          // division_rate: 1% to trigger division easily
         0.01,          // neoplastic_division_rate
         false,         // enable_big_bang_mode
@@ -94,7 +94,7 @@ TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsAccumulatedInstab
         genome,
         0.002,         // neoplasm_k
         0.0001,        // low_delta_instability
-        1.5,           // high_delta_instability: HIGH
+        0.01,           // high_delta_instability: HIGH
         0.01,          // division_rate
         0.01,          // neoplastic_division_rate
         false,         // enable_big_bang_mode

@@ -214,16 +214,18 @@ TEST(AgenticCellTest, GenomicInstabilityIncreaseMutationProbability) {
     domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome,
                              0.0, // neoplasm_k
                              0.5, // low_delta (para TP53 +/-)
-                             1.5  // high_delta (para TP53 -/-)
+                             0.3  // high_delta (reducido para NO alcanzar PRIMER en un ciclo)
                              );
 
     // TP53 -/- causa D1 alto rápidamente
     EXPECT_EQ(cell.getTP53(), "-/-");
     EXPECT_DOUBLE_EQ(cell.getD1(), 1.0);
 
-    // Después de live(), D1 aumenta según high_delta
+    // Después de live(), D1 aumenta según high_delta (0.3)
+    // D1 = 1.0 + 0.3 = 1.3 (< 2.0, no entra en PRIMER, no muere)
     cell.live();
-    EXPECT_GT(cell.getD1(), 1.0); // D1 debería aumentar
+    EXPECT_DOUBLE_EQ(cell.getD1(), 1.3); // D1 aumenta pero no alcanza PRIMER
+    EXPECT_TRUE(cell.alive()); // Célula sigue viva
 }
 
 TEST(AgenticCellTest, MultipleLiveCyclesCauseGeneticDrift) {
