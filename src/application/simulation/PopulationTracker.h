@@ -19,8 +19,13 @@ namespace application {
         int dead_cells_cumulative;    // Apoptosis acumulada
         int neoplastic_alive;         // Células neoplásticas vivas
         int protected_alive;          // Células sanas vivas
-        double min_genomic_instability;
-        double max_genomic_instability;
+
+        // D1/D2 Model: DNA damage and Immunosuppression counters
+        double min_d1;                // Mínimo D1 (DNA damage) en población viva
+        double max_d1;                // Máximo D1 (DNA damage) en población viva
+        double min_d2;                // Mínimo D2 (Immunosuppression) en población viva
+        double max_d2;                // Máximo D2 (Immunosuppression) en población viva
+
         double tp53_plus_plus_pct;    // TP53 +/+ (%)
         double tp53_plus_minus_pct;   // TP53 +/- (%)
         double tp53_minus_minus_pct;  // TP53 -/- (%)

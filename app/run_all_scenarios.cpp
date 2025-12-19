@@ -23,8 +23,13 @@ void captureSnapshotFromTissue(domain::Tissue* tissue, int year,
     int protected_alive = 0;
     int neoplastic_susceptible = 0;
     int neoplastic_resistant = 0;
-    double min_instability = std::numeric_limits<double>::max();
-    double max_instability = std::numeric_limits<double>::lowest();
+
+    // D1 (DNA damage) and D2 (Immunosuppression) tracking
+    double min_d1 = std::numeric_limits<double>::max();
+    double max_d1 = std::numeric_limits<double>::lowest();
+    double min_d2 = std::numeric_limits<double>::max();
+    double max_d2 = std::numeric_limits<double>::lowest();
+
     int tp53_pp = 0, tp53_pm = 0, tp53_mm = 0;
 
     for (size_t i = 0; i < tissue->size(); ++i) {
@@ -37,18 +42,26 @@ void captureSnapshotFromTissue(domain::Tissue* tissue, int year,
             else if (tp53_status == "+/-") tp53_pm++;
             else if (tp53_status == "-/-") tp53_mm++;
 
+            // Capturar D1 y D2 de TODAS las células vivas (no solo neoplásticas)
+            auto* agentic_v2 = dynamic_cast<domain::AgenticCell*>(cell);
+            if (agentic_v2) {
+                double d1 = agentic_v2->getD1();
+                double d2 = agentic_v2->getD2();
+
+                min_d1 = std::min(min_d1, d1);
+                max_d1 = std::max(max_d1, d1);
+                min_d2 = std::min(min_d2, d2);
+                max_d2 = std::max(max_d2, d2);
+            }
+
             if (cell->isNeoplastic()) {
                 neoplastic_alive++;
-                auto* agentic_v2 = dynamic_cast<domain::AgenticCell*>(cell);
                 if (agentic_v2) {
-                    if (agentic_v2->getD2() >= 5.0) {  // D2 > 5.0 = resistente a apoptosis
+                    if (agentic_v2->getD2() >= 5.0) {  // D2 >= 5.0 = resistente a apoptosis
                         neoplastic_resistant++;
                     } else {
                         neoplastic_susceptible++;
                     }
-                    double inst = agentic_v2->getD1();  // D1 es la instabilidad
-                    min_instability = std::min(min_instability, inst);
-                    max_instability = std::max(max_instability, inst);
                 }
             } else {
                 protected_alive++;
@@ -56,9 +69,18 @@ void captureSnapshotFromTissue(domain::Tissue* tissue, int year,
         }
     }
 
-    if (min_instability == std::numeric_limits<double>::max()) {
-        min_instability = 0.0;
-        max_instability = 0.0;
+    // Si no hay células vivas, resetear valores
+    if (alive_count == 0) {
+        min_d1 = 0.0;
+        max_d1 = 0.0;
+        min_d2 = 0.0;
+        max_d2 = 0.0;
+    } else if (min_d1 == std::numeric_limits<double>::max()) {
+        // No había AgenticCells (solo había otros tipos de células)
+        min_d1 = 0.0;
+        max_d1 = 0.0;
+        min_d2 = 0.0;
+        max_d2 = 0.0;
     }
 
     // Calcular muertas de este año y acumular
@@ -80,7 +102,8 @@ void captureSnapshotFromTissue(domain::Tissue* tissue, int year,
 
     application::YearlySnapshot snap{
         year, total, alive_count, *cumulative_dead, neoplastic_alive, protected_alive,
-        min_instability, max_instability, tp53_pp_pct, tp53_pm_pct, tp53_mm_pct,
+        min_d1, max_d1, min_d2, max_d2,  // D1/D2 en lugar de instabilidad genómica
+        tp53_pp_pct, tp53_pm_pct, tp53_mm_pct,
         neoplastic_susceptible, neoplastic_resistant
     };
 
@@ -317,10 +340,11 @@ int main() {
 
     auto total_start = std::chrono::system_clock::now();
 
+    // Ejecutar solo el escenario 01 para pruebas
     for (const auto& scenario : scenarios) {
-        if (scenario.name == "03_ctrl_brca_mutations_high") {
+        if (scenario.name == "04_ctrl_tp53_mutations_high") {
             runScenario(scenario, cfg);
-            break;  // Solo ejecutar el segundo
+            break;
         }
     }
 

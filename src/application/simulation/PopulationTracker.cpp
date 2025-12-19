@@ -24,9 +24,9 @@ namespace application {
 
         oss << "## Evolución Anual de Población\n\n";
 
-        // Encabezado de tabla
-        oss << "| Año | Total (V+M) | Vivas (P+N) | Muertas (Apoptosis) | Neoplásticas (Vivas) | Protegidas (Vivas) | Min Inest. | Max Inest. | TP53++ (%) | TP53+- (%) | TP53-- (%) |\n";
-        oss << "|-----|-------------|-------------|---------------------|----------------------|-------------------|-----------|-----------|-----------|-----------|----------|\n";
+        // Encabezado de tabla con D1/D2
+        oss << "| Año | Total (V+M) | Vivas (P+N) | Muertas (Apoptosis) | Neoplásticas (Vivas) | Protegidas (Vivas) | Min D1 | Max D1 | Min D2 | Max D2 | TP53++ (%) | TP53+- (%) | TP53-- (%) |\n";
+        oss << "|-----|-------------|-------------|---------------------|----------------------|-------------------|--------|--------|--------|--------|-----------|-----------|----------|\n";
 
         // Filas de datos
         for (const auto& snap : snapshots_) {
@@ -36,8 +36,10 @@ namespace application {
             oss << snap.dead_cells_cumulative << " | ";
             oss << snap.neoplastic_alive << " | ";
             oss << snap.protected_alive << " | ";
-            oss << formatDouble(snap.min_genomic_instability) << " | ";
-            oss << formatDouble(snap.max_genomic_instability) << " | ";
+            oss << formatDouble(snap.min_d1) << " | ";
+            oss << formatDouble(snap.max_d1) << " | ";
+            oss << formatDouble(snap.min_d2) << " | ";
+            oss << formatDouble(snap.max_d2) << " | ";
             oss << formatPercent(snap.tp53_plus_plus_pct) << " | ";
             oss << formatPercent(snap.tp53_plus_minus_pct) << " | ";
             oss << formatPercent(snap.tp53_minus_minus_pct) << " |\n";
@@ -72,8 +74,10 @@ namespace application {
         oss << "- **Muertas (Apoptosis):** Total acumulado de células muertas\n";
         oss << "- **Neoplásticas (Vivas):** Células transformadas que siguen vivas\n";
         oss << "- **Protegidas (Vivas):** Células normales/sanas que siguen vivas\n";
-        oss << "- **Min Inest.:** Índice mínimo de inestabilidad genómica en población viva\n";
-        oss << "- **Max Inest.:** Índice máximo de inestabilidad genómica en población viva\n";
+        oss << "- **Min D1:** Mínimo D1 (DNA damage counter) en población viva\n";
+        oss << "- **Max D1:** Máximo D1 (DNA damage counter) en población viva\n";
+        oss << "- **Min D2:** Mínimo D2 (Immunosuppression counter) en población viva\n";
+        oss << "- **Max D2:** Máximo D2 (Immunosuppression counter) en población viva\n";
         oss << "- **TP53++:** Porcentaje de células con TP53 wild-type (+/+)\n";
         oss << "- **TP53+-:** Porcentaje de células con TP53 heterocigoto (+/-)\n";
         oss << "- **TP53--:** Porcentaje de células con TP53 homocigoto (-/-)\n";
@@ -89,9 +93,9 @@ namespace application {
     std::string PopulationTracker::toCSV(const std::string& scenario_name, int run_number) const {
         std::ostringstream oss;
 
-        // Encabezado CSV (con nuevos campos de apoptosis en neoplásticas)
+        // Encabezado CSV con D1/D2
         oss << "scenario,run,year,total_cells,alive_cells,dead_cells_cumulative,";
-        oss << "neoplastic_alive,protected_alive,min_genomic_instability,max_genomic_instability,";
+        oss << "neoplastic_alive,protected_alive,min_d1,max_d1,min_d2,max_d2,";
         oss << "tp53_plus_plus_pct,tp53_plus_minus_pct,tp53_minus_minus_pct,";
         oss << "neoplastic_apoptosis_susceptible,neoplastic_apoptosis_resistant\n";
 
@@ -105,8 +109,10 @@ namespace application {
             oss << snap.dead_cells_cumulative << ",";
             oss << snap.neoplastic_alive << ",";
             oss << snap.protected_alive << ",";
-            oss << formatDouble(snap.min_genomic_instability) << ",";
-            oss << formatDouble(snap.max_genomic_instability) << ",";
+            oss << formatDouble(snap.min_d1) << ",";
+            oss << formatDouble(snap.max_d1) << ",";
+            oss << formatDouble(snap.min_d2) << ",";
+            oss << formatDouble(snap.max_d2) << ",";
             oss << formatDouble(snap.tp53_plus_plus_pct) << ",";
             oss << formatDouble(snap.tp53_plus_minus_pct) << ",";
             oss << formatDouble(snap.tp53_minus_minus_pct) << ",";
