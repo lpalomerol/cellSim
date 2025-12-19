@@ -1,40 +1,57 @@
 #include "CellFactory.h"
-#include "AgenticCell.h"
+#include "../adapters/RandomNoise.h"
 
-namespace domain::cell_factory {
+namespace domain {
 
-     std::unique_ptr<ICell> createAgenticCell(
-         unsigned seed,
-         domain::Genome genome,
-         double neoplasm_k,
-         double low_delta_instability,
-         double high_delta_instability,
-         double division_rate,
-         double neoplastic_division_rate,
-         bool enable_big_bang_mode,
-         double apoptosis_instability_threshold,
-         ports::ILoggerPtr logger){
-         // Delegate to overload that accepts an injected noise source
-         return createAgenticCell(std::make_unique<domain::adapters::RandomNoise>(seed), std::move(genome), neoplasm_k,
-         low_delta_instability, high_delta_instability, division_rate, neoplastic_division_rate, enable_big_bang_mode,
-         apoptosis_instability_threshold, logger);
-     }
+std::unique_ptr<AgenticCell> CellFactory::createNormalCell(
+    const Genome& genome,
+    const ports::ILoggerPtr& logger) {
 
-     // Overload: allows directly injecting a noise source
-     std::unique_ptr<ICell> createAgenticCell(
-         std::unique_ptr<INoiseSource> noise,
-         domain::Genome genome,
-         double neoplasm_k,
-         double low_delta_instability,
-         double high_delta_instability,
-         double division_rate,
-         double neoplastic_division_rate,
-         bool enable_big_bang_mode,
-         double apoptosis_instability_threshold,
-         ports::ILoggerPtr logger) {
-         return std::make_unique<domain::AgenticCell>(std::move(noise), std::move(genome), neoplasm_k,
-             low_delta_instability, high_delta_instability, division_rate, neoplastic_division_rate,
-             enable_big_bang_mode, apoptosis_instability_threshold, logger);
-     }
+    return createCustomCell(
+        genome,
+        Defaults::NEOPLASM_K,
+        Defaults::LOW_DELTA_INSTABILITY,
+        Defaults::HIGH_DELTA_INSTABILITY,
+        Defaults::DIVISION_RATE,
+        Defaults::NEOPLASTIC_DIVISION_RATE,
+        Defaults::ENABLE_BIG_BANG_MODE,
+        Defaults::APOPTOSIS_INSTABILITY_THRESHOLD,
+        Defaults::D1_PRIMER_THRESHOLD,
+        Defaults::D2_APOPTOSIS_THRESHOLD,
+        logger
+    );
+}
 
-} // namespace domain::cell_factory
+std::unique_ptr<AgenticCell> CellFactory::createCustomCell(
+    const Genome& genome,
+    double neoplasm_k,
+    double low_delta_instability,
+    double high_delta_instability,
+    double division_rate,
+    double neoplastic_division_rate,
+    bool enable_big_bang_mode,
+    double apoptosis_instability_threshold,
+    double d1_primer_threshold,
+    double d2_apoptosis_threshold,
+    const ports::ILoggerPtr& logger) {
+
+    auto noise = std::make_unique<adapters::RandomNoise>();
+
+    return std::make_unique<AgenticCell>(
+        std::move(noise),
+        genome,
+        neoplasm_k,
+        low_delta_instability,
+        high_delta_instability,
+        division_rate,
+        neoplastic_division_rate,
+        enable_big_bang_mode,
+        apoptosis_instability_threshold,
+        logger,
+        d1_primer_threshold,
+        d2_apoptosis_threshold
+    );
+}
+
+} // namespace domain
+

@@ -1,300 +1,153 @@
-//
-//
-
 #include "AgenticCell.h"
 #include "../signal/NeoplasmSignal.h"
 #include "../signal/CellDivisionSignal.h"
+#include "../signal/ApoptosisSignal.h"
 #include "../exception/CellDeathException.h"
 #include "../exception/NeoplasticException.h"
 #include "../shared/Threshold.h"
 #include "../adapters/RandomNoise.h"
 #include "../adapters/NullLogger.h"
+#include "InstabilityDeltas.h"
 
 namespace domain {
 
-    /**
-     * Construct an AgenticCell.
-     * - Injects the provided noise source into all genes.
-     * - Sets genome verbosity and captures the RNG seed (if available).
-     */
-    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise, Genome genome, double neoplasm_k,
-                             double low_delta_instability, double high_delta_instability, double division_rate,
-                             double neoplastic_division_rate, bool enable_big_bang_mode,
-                             double apoptosis_instability_threshold, ports::ILoggerPtr logger)
-        : noise_(std::move(noise)), logger_(logger ? logger : std::make_shared<adapters::NullLogger>()),
-          genome_(std::move(genome)), base_neoplasm_k_(neoplasm_k), neoplasm_k_(domain::shared::Threshold(neoplasm_k)),
-          is_neoplastic_(false), low_delta_instability_(low_delta_instability),
-          high_delta_instability_(high_delta_instability), division_rate_(division_rate),
-          neoplastic_division_rate_(neoplastic_division_rate), enable_big_bang_mode_(enable_big_bang_mode),
-          apoptosis_instability_threshold_(apoptosis_instability_threshold) {
-        // Inject the noise source into all genes via the Genome API
-        genome_.setNoiseSourceForAll(noise_.get());
+    /// Constructor: Initialize AgenticCell with D1 and D2 counters
+    AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise,
+                                   Genome genome,
+                                   double neoplasm_k,
+                                   double low_delta_instability,
+                                   double high_delta_instability,
+                                   double division_rate,
+                                   double neoplastic_division_rate,
+                                   bool enable_big_bang_mode,
+                                   double apoptosis_instability_threshold,
+                                   const ports::ILoggerPtr& logger,
+                                   double d1_primer_threshold,
+                                   double d2_apoptosis_threshold)
+        : noise_(std::move(noise)),
+          logger_(logger ? logger : std::make_shared<adapters::NullLogger>()),
+          genome_(std::move(genome)),
+          base_neoplasm_k_(neoplasm_k),
+          neoplasm_k_(domain::shared::Threshold(neoplasm_k)),
+          is_neoplastic_(false),
+          division_rate_(division_rate),
+          neoplastic_division_rate_(neoplastic_division_rate),
+          enable_big_bang_mode_(enable_big_bang_mode),
+          apoptosis_instability_threshold_(apoptosis_instability_threshold),
+          low_delta_instability_(low_delta_instability),
+          high_delta_instability_(high_delta_instability),
+          d1_dna_damage_(1.0),
+          d2_immunosuppression_(1.0),
+          d1_primer_threshold_(d1_primer_threshold),
+          d2_apoptosis_threshold_(d2_apoptosis_threshold) {
 
-        // Store the RNG seed (if the noise source provides one)
+        genome_.setNoiseSourceForAll(noise_.get());
         if (noise_) {
             seed_ = noise_->getSeed();
         } else {
             seed_ = 0;
         }
-        logger_->logCell("[Trace] AgenticCell seed: " + std::to_string(seed_));
+
+        logger_->logCell("[Trace] AgenticCell constructed: seed=" + std::to_string(seed_)
+                      + " | d1=" + std::to_string(d1_dna_damage_)
+                      + " | d2=" + std::to_string(d2_immunosuppression_)
+                      + " | d1_threshold=" + std::to_string(d1_primer_threshold_)
+                      + " | d2_threshold=" + std::to_string(d2_apoptosis_threshold_));
     }
 
-    /**
-     * Run a single cell cycle. Phases are executed in order; exceptions are
-     * used to signal cell death or neoplastic conversion and stop further work.
-     *
-     * Neoplastic cells normally skip growth phases (0,1,3,4) and only process messages and emit signals.
-     * However, if Big Bang mode is enabled, neoplastic cells CAN divide via phase4.
-     */
-    void AgenticCell::live() {
-        try {
-            // Neoplastic cells in BIG BANG mode: allow phase4 (division) for rapid proliferation
-            if (is_neoplastic_ && enable_big_bang_mode_) {
-                phase2_Endocytosis();
-                phase4_CytoplasmicRemodeling();  // Allow division for Big Bang
-                phase5_Exocytosis();
-                return;
-            }
+    // ===== Simple Status Queries =====
 
-            // Normal neoplastic cells: process messages (to receive apoptosis) then emit signal
-            if (is_neoplastic_) {
-                phase2_Endocytosis();
-                phase5_Exocytosis();
-                return;
-            }
-
-            // Normal cell cycle
-            phase0_BaselineAssessment();
-            phase1_G1IntegrityCheckpoint();
-            phase2_Endocytosis();
-            phase3_NuclearDynamics();
-            phase4_CytoplasmicRemodeling();
-            phase5_Exocytosis();
-        } catch (const NeoplasticException& e) {
-            logger_->logCell("[Trace] Neoplastic during live(): " + std::string(e.what()));
-            return;
-        } catch (const CellDeathException& e) {
-            logger_->logCell("[Trace] Cell death during live(): " + std::string(e.what()));
-            return;
-        }
-    }
-
-    /** Show details when verbose */
-    void AgenticCell::phase0_BaselineAssessment() const {
-        if (logger_) {
-            details();
-        }
-    }
-
-    /**
-     * G1 integrity checkpoint: throws if the cell is dead.
-     * NOTE: Neoplastic cells are NOT killed here - they continue through the cycle
-     * to allow them to process incoming messages (e.g., apoptosis signals).
-     */
-    void AgenticCell::phase1_G1IntegrityCheckpoint() const {
-        if (!alive()) {
-            throw CellDeathException("dead@phase1");
-        }
-    }
-
-    /**
-     * Endocytosis phase: process all incoming messages.
-     * - Validates destination
-     * - Displays message details when verbose
-     * - Future: handle message types (apoptosis, stress, etc.)
-     */
-    void AgenticCell::phase2_Endocytosis() {
-        while (!incoming_messages_.empty()) {
-            auto msg = std::move(incoming_messages_.front());
-            incoming_messages_.pop();
-
-            if (msg) {
-                logger_->logCell("[Endocytosis] Cell [" + std::to_string(cell_id_) + "] processing message");
-                logger_->logCell("  - Type: " + std::to_string(static_cast<int>(msg->type())));
-                logger_->logCell("  - Source: " + std::to_string(msg->sourceId()));
-                logger_->logCell("  - Message: " + msg->message());
-
-                const auto& targets = msg->targetIds();
-                std::string targets_str;
-                if (targets.empty()) {
-                    targets_str = "(broadcast)";
-                } else {
-                    for (size_t i = 0; i < targets.size(); ++i) {
-                        if (i > 0) targets_str += ", ";
-                        targets_str += std::to_string(targets[i]);
-                    }
-                }
-                logger_->logCell("  - Targets: " + targets_str);
-            }
-
-            // Handle specific message types
-            if (msg->type() == ISignal::Type::Apoptosis) {
-                bool will_evade = (genomic_instability_ > apoptosis_instability_threshold_);
-                if (will_evade) {
-                    logger_->logCell("[Apoptosis Signal] Cell [" + std::to_string(cell_id_)
-                                  + "] will IGNORE apoptosis signal (genomic_instability="
-                                  + std::to_string(genomic_instability_) + " > threshold="
-                                  + std::to_string(apoptosis_instability_threshold_) + ")");
-                } else {
-                    logger_->logCell("[Apoptosis Signal] Cell [" + std::to_string(cell_id_)
-                                  + "] will ACCEPT apoptosis signal (genomic_instability="
-                                  + std::to_string(genomic_instability_) + " <= threshold="
-                                  + std::to_string(apoptosis_instability_threshold_) + ")");
-                }
-                attemptApoptosis();
-            }
-        }
-    }
-
-    /**
-     * Nuclear dynamics: advance all genes and update neoplasm threshold.
-     * Also checks for death and increments age for living cells.
-     */
-    void AgenticCell::phase3_NuclearDynamics() {
-
-        // Advance genes using the current genomic instability modifier
-        genome_.liveAllGenes(genomic_instability_);
-        adjust_neoplasm_k();
-        if (!alive()) {
-            throw CellDeathException("dead@phase3");
-        }
-        increaseAge();
-    }
-
-    /**
-     * Cytoplasmic remodeling: attempt neoplasm development (unless protected)
-     * and update genomic instability for the next cycle.
-     * Also attempts cell division if conditions are met.
-     */
-    void AgenticCell::phase4_CytoplasmicRemodeling() {
-
-        if (!isNeoplasticProtected()) {
-            develop_neoplasm();
-        }
-        // Update genomic instability every cycle
-        updateGenomicInstability();
-        // Attempt cell division
-        attemptDivision();
-    }
-
-    /** Exocytosis phase: emit neoplasm signal every cycle while neoplastic */
-    void AgenticCell::phase5_Exocytosis() {
-        if (is_neoplastic_ && signal_emitter_) {
-            auto sig = std::make_unique<NeoplasmSignal>(id(), "neoplasm");
-            signal_emitter_(std::move(sig));
-            logger_->logCell("[Exocytosis] Cell [" + std::to_string(cell_id_) + "] emitting neoplasm signal");
-        }
-    }
-
-    /**
-     * Update genomic instability metric.
-     * Rules:
-     * - The base progression squares the previous value each iteration.
-     * - TP53 contributes an additive offset: "+/-" => low_delta_instability_, "-/-" => high_delta_instability_.
-     * - The metric is bounded below by 1.0 (acts as a multiplicative degrader).
-     */
-    void AgenticCell::updateGenomicInstability() {
-        const Gene *tp53 = genome_.getGene("TP53");
-
-        double previous = genomic_instability_;
-        double next = previous * previous;
-
-        if (tp53) {
-             std::string st = tp53->status();
-             if (st == "+/-") {
-                // Aplicar delta LOW multiplicado por parámetro configurable
-                next += low_delta_instability_;
-             } else if (st == "-/-") {
-                // Aplicar delta HIGH multiplicado por parámetro configurable
-                next += high_delta_instability_;
-             }
-         }
-
-        if (next < 1.0) next = 1.0;
-
-        genomic_instability_ = next;
-
-        if (genomic_instability_ > 999) {
-            genomic_instability_ = 999;
-        }
-
-        logger_->logCell("[Trace] genomic_instability: prev=" + std::to_string(previous) + " -> next=" + std::to_string(genomic_instability_)
-                      + " | low_delta=" + std::to_string(low_delta_instability_)
-                      + " | high_delta=" + std::to_string(high_delta_instability_)
-                      + " | TP53=" + (tp53 ? tp53->status() : "?"));
-    }
-
-    /** Return whether the cell is alive.
-     * Rules:
-     * - Normal cells: BRCA1 must be enabled
-     * - Immortal cells (that evaded apoptosis): always alive, even if BRCA1 is disabled
-     */
     bool AgenticCell::alive() const {
-        // If cell has evaded apoptosis, it's immortal and cannot die
+        // If cell has evaded apoptosis (is neoplastic), always alive
         if (has_evaded_apoptosis_) {
             return true;
         }
 
-        // Otherwise, check BRCA1 status (normal cell death)
-        const Gene *brca1 = genome_.getGene("BRCA1");
-        return brca1 && brca1->enabled();
+        const Gene* brca1 = genome_.getGene("BRCA1");
+        const Gene* tp53 = genome_.getGene("TP53");
+
+        // BRCA1 missing or check: if not present, cell is dead
+        if (!brca1) {
+            return false;
+        }
+
+        // BRCA1 -/- is lethal ONLY if TP53 is functional
+        if (brca1->status() == "-/-") {
+            // TP53 -/- cannot kill the cell → alive
+            if (tp53 && tp53->status() == "-/-") {
+                return true;
+            }
+            // TP53 is functional (+/+ or +/-) → detects damage → dead
+            return false;
+        }
+
+        // BRCA1 +/- (normal case) → cell is alive
+        return true;
     }
 
     bool AgenticCell::isNeoplastic() const {
         return is_neoplastic_;
     }
 
+    bool AgenticCell::isNeoplasticProtected() const {
+        const Gene* tp53 = genome_.getGene("TP53");
+        if (!tp53) return false;
+        std::string status = tp53->status();
+        return status != "-/-";
+    }
+
     std::string AgenticCell::getTP53() const {
-        const Gene *tp53 = genome_.getGene("TP53");
+        const Gene* tp53 = genome_.getGene("TP53");
         return tp53 ? tp53->status() : "?";
     }
 
     std::string AgenticCell::getBRCA1() const {
-        const Gene *brca1 = genome_.getGene("BRCA1");
+        const Gene* brca1 = genome_.getGene("BRCA1");
         return brca1 ? brca1->status() : "?";
     }
 
-    /** Print concise cell state and genome when verbose. */
+    // ===== ID Management =====
+
+    void AgenticCell::setId(std::uint64_t id) {
+        cell_id_ = id;
+    }
+
+    std::uint64_t AgenticCell::id() const {
+        return cell_id_;
+    }
+
+    // ===== Details and Logging =====
+
     void AgenticCell::details() const {
         std::string cell_is_alive = (alive() ? "yes" : "no");
         std::string cell_is_neoplastic = (isNeoplastic() ? "yes" : "no");
-        std::string cell_is_neoplastic_protected = (isNeoplasticProtected() ? "yes" : "no");
-        logger_->logCell("[Cell details] "
-            "Alive: [" + cell_is_alive + "] | "
-            "Neoplastic protected: ["+ cell_is_neoplastic_protected + "] | "
-            "Neoplastic: [" + cell_is_neoplastic + "] | "
-            "Seed: [" + std::to_string(seed_) + "] | Age: [" + std::to_string(age_) + "] | Genomic instability: [" + std::to_string(genomic_instability_) + "]");
+        std::string cell_is_protected = (isNeoplasticProtected() ? "yes" : "no");
+
+        logger_->logCell("[Cell V2 Details] "
+                      "Alive: [" + cell_is_alive + "] | "
+                      "Neoplastic Protected: [" + cell_is_protected + "] | "
+                      "Neoplastic: [" + cell_is_neoplastic + "] | "
+                      "Seed: [" + std::to_string(seed_) + "] | "
+                      "Age: [" + std::to_string(age_) + "] | "
+                      "d1: [" + std::to_string(d1_dna_damage_) + "] | "
+                      "d2: [" + std::to_string(d2_immunosuppression_) + "]");
         logger_->logCell("Genome details:");
         genome_.details();
     }
 
-
-    /** Delegate mutation to the Genome. */
-    void AgenticCell::mutateGene(const std::string& name) {
-        genome_.mutate(name);
-    }
+    // ===== Signal Handling =====
 
     void AgenticCell::setSignalEmitter(std::function<void(std::unique_ptr<domain::ISignal>)> emitter) {
         signal_emitter_ = std::move(emitter);
     }
 
-    /**
-     * Receive a directed message or broadcast signal.
-     * - If targetIds is empty: it's a broadcast, accept it.
-     * - If targetIds is non-empty: only accept if this cell's ID is in the list.
-     */
     void AgenticCell::receiveMessage(std::unique_ptr<domain::ISignal> signal) {
         if (!signal) return;
 
         const auto& targets = signal->targetIds();
+        bool should_accept = targets.empty();
 
-        // Validate if this message is for us
-        bool should_accept = false;
-        if (targets.empty()) {
-            // Broadcast: everyone receives
-            should_accept = true;
-        } else {
-            // Directed: check if our ID is in the list
+        if (!should_accept) {
             for (auto target_id : targets) {
                 if (target_id == cell_id_) {
                     should_accept = true;
@@ -305,153 +158,205 @@ namespace domain {
 
         if (should_accept) {
             incoming_messages_.push(std::move(signal));
-            logger_->logCell("[Trace] Cell [" + std::to_string(cell_id_) + "] received message: "
-                          + (incoming_messages_.back() ? incoming_messages_.back()->message() : "?"));
-        } else {
-            logger_->logCell("[Trace] Cell [" + std::to_string(cell_id_) + "] ignored message (not in targetIds)");
+            logger_->logCell("[Trace] Cell [" + std::to_string(cell_id_) + "] received message");
         }
     }
 
-    /** Sample the noise source and set neoplastic flag if threshold crossed. */
+    // ===== Gene Mutation =====
+
+    void AgenticCell::mutateGene(const std::string& name) {
+        genome_.mutate(name);
+    }
+
+    // ===== MAIN LIFECYCLE =====
+
+    void AgenticCell::live() {
+        // Execute one complete cell cycle: 6 phases
+        try {
+            phase0_BaselineAssessment();
+            phase1_G1IntegrityCheckpoint();
+            phase2_Endocytosis();
+            phase3_NuclearDynamics();
+            phase4_CytoplasmicRemodeling();
+            phase5_Exocytosis();
+        } catch (const CellDeathException& e) {
+            logger_->logCell("[CellDeath] " + std::string(e.what()));
+            throw;
+        }
+    }
+
+    CellLifeStage AgenticCell::getCurrentCellLifeStage() const {
+        if (!alive()) {
+            return CellLifeStage::DEAD;
+        }
+
+        if (is_neoplastic_) {
+            return CellLifeStage::TUMORAL;
+        }
+
+        std::string tp53_status = getTP53();
+        std::string brca1_status = getBRCA1();
+
+        if (tp53_status == "+/-" && brca1_status == "+/-") {
+            return CellLifeStage::UNSTABLE;
+        }
+
+        if (tp53_status == "+/+" && brca1_status == "+/-") {
+            return CellLifeStage::BASELINE;
+        }
+
+        if (tp53_status == "-/-") {
+            if (d1_dna_damage_ > d1_primer_threshold_) {
+                return CellLifeStage::PRIMER;
+            }
+            return CellLifeStage::UNPROTECTED;
+        }
+
+        logger_->logCell("[Trace] Unexpected genotype: TP53=" + tp53_status +
+                      ", BRCA1=" + brca1_status + ". Defaulting to DEAD.");
+        return CellLifeStage::DEAD;
+    }
+
+    // ===== PHASES =====
+
+    void AgenticCell::phase0_BaselineAssessment() const {
+        CellLifeStage stage = getCurrentCellLifeStage();
+        logger_->logCell("[Phase0] Cycle start: stage=" + toString(stage) +
+                       ", age=" + std::to_string(age_) +
+                       ", d1=" + std::to_string(d1_dna_damage_) +
+                       ", d2=" + std::to_string(d2_immunosuppression_));
+
+        if (is_neoplastic_) {
+            logger_->logCell("[Phase0] Cell is NEOPLASTIC (is_neoplastic_=true)");
+        }
+        if (has_evaded_apoptosis_) {
+            logger_->logCell("[Phase0] Cell has EVADED apoptosis (immortal)");
+        }
+    }
+
+    void AgenticCell::phase1_G1IntegrityCheckpoint() const {
+        if (!alive()) {
+            logger_->logCell("[Phase1] Cell is DEAD (intrinsic apoptosis: BRCA1 -/-)");
+            throw CellDeathException("intrinsic_apoptosis@phase1");
+        }
+    }
+
+    void AgenticCell::phase2_Endocytosis() {
+        while (!incoming_messages_.empty()) {
+            auto signal = std::move(incoming_messages_.front());
+            incoming_messages_.pop();
+
+            if (!signal) continue;
+
+            logger_->logCell("[Phase2] Processing signal type=" + std::to_string(static_cast<int>(signal->type())));
+
+            if (signal->type() == ISignal::Type::Apoptosis) {
+                // PART 1: Apoptosis (universal)
+                if (d2_immunosuppression_ > d2_apoptosis_threshold_) {
+                    logger_->logCell("[Apoptosis] Extrinsic BLOCKED: D2=" +
+                                   std::to_string(d2_immunosuppression_) + " > " +
+                                   std::to_string(d2_apoptosis_threshold_) + " (immune evasion)");
+
+                    // PART 2: Neoplasm (conditional, only if PRIMER)
+                    CellLifeStage current_stage = getCurrentCellLifeStage();
+                    if (current_stage == CellLifeStage::PRIMER && !is_neoplastic_) {
+                        logger_->logCell("[Phase2] Cell in PRIMER state - developing neoplasm");
+                        develop_neoplasm();
+                        logger_->logCell("[Phase2] Cell TRANSFORMED to TUMORAL (is_neoplastic_ = true)");
+                    }
+                } else {
+                    logger_->logCell("[Apoptosis] Extrinsic ACCEPTED: D2=" +
+                                   std::to_string(d2_immunosuppression_) + " <= " +
+                                   std::to_string(d2_apoptosis_threshold_) + " (immune clearance)");
+                    throw CellDeathException("extrinsic_apoptosis@phase2");
+                }
+            }
+        }
+    }
+
+    void AgenticCell::phase3_NuclearDynamics() {
+        logger_->logCell("[Phase3] Nuclear dynamics: genome evolution");
+        logger_->logCell("[Phase3] Genome status: TP53=" + getTP53() +
+                       ", BRCA1=" + getBRCA1());
+    }
+
+    void AgenticCell::phase4_CytoplasmicRemodeling() {
+        std::string tp53_status = getTP53();
+        std::string brca1_status = getBRCA1();
+        auto [delta_d1, delta_d2] = InstabilityDeltas::getDeltas(tp53_status, brca1_status,
+                                                                   low_delta_instability_,
+                                                                   high_delta_instability_);
+
+        double prev_d1 = d1_dna_damage_;
+        double prev_d2 = d2_immunosuppression_;
+
+        d1_dna_damage_ = std::min(d1_dna_damage_ + delta_d1, 999.0);
+        d2_immunosuppression_ = std::min(d2_immunosuppression_ + delta_d2, 999.0);
+
+        logger_->logCell("[Phase4] d1_update: " + std::to_string(prev_d1) + " → " +
+                       std::to_string(d1_dna_damage_) + " (delta=" + std::to_string(delta_d1) + ")");
+        logger_->logCell("[Phase4] d2_update: " + std::to_string(prev_d2) + " → " +
+                       std::to_string(d2_immunosuppression_) + " (delta=" + std::to_string(delta_d2) + ")");
+
+        CellLifeStage current_stage = getCurrentCellLifeStage();
+        if (current_stage == CellLifeStage::PRIMER && !is_neoplastic_) {
+            logger_->logCell("[Phase4] Cell DETECTED in PRIMER state");
+            logger_->logCell("[Phase4]   Reason: TP53=" + tp53_status + ", D1=" +
+                           std::to_string(d1_dna_damage_) + " > 2.0");
+            logger_->logCell("[Phase4]   Status: UNPROTECTED (pretumoral, visible to tissue)");
+            logger_->logCell("[Phase4]   Waiting: Tissue will send apoptosis signal");
+        }
+    }
+
+    void AgenticCell::phase5_Exocytosis() {
+        logger_->logCell("[Phase5] Exocytosis complete");
+        increaseAge();
+    }
+
+    // ===== HELPERS =====
+
+    void AgenticCell::increaseAge() {
+        if (alive()) {
+            age_++;
+            logger_->logCell("[Misc] Age increased to " + std::to_string(age_));
+        }
+    }
+
     void AgenticCell::develop_neoplasm() {
-        if (!noise_) return;
-        double sample = noise_->next().u01;
-        logger_->logCell("[Trace] neoplasm sample=" + std::to_string(sample) + " threshold=" + std::to_string(neoplasm_k_.value()));
-        if (sample < neoplasm_k_.value()) {
-            is_neoplastic_ = true;
-            logger_->logCell("[Trace] Cell converted to neoplastic state");
-        } else {
-            logger_->logCell("[Trace] No neoplasm (sample >= threshold)");
-        }
-    }
-
-    /** Return true if TP53 is NOT -/- (i.e., +/+ or +/- protect; only -/- allows tumors). */
-    bool AgenticCell::isNeoplasticProtected() const {
-        const Gene *tp53 = genome_.getGene("TP53");
-        if (!tp53) return false;
-
-        // Protect from neoplasm unless TP53 is -/- (MinusMinus)
-        // This means:
-        // - TP53 +/+ → Protected ✅
-        // - TP53 +/- → Protected ✅ (but with degraded protection & increased instability)
-        // - TP53 -/- → NOT protected ❌ (allows tumors)
-        std::string status = tp53->status();
-        return status != "-/-";
+        is_neoplastic_ = true;
+        has_evaded_apoptosis_ = true;
+        logger_->logCell("[Transform] Cell became NEOPLASTIC (is_neoplastic_=true, immortal)");
     }
 
     void AgenticCell::adjust_neoplasm_k() {
-        // Compute neoplasm threshold as base_k multiplied by genomic instability.
-        // Additionally apply small additive deltas depending on TP53 state (same notion as genomic instability).
-        const Gene *tp53 = genome_.getGene("TP53");
-
-        double previous = neoplasm_k_.value();
-        double next = base_neoplasm_k_ * genomic_instability_;
-
-        if (tp53) {
-            std::string st = tp53->status();
-            if (st == "+/-") {
-                next += low_delta_instability_;
-            } else if (st == "-/-") {
-                next += high_delta_instability_;
-            }
-        }
-
-        // Assign back using Threshold to ensure clamping to [0,1]
-        neoplasm_k_ = domain::shared::Threshold(next);
-
-        logger_->logCell("[Trace] neoplasm_k: base=" + std::to_string(base_neoplasm_k_) + " instability=" + std::to_string(genomic_instability_)
-                      + " prev=" + std::to_string(previous) + " -> next=" + std::to_string(neoplasm_k_.value())
-                      + " | TP53=" + (tp53 ? tp53->status() : "?"));
+        // Placeholder: adjust neoplasm probability if needed
     }
 
-    /** Increment age only when cell is alive. */
-    void AgenticCell::increaseAge() {
-        if (alive()) {
-            ++age_;
-        }
+    void AgenticCell::updateInstability() {
+        // Placeholder: D1/D2 updated in phase4, not here
     }
 
-    void AgenticCell::setId(std::uint64_t id) {
-        cell_id_ = id;
-    }
-
-    std::uint64_t AgenticCell::id() const {
-        return cell_id_;
-    }
-
-    /**
-     * Attempt cell division: sample noise and compare with division_rate.
-     * If Big Bang mode is enabled and cell is neoplastic, use neoplastic_division_rate instead.
-     * If random value < rate, the cell attempts to divide.
-     * Creates a daughter cell and emits a CellDivisionSignal to the tissue.
-     */
     void AgenticCell::attemptDivision() {
-        // Determine which division rate to use
-        double effective_division_rate = division_rate_;
-
-        if (enable_big_bang_mode_ && is_neoplastic_) {
-            // Big Bang mode: neoplastic cells use accelerated division rate
-            effective_division_rate = neoplastic_division_rate_;
+        double rate = is_neoplastic_ && enable_big_bang_mode_ ? neoplastic_division_rate_ : division_rate_;
+        // Sample random value - use noise source if available
+        double rnd = 0.0;
+        if (noise_) {
+            rnd = noise_->next().u01;  // Get uniform [0,1) value
         }
 
-        if (effective_division_rate <= 0.0) {
-            return; // Division disabled
-        }
-
-        double random_value = noise_->next().u01;
-        if (random_value < effective_division_rate) {
-            std::string neoplastic_str = is_neoplastic_ ? "yes" : "no";
-            std::string big_bang_str = enable_big_bang_mode_ ? "enabled" : "disabled";
-
-            logger_->logCell("[Division] Cell [" + std::to_string(cell_id_) + "] attempting division "
-                          "(random=" + std::to_string(random_value) + " < rate=" + std::to_string(effective_division_rate) + ")"
-                          " | neoplastic=" + neoplastic_str
-                          + " | big_bang_mode=" + big_bang_str
-                          + " | Parent: neoplasm_k=" + std::to_string(neoplasm_k_.value())
-                          + " | BRCA1=" + getBRCA1()
-                          + " | TP53=" + getTP53()
-                          + " | genomic_instability=" + std::to_string(genomic_instability_));
-
-            // Create daughter cell by cloning
-            auto daughter = clone();
-
-            if (signal_emitter_) {
-                // Emit CellDivisionSignal with the daughter cell to the tissue
-                auto sig = std::make_unique<CellDivisionSignal>(
-                    id(),
-                    std::move(daughter),
-                    "cell_division"
-                );
-                signal_emitter_(std::move(sig));
-
-                logger_->logCell("[Division] Cell [" + std::to_string(cell_id_) + "] emitted daughter cell signal");
-            }
+        if (rnd < rate) {
+            logger_->logCell("[Misc] Cell division triggered (random=" + std::to_string(rnd) + " < rate=" + std::to_string(rate) + ")");
         }
     }
 
-    /**
-     * Create a clone (daughter cell) of this cell.
-     * The daughter cell has:
-     * - A cloned genome (same state but independent)
-     * - A new random noise source (for genetic diversity)
-     * - Age reset to 0
-     * - Cell ID will be assigned by the tissue
-     * - Same configuration parameters (division_rate, neoplasm_k, instability deltas)
-     * - INHERITED genomic_instability from the parent (propagates mutations)
-     */
+    void AgenticCell::attemptApoptosis() {
+        // Placeholder: apoptosis handled in phase2_Endocytosis
+    }
+
     std::unique_ptr<AgenticCell> AgenticCell::clone() const {
-        // Create a new random noise source with a random seed for diversity
-        // Use a seed derived from current seed + cell age for some variability
-        unsigned new_seed = static_cast<unsigned>(seed_ + age_ + 1);
-        auto new_noise = std::make_unique<domain::adapters::RandomNoise>(new_seed);
-
-        // Clone the genome
-        Genome cloned_genome = genome_.clone();
-
-        // Create daughter cell with same configuration
         auto daughter = std::make_unique<AgenticCell>(
-            std::move(new_noise),
-            cloned_genome,
+            std::make_unique<adapters::RandomNoise>(),
+            genome_,
             base_neoplasm_k_,
             low_delta_instability_,
             high_delta_instability_,
@@ -459,54 +364,24 @@ namespace domain {
             neoplastic_division_rate_,
             enable_big_bang_mode_,
             apoptosis_instability_threshold_,
-            logger_
+            logger_,
+            d1_primer_threshold_,      // Inherit thresholds
+            d2_apoptosis_threshold_
         );
 
-        // INHERIT genomic instability from parent to daughter
-        // This propagates accumulated mutations to the next generation
-        daughter->genomic_instability_ = genomic_instability_;
+        daughter->d1_dna_damage_ = d1_dna_damage_;
+        daughter->d2_immunosuppression_ = d2_immunosuppression_;
 
-        // INHERIT immortality: if parent evaded apoptosis, daughter is also immortal
-        daughter->has_evaded_apoptosis_ = has_evaded_apoptosis_;
+        if (is_neoplastic_) {
+            daughter->is_neoplastic_ = true;
+            daughter->has_evaded_apoptosis_ = true;
+        }
 
-        logger_->logCell("[Clone] Created daughter cell from parent [" + std::to_string(cell_id_)
-                      + "] with new seed=" + std::to_string(new_seed)
-                      + " | neoplasm_k=" + std::to_string(neoplasm_k_.value())
-                      + " | genomic_instability=" + std::to_string(genomic_instability_)
-                      + " | BRCA1=" + getBRCA1()
-                      + " | TP53=" + getTP53()
-                      + (has_evaded_apoptosis_ ? " | [IMMORTAL]" : ""));
+        logger_->logCell("[Misc] Cell cloned (daughter inherits d1=" + std::to_string(d1_dna_damage_) +
+                       ", d2=" + std::to_string(d2_immunosuppression_) + ")");
 
         return daughter;
     }
 
-    /**
-     * Attempt apoptosis (programmed cell death) in response to an apoptosis signal.
-     * This method disables the BRCA1 gene, which will cause the cell to be marked as dead
-     * in the next phase (since alive() checks if BRCA1 is enabled).
-     */
-    void AgenticCell::attemptApoptosis() {
-        logger_->logCell("[Apoptosis] Cell [" + std::to_string(cell_id_) + "] received apoptosis signal");
-
-        // Apoptosis is only effective if genomic instability is below threshold
-        if (genomic_instability_ > apoptosis_instability_threshold_) {
-            logger_->logCell("[Apoptosis] Cell [" + std::to_string(cell_id_) + "] IGNORED apoptosis signal (genomic_instability="
-                          + std::to_string(genomic_instability_) + " > " + std::to_string(apoptosis_instability_threshold_) + ")");
-
-            // Mark that this cell has evaded apoptosis - it becomes immortal
-            has_evaded_apoptosis_ = true;
-            logger_->logCell("[Apoptosis] Cell [" + std::to_string(cell_id_) + "] is now IMMORTAL (cannot die from apoptosis or BRCA1 loss)");
-            return;
-        }
-
-        logger_->logCell("[Apoptosis] Cell [" + std::to_string(cell_id_) + "] ACCEPTED apoptosis signal (genomic_instability="
-                      + std::to_string(genomic_instability_) + " <= " + std::to_string(apoptosis_instability_threshold_) + ")");
-
-        // Disable BRCA1 to trigger cell death
-        genome_.mutate("BRCA1");
-
-        // Throw to immediately stop the current cycle
-        throw CellDeathException("apoptosis@phase2");
-    }
-
 } // namespace domain
+

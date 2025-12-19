@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "../src/application/simulation/Simulation.h"
-#include "../src/domain/cell/CellFactory_v2.h"
+#include "../src/domain/cell/CellFactory.h"
 #include "../src/domain/gene/GenomeFactory.h"
 #include "../src/domain/adapters/NullLogger.h"
 
@@ -18,7 +18,7 @@ protected:
     /// Helper: Crear célula normal (TP53 +/+, BRCA1 +/-)
     std::unique_ptr<ICell> createNormalCell() {
         auto genome = genome_factory::makeDefaultGenome({}, {}, logger_);
-        return CellFactory_v2::createNormalCell(genome, logger_);
+        return CellFactory::createNormalCell(genome, logger_);
     }
 };
 

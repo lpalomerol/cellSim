@@ -1,30 +1,49 @@
 #pragma once
-#include <memory>
 
+#include <memory>
+#include <string>
 #include "AgenticCell.h"
-#include "../adapters/RandomNoise.h"
+#include "../gene/Genome.h"
 #include "../ports/ILogger.h"
 
-namespace domain::cell_factory {
+namespace domain {
 
-// Create an AgenticCell accepting a seed for the noise source and a movable genome
-std::unique_ptr<ICell> createAgenticCell(unsigned seed, domain::Genome genome, double neoplasm_k,
-    double low_delta_instability = 0.0001,
-    double high_delta_instability = 0.0002,
-    double division_rate = 0.001,
-    double neoplastic_division_rate = 0.001,
-    bool enable_big_bang_mode = false,
-    double apoptosis_instability_threshold = 10.0,
-    ports::ILoggerPtr logger = nullptr);
+/// Factory for creating AgenticCell instances
+/// Encapsulates construction logic and default parameters
+class CellFactory {
+public:
+    /// Create a normal AgenticCell with standard parameters
+    static std::unique_ptr<AgenticCell> createNormalCell(
+        const Genome& genome,
+        const ports::ILoggerPtr& logger = nullptr);
 
-// Overload: allows directly injecting the noise source
-std::unique_ptr<ICell> createAgenticCell(std::unique_ptr<INoiseSource> noise, domain::Genome genome, double neoplasm_k,
-    double low_delta_instability = 0.0001,
-    double high_delta_instability = 0.0002,
-    double division_rate = 0.001,
-    double neoplastic_division_rate = 0.001,
-    bool enable_big_bang_mode = false,
-    double apoptosis_instability_threshold = 10.0,
-    ports::ILoggerPtr logger = nullptr);
+    /// Create an AgenticCell with custom parameters
+    static std::unique_ptr<AgenticCell> createCustomCell(
+        const Genome& genome,
+        double neoplasm_k,
+        double low_delta_instability,
+        double high_delta_instability,
+        double division_rate,
+        double neoplastic_division_rate,
+        bool enable_big_bang_mode,
+        double apoptosis_instability_threshold,
+        double d1_primer_threshold,
+        double d2_apoptosis_threshold,
+        const ports::ILoggerPtr& logger = nullptr);
 
-} // namespace domain::cell_factory
+    /// Default parameters (package them for clarity)
+    struct Defaults {
+        static constexpr double NEOPLASM_K = 0.002;
+        static constexpr double LOW_DELTA_INSTABILITY = 0.0001;
+        static constexpr double HIGH_DELTA_INSTABILITY = 0.0002;
+        static constexpr double DIVISION_RATE = 0.001;
+        static constexpr double NEOPLASTIC_DIVISION_RATE = 0.001;
+        static constexpr bool ENABLE_BIG_BANG_MODE = false;
+        static constexpr double APOPTOSIS_INSTABILITY_THRESHOLD = 10.0;
+        static constexpr double D1_PRIMER_THRESHOLD = 2.0;
+        static constexpr double D2_APOPTOSIS_THRESHOLD = 5.0;
+    };
+};
+
+} // namespace domain
+

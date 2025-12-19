@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 #include <cstddef>
-#include "../../domain/tissue/TissueV2.h"
+#include "../../domain/tissue/Tissue.h"
 #include "../../domain/ports/ICell.h"
 
 namespace application {
@@ -16,7 +16,7 @@ namespace application {
     class TissueV2Adapter {
     public:
         explicit TissueV2Adapter(domain::ports::ILoggerPtr logger = nullptr)
-            : tissue_(std::make_unique<domain::TissueV2>(logger)) {}
+            : tissue_(std::make_unique<domain::Tissue>(logger)) {}
 
         /// Agregar célula al tejido (asigna ID único)
         void addCell(std::unique_ptr<domain::ICell> cell) {
@@ -69,7 +69,7 @@ namespace application {
         }
 
     private:
-        std::unique_ptr<domain::TissueV2> tissue_;
+        std::unique_ptr<domain::Tissue> tissue_;
     };
 
 } // namespace application

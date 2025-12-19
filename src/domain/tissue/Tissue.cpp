@@ -1,10 +1,10 @@
-#include "TissueV2.h"
-#include "../cell/AgenticCell_v2.h"
+#include "Tissue.h"
+#include "../cell/AgenticCell.h"
 #include "../exception/CellDeathException.h"
 
 namespace domain {
 
-void TissueV2::live() {
+void Tissue::live() {
     std::vector<std::size_t> dead_indices;
 
     for (std::size_t i = 0; i < cells_.size(); ++i) {
@@ -27,7 +27,7 @@ void TissueV2::live() {
     }
 }
 
-void TissueV2::addCell(std::unique_ptr<ICell> cell) {
+void Tissue::addCell(std::unique_ptr<ICell> cell) {
     if (!cell) {
         logger_->logCell("[TissueV2] Attempted to add nullptr cell");
         return;
@@ -40,34 +40,34 @@ void TissueV2::addCell(std::unique_ptr<ICell> cell) {
     cells_.push_back(std::move(cell));
 }
 
-std::size_t TissueV2::size() const {
+std::size_t Tissue::size() const {
     return cells_.size();
 }
 
-ICell* TissueV2::getCell(std::size_t idx) {
+ICell* Tissue::getCell(std::size_t idx) {
     if (idx >= cells_.size()) return nullptr;
     return cells_[idx].get();
 }
 
-const ICell* TissueV2::getCell(std::size_t idx) const {
+const ICell* Tissue::getCell(std::size_t idx) const {
     if (idx >= cells_.size()) return nullptr;
     return cells_[idx].get();
 }
 
-void TissueV2::clear() {
+void Tissue::clear() {
     cells_.clear();
     logger_->logCell("[TissueV2] Cleared all cells");
 }
 
-void TissueV2::setId(std::uint64_t id) {
+void Tissue::setId(std::uint64_t id) {
     tissue_id_ = id;
 }
 
-std::uint64_t TissueV2::id() const {
+std::uint64_t Tissue::id() const {
     return tissue_id_;
 }
 
-std::vector<ICell*> TissueV2::getLiveCells() {
+std::vector<ICell*> Tissue::getLiveCells() {
     std::vector<ICell*> live;
     for (auto& cell : cells_) {
         if (cell) {
@@ -77,13 +77,13 @@ std::vector<ICell*> TissueV2::getLiveCells() {
     return live;
 }
 
-std::vector<ICell*> TissueV2::getCellsByStage(CellLifeStage stage) {
+std::vector<ICell*> Tissue::getCellsByStage(CellLifeStage stage) {
     std::vector<ICell*> result;
     for (auto& cell : cells_) {
         if (!cell) continue;
 
-        // Try to cast to AgenticCell_v2 to access getCellLifeStage()
-        auto* agg_cell = dynamic_cast<AgenticCell_v2*>(cell.get());
+        // Try to cast to AgenticCell to access getCellLifeStage()
+        auto* agg_cell = dynamic_cast<AgenticCell*>(cell.get());
         if (agg_cell && agg_cell->getCurrentCellLifeStage() == stage) {
             result.push_back(cell.get());
         }

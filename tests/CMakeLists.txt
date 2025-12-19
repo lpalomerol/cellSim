@@ -24,12 +24,8 @@ add_executable(unit_tests
         ../src/domain/cell/InstabilityDeltas.h
         ../src/domain/cell/CellFactory.cpp
         ../src/domain/cell/CellFactory.h
-        ../src/domain/cell/CellFactory_v2.cpp
-        ../src/domain/cell/CellFactory_v2.h
         ../src/domain/cell/AgenticCell.cpp
         ../src/domain/cell/AgenticCell.h
-        ../src/domain/cell/AgenticCell_v2.cpp
-        ../src/domain/cell/AgenticCell_v2.h
         ../src/domain/gene/Gene.cpp
         ../src/domain/gene/Gene.h
         ../src/domain/gene/Genome.cpp
@@ -43,8 +39,8 @@ add_executable(unit_tests
         ../src/domain/signal/ApoptosisSignal.h
         ../src/domain/signal/CellDivisionSignal.h
 
-        ../src/domain/tissue/TissueV2.cpp
-        ../src/domain/tissue/TissueV2.h
+        ../src/domain/tissue/Tissue.cpp
+        ../src/domain/tissue/Tissue.h
         ../src/domain/tissue/GeneticTrackingData.h
         ../src/domain/tissue/GeneticTrackingService.h
 
@@ -61,7 +57,7 @@ add_executable(unit_tests
         AgenticCellTest.cpp
         GenomeFactoryTest.cpp
         CellLifeStageTransitionTest.cpp
-        TissueV2Test.cpp
+        TissueTest.cpp
         ThresholdTest.cpp
         CellDivisionInstabilityPropagationTest.cpp
         ApoptosisTest.cpp

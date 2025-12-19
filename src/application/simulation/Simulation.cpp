@@ -124,7 +124,7 @@ namespace application {
                     // Obtener inestabilidad real de la célula usando dynamic_cast
                     auto* agentic_cell = dynamic_cast<domain::AgenticCell*>(cell.get());
                     if (agentic_cell) {
-                        double instability = agentic_cell->getGenomicInstability();
+                        double instability = agentic_cell->getD1();
                         min_instability = std::min(min_instability, instability);
                         max_instability = std::max(max_instability, instability);
                     }

@@ -3,6 +3,7 @@
 #include "TestNoise.h"
 #include "../src/domain/cell/AgenticCell.h"
 #include "../src/domain/signal/ApoptosisSignal.h"
+#include "../src/domain/exception/CellDeathException.h"
 
 // Test that ApenticCell receives and processes an apoptosis signal (broadcast)
 TEST(ApoptosisSignalTest, CellReceivesApoptosisSignalBroadcast) {
@@ -25,11 +26,11 @@ TEST(ApoptosisSignalTest, CellReceivesApoptosisSignalBroadcast) {
     // Send apoptosis signal to cell
     cell.receiveMessage(std::move(apoptosis_signal));
 
-    // Run the cell lifecycle which should process the message and trigger apoptosis
-    cell.live();
-
-    // After apoptosis, cell should be dead
-    EXPECT_FALSE(cell.alive());
+    // V2: live() throws CellDeathException when apoptosis occurs
+    // D2 = 1.0 < 5.0 (threshold), so apoptosis should succeed
+    EXPECT_THROW({
+        cell.live();
+    }, domain::CellDeathException);
 }
 
 // Test that ApoptosisSignal with directed target reaches intended cell
@@ -53,11 +54,10 @@ TEST(ApoptosisSignalTest, ApoptosisSignalWithDirectedTarget) {
     // Send apoptosis signal to cell
     cell.receiveMessage(std::move(apoptosis_signal));
 
-    // Run the cell lifecycle which should process the message and trigger apoptosis
-    cell.live();
-
-    // After apoptosis, cell should be dead
-    EXPECT_FALSE(cell.alive());
+    // V2: live() throws CellDeathException when targeted apoptosis occurs
+    EXPECT_THROW({
+        cell.live();
+    }, domain::CellDeathException);
 }
 
 // Test that ApoptosisSignal directed to different cell is ignored

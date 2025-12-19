@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include "../src/domain/tissue/TissueV2.h"
-#include "../src/domain/cell/AgenticCell_v2.h"
-#include "../src/domain/cell/CellFactory_v2.h"
+#include "../src/domain/tissue/Tissue.h"
+#include "../src/domain/cell/AgenticCell.h"
+#include "../src/domain/cell/CellFactory.h"
 #include "../src/domain/gene/Genome.h"
 #include "../src/domain/gene/GenomeFactory.h"
 #include "../src/domain/adapters/NullLogger.h"
@@ -9,24 +9,24 @@
 
 using namespace domain;
 
-class TissueV2Test : public ::testing::Test {
+class TissueTest : public ::testing::Test {
 protected:
     void SetUp() override {
         logger_ = std::make_shared<adapters::NullLogger>();
-        tissue_ = std::make_unique<TissueV2>(logger_);
+        tissue_ = std::make_unique<Tissue>(logger_);
     }
 
     ports::ILoggerPtr logger_;
-    std::unique_ptr<TissueV2> tissue_;
+    std::unique_ptr<Tissue> tissue_;
 
     // Helper: Create a normal cell with standard genotype
-    std::unique_ptr<AgenticCell_v2> createNormalCell() {
+    std::unique_ptr<AgenticCell> createNormalCell() {
         auto genome = genome_factory::makeDefaultGenome({}, {}, logger_);
-        return CellFactory_v2::createNormalCell(genome, logger_);
+        return CellFactory::createNormalCell(genome, logger_);
     }
 
     // Helper: Create cell with specific genotypes
-    std::unique_ptr<AgenticCell_v2> createCellWithGenotype(
+    std::unique_ptr<AgenticCell> createCellWithGenotype(
         const std::string& tp53_status,
         const std::string& brca1_status) {
 
@@ -51,12 +51,12 @@ protected:
 
         auto genome = Genome(std::move(genes), logger_);
 
-        return CellFactory_v2::createNormalCell(genome, logger_);
+        return CellFactory::createNormalCell(genome, logger_);
     }
 };
 
 // Test 1: Create TissueV2 and verify basic properties
-TEST_F(TissueV2Test, Test1_CreateTissueV2) {
+TEST_F(TissueTest, Test1_CreateTissueV2) {
     EXPECT_EQ(tissue_->size(), 0);
     EXPECT_EQ(tissue_->id(), 0);
 
@@ -65,7 +65,7 @@ TEST_F(TissueV2Test, Test1_CreateTissueV2) {
 }
 
 // Test 2: Add cell to tissue
-TEST_F(TissueV2Test, Test2_AddCell) {
+TEST_F(TissueTest, Test2_AddCell) {
     auto cell = createNormalCell();
     tissue_->addCell(std::move(cell));
 
@@ -74,7 +74,7 @@ TEST_F(TissueV2Test, Test2_AddCell) {
 }
 
 // Test 3: Add multiple cells
-TEST_F(TissueV2Test, Test3_AddMultipleCells) {
+TEST_F(TissueTest, Test3_AddMultipleCells) {
     for (int i = 0; i < 5; ++i) {
         auto cell = createNormalCell();
         tissue_->addCell(std::move(cell));
@@ -84,7 +84,7 @@ TEST_F(TissueV2Test, Test3_AddMultipleCells) {
 }
 
 // Test 4: Execute live() on healthy cells
-TEST_F(TissueV2Test, Test4_LiveOnHealthyCells) {
+TEST_F(TissueTest, Test4_LiveOnHealthyCells) {
     auto cell = createNormalCell();
     tissue_->addCell(std::move(cell));
 
@@ -94,7 +94,7 @@ TEST_F(TissueV2Test, Test4_LiveOnHealthyCells) {
 }
 
 // Test 5: Get live cells
-TEST_F(TissueV2Test, Test5_GetLiveCells) {
+TEST_F(TissueTest, Test5_GetLiveCells) {
     for (int i = 0; i < 3; ++i) {
         auto cell = createNormalCell();
         tissue_->addCell(std::move(cell));
@@ -105,7 +105,7 @@ TEST_F(TissueV2Test, Test5_GetLiveCells) {
 }
 
 // Test 6: Cell with BRCA1 -/- + TP53 +/+ should die (intrinsic apoptosis)
-TEST_F(TissueV2Test, Test6_IntrinsicApoptosisRemovesDeadCell) {
+TEST_F(TissueTest, Test6_IntrinsicApoptosisRemovesDeadCell) {
     // Normal cell
     {
         auto cell = createNormalCell();
@@ -128,7 +128,7 @@ TEST_F(TissueV2Test, Test6_IntrinsicApoptosisRemovesDeadCell) {
 }
 
 // Test 7: Get cells by stage - BASELINE
-TEST_F(TissueV2Test, Test7_GetCellsByStage_BASELINE) {
+TEST_F(TissueTest, Test7_GetCellsByStage_BASELINE) {
     // Create normal cells (BASELINE: TP53 +/+, BRCA1 +/-)
     for (int i = 0; i < 3; ++i) {
         auto cell = createNormalCell();
@@ -140,7 +140,7 @@ TEST_F(TissueV2Test, Test7_GetCellsByStage_BASELINE) {
 }
 
 // Test 8: Get cells by stage - UNPROTECTED
-TEST_F(TissueV2Test, Test8_GetCellsByStage_UNPROTECTED) {
+TEST_F(TissueTest, Test8_GetCellsByStage_UNPROTECTED) {
     // Normal cell (BASELINE)
     {
         auto cell = createNormalCell();
@@ -161,7 +161,7 @@ TEST_F(TissueV2Test, Test8_GetCellsByStage_UNPROTECTED) {
 }
 
 // Test 9: Clear tissue
-TEST_F(TissueV2Test, Test9_ClearTissue) {
+TEST_F(TissueTest, Test9_ClearTissue) {
     for (int i = 0; i < 5; ++i) {
         auto cell = createNormalCell();
         tissue_->addCell(std::move(cell));
@@ -173,7 +173,7 @@ TEST_F(TissueV2Test, Test9_ClearTissue) {
 }
 
 // Test 10: Get cell out of range
-TEST_F(TissueV2Test, Test10_GetCellOutOfRange) {
+TEST_F(TissueTest, Test10_GetCellOutOfRange) {
     auto cell = createNormalCell();
     tissue_->addCell(std::move(cell));
 
@@ -183,7 +183,7 @@ TEST_F(TissueV2Test, Test10_GetCellOutOfRange) {
 }
 
 // Test 11: Multiple live() cycles
-TEST_F(TissueV2Test, Test11_MultipleLiveCycles) {
+TEST_F(TissueTest, Test11_MultipleLiveCycles) {
     auto cell = createNormalCell();
     tissue_->addCell(std::move(cell));
 
@@ -195,7 +195,7 @@ TEST_F(TissueV2Test, Test11_MultipleLiveCycles) {
 }
 
 // Test 12: Mixed genotypes
-TEST_F(TissueV2Test, Test12_MixedGenotypes) {
+TEST_F(TissueTest, Test12_MixedGenotypes) {
     // BASELINE (TP53 +/+, BRCA1 +/-)
     tissue_->addCell(createNormalCell());
 

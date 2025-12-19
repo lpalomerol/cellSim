@@ -5,11 +5,11 @@
 #include <iomanip>
 #include <limits>
 #include "../src/application/config/SimulationConfig.h"
-#include "../src/domain/cell/CellFactory_v2.h"
+#include "../src/domain/cell/CellFactory.h"
 #include "../src/domain/gene/GenomeFactory.h"
 #include "../src/domain/adapters/FixedNoise.h"
 #include "../src/domain/adapters/RandomNoise.h"
-#include "../src/domain/tissue/TissueV2.h"
+#include "../src/domain/tissue/Tissue.h"
 
 /**
  * single_cell_evolution.cpp
@@ -54,11 +54,11 @@ int main(int argc, char* argv[]) {
     }
 
     // Crear tejido
-    auto tissue = std::make_shared<domain::TissueV2>(config.logger);
+    auto tissue = std::make_shared<domain::Tissue>(config.logger);
     tissue->setId(1);
 
-    // Crear célula única (AgenticCell_v2)
-    auto single_cell = domain::CellFactory_v2::createCustomCell(
+    // Crear célula única (AgenticCell)
+    auto single_cell = domain::CellFactory::createCustomCell(
         genome,
         config.neoplasm_k,
         0.0001,      // low_delta_instability

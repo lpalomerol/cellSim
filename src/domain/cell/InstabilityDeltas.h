@@ -32,24 +32,28 @@ namespace domain {
         ///
         /// @param tp53_status String representation ("+/+", "+/-", "-/-")
         /// @param brca1_status String representation ("+/+", "+/-", "-/-")
+        /// @param low_delta Low delta value to use (default DELTA_LOW)
+        /// @param high_delta High delta value to use (default DELTA_HIGH)
         /// @return pair<double, double> (delta_d1, delta_d2)
         static std::pair<double, double> getDeltas(const std::string& tp53_status,
-                                                     const std::string& brca1_status) {
+                                                     const std::string& brca1_status,
+                                                     double low_delta = DELTA_LOW,
+                                                     double high_delta = DELTA_HIGH) {
             // BRCA1 +/- & TP53 +/+ → LOW
             if (brca1_status == "+/-" && tp53_status == "+/+") {
-                return {DELTA_LOW, DELTA_LOW};
+                return {low_delta, low_delta};
             }
             // BRCA1 +/- & TP53 +/- → MEDIUM
             if (brca1_status == "+/-" && tp53_status == "+/-") {
-                return {DELTA_MEDIUM, DELTA_MEDIUM};
+                return {low_delta * 2, low_delta * 2};
             }
             // BRCA1 +/- & TP53 -/- → HIGH
             if (brca1_status == "+/-" && tp53_status == "-/-") {
-                return {DELTA_HIGH, DELTA_HIGH};
+                return {high_delta, high_delta};
             }
             // BRCA1 -/- & TP53 -/- → VERY_HIGH
             if (brca1_status == "-/-" && tp53_status == "-/-") {
-                return {DELTA_VERY_HIGH, DELTA_VERY_HIGH};
+                return {high_delta * 1.33, high_delta * 1.33};
             }
             // Default: no instability (should not reach here in normal operation)
             return {0.0, 0.0};

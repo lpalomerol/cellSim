@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include "../src/domain/cell/AgenticCell_v2.h"
+#include "../src/domain/cell/AgenticCell.h"
 #include "../src/domain/cell/CellLifeStage.h"
-#include "../src/domain/cell/CellFactory_v2.h"
+#include "../src/domain/cell/CellFactory.h"
 #include "../src/domain/gene/Genome.h"
 #include "../src/domain/gene/GenomeFactory.h"
 #include "../src/domain/adapters/NullLogger.h"
@@ -20,7 +20,7 @@ protected:
     // BIOLOGICALLY VALID COMBINATIONS:
     // - BRCA1 can only be: +/- (heterozygous) or -/- (homozygous KO)
     // - BRCA1 +/+ is biologically impossible
-    std::unique_ptr<AgenticCell_v2> createCell(
+    std::unique_ptr<AgenticCell> createCell(
         const std::string& tp53_status,
         const std::string& brca1_status) {
 
@@ -45,7 +45,7 @@ protected:
 
         auto genome = Genome(std::move(genes), logger_);
 
-        return CellFactory_v2::createNormalCell(genome, logger_);
+        return CellFactory::createNormalCell(genome, logger_);
     }
 };
 

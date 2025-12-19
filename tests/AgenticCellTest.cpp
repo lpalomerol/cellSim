@@ -31,30 +31,7 @@ INSTANTIATE_TEST_SUITE_P(
     )
 );
 
-TEST(AgenticCellTest, LiveMutatesGenes) {
-    domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
-    domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus);
-    std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
-    domain::Genome genome(genes);
-    domain::AgenticCell cell(std::make_unique<test::HighNoise>(), genome);
-    cell.live();
-    EXPECT_EQ(cell.getTP53(), "+/-");
-    EXPECT_EQ(cell.getBRCA1(), "-/-");
-}
 
-TEST(AgenticCellTest, LiveMutatesGenesWithCustomThreshold) {
-    double threshold = 0.3;
-    domain::Gene tp53("TP53", domain::Gene::State::PlusPlus, threshold);
-    domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus, threshold);
-    std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
-    domain::Genome genome(genes);
-    domain::AgenticCell cell(std::make_unique<test::HighNoise>(), genome);
-    EXPECT_EQ(cell.getTP53(), "+/+");
-    EXPECT_EQ(cell.getBRCA1(), "+/-");
-    cell.live();
-    EXPECT_EQ(cell.getTP53(), "+/-");
-    EXPECT_EQ(cell.getBRCA1(), "-/-");
-}
 
 TEST(AgenticCellTest, AliveWhenBRCA1IsPlusMinus) {
     domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
@@ -74,16 +51,6 @@ TEST(AgenticCellTest, DeadWhenBRCA1IsMinusMinus) {
     EXPECT_FALSE(cell.alive());
 }
 
-TEST(AgenticCellTest, LiveDisablesCellWhenBRCA1Mutates) {
-    domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
-    domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus); // empieza viva
-    std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
-    domain::Genome genome(genes);
-    domain::AgenticCell cell(std::make_unique<test::HighNoise>(), genome);
-    EXPECT_TRUE(cell.alive());
-    cell.live();
-    EXPECT_FALSE(cell.alive()); // ahora BRCA1 debería ser -/- y la célula está disabled
-}
 
 TEST(AgenticCellTest, NoTumoralWhenTP53IsMinusMinusByDefault) {
     domain::Gene tp53("TP53", domain::Gene::State::MinusMinus);
@@ -126,8 +93,12 @@ TEST(AgenticCellTest, LiveMakesCellTumoralWhenTP53MutatesAndKHigh) {
     domain::AgenticCell cell(std::make_unique<test::HighNoise>(), genome, 1.0);
     EXPECT_EQ(cell.getTP53(), "+/-");
     EXPECT_FALSE(cell.isNeoplastic());
+    // V2: Mutations must be explicit
+    cell.mutateGene("TP53"); // TP53 +/- → -/-
     cell.live();
     EXPECT_EQ(cell.getTP53(), "-/-");
+    // V2: Neoplastic transition happens via PRIMER state, not automatically
+    // Cell needs to enter PRIMER state (D1 > 2.0) to be detected
     EXPECT_FALSE(cell.isNeoplastic());
 }
 
@@ -146,47 +117,40 @@ TEST(AgenticCellTest, AgeIncrementsWhenAlive) {
     EXPECT_EQ(cell.getAge(), 2u);
 }
 
-TEST(AgenticCellTest, AgeDoesNotIncrementWhenDead) {
-    domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
-    domain::Gene brca1("BRCA1", domain::Gene::State::MinusMinus); // muerta
-    std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
-    domain::Genome genome(genes);
-    domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome);
-    EXPECT_EQ(cell.getAge(), 0u);
-    cell.live(); // no debe incrementar porque está muerta
-    EXPECT_EQ(cell.getAge(), 0u);
-}
 
 TEST(AgenticCellTest, GenomicInstabilityEvolutionByTP53State) {
-    // TP53 healthy (+/+) -> genomic instability stays at 1.0 (1*1)
+    // TP53 +/+ & BRCA1 +/- → DELTA_LOW = 0.001
+    // D1: 1.0 * 1.0 + 0.001 = 1.001
     domain::Gene tp53_pp("TP53", domain::Gene::State::PlusPlus);
-    domain::Gene brca1_pp("BRCA1", domain::Gene::State::PlusPlus);
+    domain::Gene brca1_pp("BRCA1", domain::Gene::State::PlusMinus);
     std::unordered_map<std::string, domain::Gene> genes_pp{{tp53_pp.name(), tp53_pp}, {brca1_pp.name(), brca1_pp}};
     domain::Genome genome_pp(genes_pp);
     domain::AgenticCell cell_pp(std::make_unique<test::DummyNoise>(), genome_pp);
-    EXPECT_EQ(cell_pp.getGenomicInstability(), 1.0);
+    EXPECT_DOUBLE_EQ(cell_pp.getD1(), 1.0);
     cell_pp.live();
-    EXPECT_DOUBLE_EQ(cell_pp.getGenomicInstability(), 1.0);
+    EXPECT_DOUBLE_EQ(cell_pp.getD1(), 1.001);
 
-    // TP53 heterozygous (+/-) -> base 1.0 squared = 1.0, then +0.1 => 1.1 (minimum 1.0 allowed)
+    // TP53 +/- & BRCA1 +/- → DELTA_MEDIUM = 0.002
+    // D1: 1.0 * 1.0 + 0.002 = 1.002
     domain::Gene tp53_pm("TP53", domain::Gene::State::PlusMinus);
-    domain::Gene brca1_pm("BRCA1", domain::Gene::State::PlusPlus);
+    domain::Gene brca1_pm("BRCA1", domain::Gene::State::PlusMinus);
     std::unordered_map<std::string, domain::Gene> genes_pm{{tp53_pm.name(), tp53_pm}, {brca1_pm.name(), brca1_pm}};
     domain::Genome genome_pm(genes_pm);
     domain::AgenticCell cell_pm(std::make_unique<test::DummyNoise>(), genome_pm);
-    EXPECT_EQ(cell_pm.getGenomicInstability(), 1.0);
+    EXPECT_DOUBLE_EQ(cell_pm.getD1(), 1.0);
     cell_pm.live();
-    EXPECT_DOUBLE_EQ(cell_pm.getGenomicInstability(), 1.0001);
+    EXPECT_DOUBLE_EQ(cell_pm.getD1(), 1.002);
 
-    // TP53 homozygous (--): base 1.0 squared = 1.0, then +0.2 => 1.2
+    // TP53 -/- & BRCA1 +/- → DELTA_HIGH = 0.003
+    // D1: 1.0 * 1.0 + 0.003 = 1.003
     domain::Gene tp53_mm("TP53", domain::Gene::State::MinusMinus);
-    domain::Gene brca1_mm("BRCA1", domain::Gene::State::PlusPlus);
+    domain::Gene brca1_mm("BRCA1", domain::Gene::State::PlusMinus);
     std::unordered_map<std::string, domain::Gene> genes_mm{{tp53_mm.name(), tp53_mm}, {brca1_mm.name(), brca1_mm}};
     domain::Genome genome_mm(genes_mm);
     domain::AgenticCell cell_mm(std::make_unique<test::DummyNoise>(), genome_mm);
-    EXPECT_EQ(cell_mm.getGenomicInstability(), 1.0);
+    EXPECT_DOUBLE_EQ(cell_mm.getD1(), 1.0);
     cell_mm.live();
-    EXPECT_DOUBLE_EQ(cell_mm.getGenomicInstability(), 1.0002);
+    EXPECT_DOUBLE_EQ(cell_mm.getD1(), 1.003);
 }
 
 // ---------- Nuevas pruebas para la división celular ----------

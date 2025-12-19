@@ -1,8 +1,5 @@
-//
-// Created by luis on 31/10/25.
-//
-
 #pragma once
+
 #include <cstdint>
 #include "../ports/ICell.h"
 #include "../ports/INoiseSource.h"
@@ -14,161 +11,143 @@
 #include <string>
 #include <queue>
 #include "../shared/Threshold.h"
-
+#include "CellLifeStage.h"
 
 namespace domain {
 
+    /// AgenticCell: Enhanced cell implementation with D1 (DNA damage) + D2 (immunosuppression)
+    ///
+    /// Improvements over v1:
+    /// - Separates genomic_instability into D1 and D2 (on-the-fly derivation of CellLifeStage)
+    /// - Phase 2 (Endocytosis): Apoptosis decision based on D2 (not genomic_instability)
+    /// - Phase 4 (Cytoplasmic Remodeling): Updates D1 and D2 separately with different deltas
     class AgenticCell final : public ICell, public ports::ILoggeable {
     public:
-        // Construct an AgenticCell. Genome is taken by value to make ownership explicit
-        // and allow move-semantics from caller. Noise source is owned via unique_ptr.
-        // Added optional low/high genomic instability deltas (defaults kept for backward compatibility)
-        // division_rate: probability that the cell divides during phase4 (default 0.001)
-        // neoplastic_division_rate: probability that neoplastic cells divide (Big Bang mode, default 0.001)
-        // enable_big_bang_mode: if true, neoplastic cells use neoplastic_division_rate instead of normal division_rate
-        // logger: optional logger (if nullptr, NullLogger will be used by default)
+        /// Constructor: Creates an AgenticCell with D1 and D2 instability counters
+        /// @param noise Random noise source (owned by this cell)
+        /// @param genome Genetic makeup (taken by value)
+        /// @param neoplasm_k Base neoplasm threshold (default 0.002)
+        /// @param low_delta_instability Delta for TP53 +/- (default 0.001)
+        /// @param high_delta_instability Delta for TP53 -/- (default 0.003)
+        /// @param division_rate Probability of cell division in phase4 (default 0.001)
+        /// @param neoplastic_division_rate Probability for neoplastic cells in Big Bang mode (default 0.001)
+        /// @param enable_big_bang_mode If true, neoplastic cells divide faster (default false)
+        /// @param apoptosis_instability_threshold Max D2 for apoptosis to work (default 10.0)
+        /// @param logger Optional logger (default NullLogger)
+        /// @param d1_primer_threshold D1 threshold to enter PRIMER state (default 2.0)
+        /// @param d2_apoptosis_threshold D2 threshold to resist extrinsic apoptosis (default 5.0)
         AgenticCell(std::unique_ptr<INoiseSource> noise,
-                    Genome genome,
-                    double neoplasm_k = 0.002,
-                    double low_delta_instability = 0.0001,
-                    double high_delta_instability = 0.0002,
-                    double division_rate = 0.001,
-                    double neoplastic_division_rate = 0.001,
-                    bool enable_big_bang_mode = false,
-                    double apoptosis_instability_threshold = 10.0,
-                    ports::ILoggerPtr logger = nullptr);
+                       Genome genome,
+                       double neoplasm_k = 0.002,
+                       double low_delta_instability = 0.001,
+                       double high_delta_instability = 0.003,
+                       double division_rate = 0.001,
+                       double neoplastic_division_rate = 0.001,
+                       bool enable_big_bang_mode = false,
+                       double apoptosis_instability_threshold = 10.0,
+                       const ports::ILoggerPtr& logger = nullptr,
+                       double d1_primer_threshold = 2.0,
+                       double d2_apoptosis_threshold = 5.0);
 
-        // ILoggeable implementation
-        std::string getLogCategory() const override { return "CELL"; }
+        // === ILoggeable implementation ===
+        std::string getLogCategory() const override { return "CELL_V2"; }
 
-        // Run a single lifecycle tick for the cell
+        // === ICell interface ===
         void live() override;
-        // Query liveness
         bool alive() const override;
-        // Query whether the cell has become neoplastic
         bool isNeoplastic() const override;
-        [[nodiscard]] std::string getTP53() const;
-        [[nodiscard]] std::string getBRCA1() const;
-
-        // IGeneticProfile implementation
-        [[nodiscard]] std::string getBRCA1Status() const override { return getBRCA1(); }
-        [[nodiscard]] std::string getTP53Status() const override { return getTP53(); }
-
-        // Print cell and genome details (read-only). Implementation may be verbose-controlled.
+        std::string getTP53() const;
+        std::string getBRCA1() const;
+        std::string getBRCA1Status() const override { return getBRCA1(); }
+        std::string getTP53Status() const override { return getTP53(); }
         void details() const override;
-
-        // Force a gene mutation in the internal genome
         void mutateGene(const std::string& name) override;
-
-        // Check whether TP53 protects the cell from neoplasm.
-        // Rule: TP53 +/+ and +/- protect; only TP53 -/- allows tumors.
-        // Note: Even when protected by TP53 +/-, the cell still has increased instability
-        // and immunosuppression (handled separately in updateGenomicInstability).
-        bool isNeoplasticProtected() const;
-
-        // Expose the seed used by the noise source for traceability
-        std::uint64_t getSeed() const { return seed_; }
-
-        // Expose cell age (useful for tests and tracing)
-        std::uint64_t getAge() const { return age_; }
-
-        // Check if cell has evaded apoptosis (is immortal)
-        [[nodiscard]] bool hasEvasedApoptosis() const { return has_evaded_apoptosis_; }
-
-        // ID management (implements ICell contract)
         void setId(std::uint64_t id) override;
         std::uint64_t id() const override;
-
-        // Allow Tissue to inject a signal emitter callback
         void setSignalEmitter(std::function<void(std::unique_ptr<domain::ISignal>)> emitter) override;
-
-        // Receive a directed message (or broadcast). The cell validates if the message
-        // is intended for it by checking targetIds(). If empty, it's a broadcast.
         void receiveMessage(std::unique_ptr<domain::ISignal> signal) override;
 
-        // Create a clone (daughter cell) with the same genome and inherited genomic instability
-        // The daughter cell will have age reset to 0 and a new ID assigned by the tissue
-        // Used internally for cell division and available for testing
-        [[nodiscard]] std::unique_ptr<AgenticCell> clone() const;
+        // === New methods for D1 + D2 ===
+
+        /// Get D1 (DNA damage counter)
+        [[nodiscard]] double getD1() const { return d1_dna_damage_; }
+
+        /// Get D2 (Immunosuppression counter)
+        [[nodiscard]] double getD2() const { return d2_immunosuppression_; }
+
+        /// Get current cell life stage (derived on-the-fly from genetics + D1 + D2)
+        [[nodiscard]] CellLifeStage getCurrentCellLifeStage() const;
+
+        // === Existing public methods ===
+        bool isNeoplasticProtected() const;
+        std::uint64_t getSeed() const { return seed_; }
+        std::uint64_t getAge() const { return age_; }
+        bool hasEvasedApoptosis() const { return has_evaded_apoptosis_; }
+        std::unique_ptr<AgenticCell> clone() const;
 
     private:
+        // === Dependencies ===
         std::unique_ptr<INoiseSource> noise_;
         ports::ILoggerPtr logger_;
-        // callback to emit signals to the owning tissue; default empty
         std::function<void(std::unique_ptr<domain::ISignal>)> signal_emitter_;
-        // Queue of incoming messages (directed or broadcast)
         std::queue<std::unique_ptr<domain::ISignal>> incoming_messages_;
         Genome genome_;
-        // Base (inalterable) neoplasm k provided at construction — used as baseline
+
+        // === Neoplasm tracking ===
         double base_neoplasm_k_ = 0.002;
         domain::shared::Threshold neoplasm_k_;
-        bool is_neoplastic_;
-        bool has_evaded_apoptosis_ = false;  // Track if cell has evaded apoptosis (becomes immortal)
-        std::uint64_t seed_ = 0; // records the RNG seed used by the noise source
+        bool is_neoplastic_ = false;
+        bool has_evaded_apoptosis_ = false;
 
-        // Age counter incremented each tick when the cell is alive
+        // === Cell identity ===
+        std::uint64_t seed_ = 0;
         std::uint64_t age_ = 0;
-
-        // Stable id for the cell (default -1 meaning unassigned)
         std::uint64_t cell_id_ = static_cast<std::uint64_t>(-1);
 
-        // Division rate: probability that the cell divides during phase4 (default 0.001)
+        // === Division rates ===
         double division_rate_ = 0.001;
-
-        // Neoplastic division rate: probability that neoplastic cells divide in Big Bang mode (default 0.001)
         double neoplastic_division_rate_ = 0.001;
-
-        // Enable Big Bang mode: if true, neoplastic cells use neoplastic_division_rate_ instead of division_rate_
         bool enable_big_bang_mode_ = false;
 
-        // Apoptosis instability threshold: apoptosis is only effective if genomic_instability_ <= this value
+        // === Apoptosis threshold ===
         double apoptosis_instability_threshold_ = 10.0;
 
-        // Encapsulate neoplasm development logic (samples noise and applies threshold)
-        void develop_neoplasm();
+        // === NEW: D1 and D2 instability counters ===
+        /// D1: DNA damage counter (genomic instability). Starts at 1.0, grows each tick in phase4
+        double d1_dna_damage_ = 1.0;
 
-        // Increment age by one tick (defensive: only increments if the cell remains alive)
-        void increaseAge();
+        /// D2: Immunosuppression counter (immune evasion). Starts at 1.0, grows each tick in phase4
+        double d2_immunosuppression_ = 1.0;
 
-        // Lifecycle phases (keeps live() method small and testable)
-        void phase0_BaselineAssessment() const;
-        void phase1_G1IntegrityCheckpoint() const;
-        void phase2_Endocytosis();
-        void phase3_NuclearDynamics();
-        void phase4_CytoplasmicRemodeling();
-        void phase5_Exocytosis();
+        // === Thresholds (configurable) ===
+        /// D1 threshold to enter PRIMER state (default 2.0)
+        double d1_primer_threshold_ = 2.0;
 
-        // Adjust neoplasm probability (placeholder for future behavior)
-        void adjust_neoplasm_k();
+        /// D2 threshold to resist extrinsic apoptosis (default 5.0)
+        double d2_apoptosis_threshold_ = 5.0;
 
-        // Attempt cell division if random value is below division_rate (called in phase4)
-        void attemptDivision();
-
-
-        // Attempt apoptosis (programmed cell death) in response to an apoptosis signal
-        void attemptApoptosis();
-
-        // Indicator of genomic instability. Starts at 1.0 and is updated in phase4.
-        // This acts as a multiplicative degrader of the biological system: it starts at 1.0
-        // and may grow without an upper bound (values >1 represent progressive instability).
-        double genomic_instability_ = 1.0;
-
-        // Small configurable deltas applied based on TP53 state when updating genomic instability.
-        // Defaults updated: heterozygous adds 0.0001, homozygous adds 0.0002.
+        // === Instability deltas (same as before) ===
         double low_delta_instability_ = 0.0001;
         double high_delta_instability_ = 0.0002;
 
-        // Update the genomic instability indicator based on TP53 status and previous value.
-        // The implementation evolves the value by multiplying it by itself (squaring),
-        // then adds offsets depending on TP53 mutation state (see .cpp).
-        // Note: genomic_instability_ is clamped to a minimum of 1.0 but not capped above.
-        void updateGenomicInstability();
+        // === Private lifecycle phases ===
+        void phase0_BaselineAssessment() const;
+        void phase1_G1IntegrityCheckpoint() const;
+        void phase2_Endocytosis();         // ADJUSTED: apoptosis uses D2
+        void phase3_NuclearDynamics();
+        void phase4_CytoplasmicRemodeling(); // ADJUSTED: updates D1 and D2
+        void phase5_Exocytosis();
 
-    public:
-        // Expose the genomic instability indicator for tests/tracing
-        [[nodiscard]] double getGenomicInstability() const { return genomic_instability_; }
-        // Expose the configured deltas for tests or external observation
-        [[nodiscard]] double getLowDeltaInstability() const { return low_delta_instability_; }
-        [[nodiscard]] double getHighDeltaInstability() const { return high_delta_instability_; }
+        // === Private helper methods ===
+        void develop_neoplasm();
+        void increaseAge();
+        void adjust_neoplasm_k();
+        void attemptDivision();
+        void attemptApoptosis();
+
+        /// Update D1 and D2 based on BRCA1 and TP53 status
+        void updateInstability();
     };
-} // domain
+
+} // namespace domain
+

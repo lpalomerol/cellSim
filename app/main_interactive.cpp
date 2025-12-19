@@ -35,8 +35,7 @@ int main() {
 
     // Crear célula
     sim.addCell(
-        domain::cell_factory::createAgenticCell(
-            std::move(noise),
+        domain::CellFactory::createCustomCell(
             std::move(genome),
             config.neoplasm_k,
             0.0001,
@@ -45,6 +44,8 @@ int main() {
             config.neoplastic_division_rate,
             config.enable_big_bang_mode,
             config.apoptosis_threshold,
+            2.0,  // d1_primer_threshold
+            5.0,  // d2_apoptosis_threshold
             config.logger)
     );
 

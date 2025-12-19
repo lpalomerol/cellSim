@@ -28,8 +28,7 @@ void Simulations::runAll() {
                 cfg_.logger
             );
             sim.addCell(
-                domain::cell_factory::createAgenticCell(
-                    cell_seed,
+                domain::CellFactory::createCustomCell(
                     std::move(genome),
                     cfg_.neoplasm_k,
                     0.0001,  // low_delta_instability
@@ -38,6 +37,8 @@ void Simulations::runAll() {
                     0.001,   // neoplastic_division_rate (default)
                     false,   // enable_big_bang_mode (default false)
                     10.0,    // apoptosis_threshold
+                    2.0,     // d1_primer_threshold
+                    5.0,     // d2_apoptosis_threshold
                     cfg_.logger)
             );
         }

@@ -8,7 +8,7 @@
 namespace domain {
 
 /**
- * Test: When a cell divides, genomic_instability propagates to the daughter cell
+ * Test: When a cell divides, D1 (DNA damage) propagates to the daughter cell
  */
 class CellDivisionInstabilityPropagationTest : public ::testing::Test {
 protected:
@@ -56,17 +56,17 @@ TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsParentGenomicInst
 
     // We need to run a cycle to see the real flow, but let's first check via clone
     std::cout << "\n=== Parent cell state before cloning ===" << std::endl;
-    std::cout << "Parent genomic_instability: " << parent->getGenomicInstability() << std::endl;
+    std::cout << "Parent D1 (DNA damage): " << parent->getD1() << std::endl;
 
     // Clone the parent (this is what division does internally)
     auto daughter = parent->clone();
 
     std::cout << "\n=== Daughter cell state after cloning ===" << std::endl;
-    std::cout << "Daughter genomic_instability: " << daughter->getGenomicInstability() << std::endl;
+    std::cout << "Daughter D1 (DNA damage): " << daughter->getD1() << std::endl;
 
     // Verify the daughter inherited parent's genomic instability
-    EXPECT_EQ(daughter->getGenomicInstability(), parent->getGenomicInstability());
-    EXPECT_EQ(daughter->getGenomicInstability(), 1.0) << "Default parent instability should be 1.0";
+    EXPECT_EQ(daughter->getD1(), parent->getD1());
+    EXPECT_EQ(daughter->getD1(), 1.0) << "Default parent instability should be 1.0";
 }
 
 TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsAccumulatedInstability) {
@@ -106,19 +106,19 @@ TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsAccumulatedInstab
 
     // Run parent through one cycle to accumulate instability
     std::cout << "\n=== Parent before live() ===" << std::endl;
-    std::cout << "Instability: " << parent->getGenomicInstability() << std::endl;
+    std::cout << "Instability: " << parent->getD1() << std::endl;
 
     parent->live();
 
     std::cout << "\n=== Parent after live() ===" << std::endl;
-    double parent_instability_after = parent->getGenomicInstability();
+    double parent_instability_after = parent->getD1();
     std::cout << "Instability: " << parent_instability_after << std::endl;
 
     // Now clone (divide)
     auto daughter = parent->clone();
 
     std::cout << "\n=== Daughter after cloning ===" << std::endl;
-    double daughter_instability = daughter->getGenomicInstability();
+    double daughter_instability = daughter->getD1();
     std::cout << "Daughter instability: " << daughter_instability << std::endl;
 
     // Verify daughter inherited the accumulated instability

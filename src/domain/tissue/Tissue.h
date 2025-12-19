@@ -19,12 +19,12 @@
 
 namespace domain {
 
-    /// TissueV2: Collection of ICell instances using AgenticCell_v2 (with D1/D2)
-    /// Compatible with Tissue interface, uses CellFactory_v2 for cell creation
-    class TissueV2 : public ports::ILoggeable {
+    /// TissueV2: Collection of ICell instances using AgenticCell (with D1/D2)
+    /// Compatible with Tissue interface, uses CellFactory for cell creation
+    class Tissue : public ports::ILoggeable {
     public:
         // Constructor: accepts optional logger
-        explicit TissueV2(ports::ILoggerPtr logger = nullptr)
+        explicit Tissue(ports::ILoggerPtr logger = nullptr)
             : logger_(logger ? logger : std::make_shared<adapters::NullLogger>()) {}
 
         // ILoggeable implementation
@@ -53,7 +53,7 @@ namespace domain {
         // Get all live cells
         [[nodiscard]] std::vector<ICell*> getLiveCells();
 
-        // Get all cells with specific CellLifeStage (requires dynamic_cast to AgenticCell_v2)
+        // Get all cells with specific CellLifeStage (requires dynamic_cast to AgenticCell)
         [[nodiscard]] std::vector<ICell*> getCellsByStage(CellLifeStage stage);
 
     private:
