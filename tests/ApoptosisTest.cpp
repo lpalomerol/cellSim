@@ -64,7 +64,7 @@ TEST(ApoptosisSignalTest, ApoptosisSignalWithDirectedTarget) {
 TEST(ApoptosisSignalTest, ApoptosisSignalNotDirectedToCell) {
     // Build a healthy genome
     domain::Gene tp53("TP53", domain::Gene::State::PlusPlus);
-    domain::Gene brca1("BRCA1", domain::Gene::State::PlusPlus);
+    domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus); // BRCA1 siempre empieza +/-
     std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
     domain::Genome genome(genes);
 

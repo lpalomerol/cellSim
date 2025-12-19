@@ -9,6 +9,8 @@ TEST(GeneTest, NameIsStoredAndReturned) {
 }
 
 TEST(GeneTest, StatusIsCorrect) {
+    // Nota: Este test usa BRCA1 +/+ solo para probar la API genérica de Gene
+    // En el modelo biológico real, BRCA1 siempre empieza como +/- (heterocigota)
     domain::Gene gene("BRCA1", domain::Gene::State::PlusPlus);
     EXPECT_EQ(gene.status(), "+/+");
     gene.mutate();

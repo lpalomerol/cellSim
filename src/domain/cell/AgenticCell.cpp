@@ -276,8 +276,16 @@ namespace domain {
 
     void AgenticCell::phase3_NuclearDynamics() {
         logger_->logCell("[Phase3] Nuclear dynamics: genome evolution");
-        logger_->logCell("[Phase3] Genome status: TP53=" + getTP53() +
+        logger_->logCell("[Phase3] Genome status BEFORE: TP53=" + getTP53() +
                        ", BRCA1=" + getBRCA1());
+
+        // Make all genes live and potentially mutate
+        // Use D1 (DNA damage) as genomic instability factor
+        genome_.liveAllGenes(d1_dna_damage_);
+
+        logger_->logCell("[Phase3] Genome status AFTER: TP53=" + getTP53() +
+                       ", BRCA1=" + getBRCA1() +
+                       ", D1=" + std::to_string(d1_dna_damage_));
     }
 
     void AgenticCell::phase4_CytoplasmicRemodeling() {

@@ -317,9 +317,8 @@ int main() {
 
     auto total_start = std::chrono::system_clock::now();
 
-    // Ejecutar solo el escenario 02
     for (const auto& scenario : scenarios) {
-        if (scenario.name == "02_ctrl_baseline_no_mutations_high_division") {
+        if (scenario.name == "03_ctrl_brca_mutations_high") {
             runScenario(scenario, cfg);
             break;  // Solo ejecutar el segundo
         }
