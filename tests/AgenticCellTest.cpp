@@ -128,10 +128,10 @@ TEST(AgenticCellTest, GenomicInstabilityEvolutionByTP53State) {
     domain::AgenticCell cell_pp(std::make_unique<test::DummyNoise>(), genome_pp);
     EXPECT_DOUBLE_EQ(cell_pp.getD1(), 1.0);
     cell_pp.live();
-    EXPECT_DOUBLE_EQ(cell_pp.getD1(), 1.001);
+    EXPECT_DOUBLE_EQ(cell_pp.getD1(), 1.0);
 
-    // TP53 +/- & BRCA1 +/- → DELTA_MEDIUM = 0.002
-    // D1: 1.0 * 1.0 + 0.002 = 1.002
+    // TP53 +/- & BRCA1 +/- → low_delta = 0.001 (default)
+    // D1: 1.0 + 0.001 = 1.001 (TP53 +/- contributes low_delta)
     domain::Gene tp53_pm("TP53", domain::Gene::State::PlusMinus);
     domain::Gene brca1_pm("BRCA1", domain::Gene::State::PlusMinus);
     std::unordered_map<std::string, domain::Gene> genes_pm{{tp53_pm.name(), tp53_pm}, {brca1_pm.name(), brca1_pm}};
@@ -139,7 +139,7 @@ TEST(AgenticCellTest, GenomicInstabilityEvolutionByTP53State) {
     domain::AgenticCell cell_pm(std::make_unique<test::DummyNoise>(), genome_pm);
     EXPECT_DOUBLE_EQ(cell_pm.getD1(), 1.0);
     cell_pm.live();
-    EXPECT_DOUBLE_EQ(cell_pm.getD1(), 1.002);
+    EXPECT_DOUBLE_EQ(cell_pm.getD1(), 1.001);
 
     // TP53 -/- & BRCA1 +/- → DELTA_HIGH = 0.003
     // D1: 1.0 * 1.0 + 0.003 = 1.003

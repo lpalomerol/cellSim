@@ -302,7 +302,7 @@ int main() {
 
         {"09_realistic_balanced",
          "Realista: Parámetros balanceados",
-         0.05, 0.01, 0.05,   // BRCA1=0.05 (5%), TP53=0.01 (1%), neoplasm_k=0.05
+         0.05, 0.025, 0.05,   // BRCA1=0.05 (5%), TP53=0.01 (1%), neoplasm_k=0.05
          0.1, 0.3,           // low_delta=0.1, high_delta=0.3 (↑ aumentado para evasión inmune)
          0.05,               // division_rate=5%
          0.0,                // neoplastic_division_rate=0
@@ -321,12 +321,12 @@ int main() {
 
         {"11_big_bang_tumoral_reproduccion",
          "Big Bang con Reproducción Normal: TP53 -/- (10%) + Normal (5%)",
-         0.05, 0.02, 0.20,   // BRCA1=0.05 (5%), TP53=0.02 (2%), neoplasm_k=0.20
-         0.5, 1.0,           // low_delta=0.5, high_delta=1.0 (↑ aumentado para evasión inmune)
-         0.05,               // division_rate=5% (células normales sí se dividen)
-         0.10,               // neoplastic_division_rate=10% (células TP53 -/- dividen menos)
+         0.05, 0.01, 0.02,   // BRCA1=0.05 (5%), TP53=0.02 (2%), neoplasm_k=0.20
+         0.05, .3,           // low_delta=0.5, high_delta=1.0 (↑ aumentado para evasión inmune)
+         0.055,               // division_rate=5% (células normales sí se dividen)
+         0.25,              // neoplastic_division_rate=10% (células TP53 -/- dividen menos)
          true,               // enable_big_bang_mode=true
-         30},                // max_t=30 años
+         80},                // max_t=30 años
 
         {"12_big_bang_tumoral_low_threshold",
          "Big Bang con Bajo Threshold TP53: TP53 -/- (10%) + Normal (5%)",
@@ -342,7 +342,7 @@ int main() {
 
     // Ejecutar solo el escenario 09 para validar cambios
     for (const auto& scenario : scenarios) {
-        if (scenario.name == "09_realistic_balanced") {
+        if (scenario.name == "11_big_bang_tumoral_reproduccion") {
             runScenario(scenario, cfg);
             break;
         }

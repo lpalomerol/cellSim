@@ -39,8 +39,8 @@ namespace application {
         cfg.apoptosis_threshold = 10.0;
 
         // Gene parameters (custom for interactive)
-        cfg.gene_thresholds = {{"BRCA1", 0.01}, {"TP53", 0.25}};
-        cfg.gene_instability_k = {{"BRCA1", 0.01}, {"TP53", 0.5}};
+        cfg.gene_thresholds = {{"BRCA1", 0.0}, {"TP53", 0.00}};
+        cfg.gene_instability_k = {{"BRCA1", 0.0}, {"TP53", 0.0}};
 
         // Logger
         auto logger = std::make_shared<domain::adapters::Logger>();

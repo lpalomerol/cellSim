@@ -63,6 +63,7 @@ add_executable(unit_tests
         ApoptosisTest.cpp
         NeoplasticImmortalityTest.cpp
         SimulationTissueV2IntegrationTest.cpp
+        CustomDeltaCalculatorTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales
