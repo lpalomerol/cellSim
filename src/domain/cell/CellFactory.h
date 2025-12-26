@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <string>
 #include "AgenticCell.h"
 #include "../gene/Genome.h"
 #include "../ports/ILogger.h"

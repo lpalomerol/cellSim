@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include "../ports/ICell.h"
 #include "../ports/INoiseSource.h"
 #include "../ports/ILogger.h"
@@ -151,6 +150,17 @@ namespace domain {
         void adjust_neoplasm_k();
         std::unique_ptr<AgenticCell> attemptDivision();
         void attemptApoptosis();
+
+        /// Calculate instability deltas (delta_d1, delta_d2) based on current genetic state
+        /// @return pair<double, double> where first=delta_d1, second=delta_d2
+        ///
+        /// Decision matrix based on TP53 and BRCA1 status:
+        /// - D1 (DNA damage) depends only on TP53
+        /// - D2 (Immunosuppression) depends on both TP53 and BRCA1 (additive)
+        ///
+        /// Future scalability: This method can be replaced by a std::function member
+        /// to allow injection of custom delta calculation strategies.
+        [[nodiscard]] std::pair<double, double> calculateInstabilityDeltas() const;
 
         /// Update D1 and D2 based on BRCA1 and TP53 status
         void updateInstability();

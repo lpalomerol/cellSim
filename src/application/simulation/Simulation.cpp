@@ -72,8 +72,8 @@ namespace application {
         int alive_count = 0;
         int neoplastic_alive = 0;
         int protected_alive = 0;
-        int neoplastic_apoptosis_susceptible = 0;
-        int neoplastic_apoptosis_resistant = 0;
+        double neoplastic_apoptosis_susceptible = 0;
+        double neoplastic_apoptosis_resistant = 0;
 
         double min_instability = std::numeric_limits<double>::max();
         double max_instability = std::numeric_limits<double>::lowest();

@@ -4,12 +4,14 @@
 #include "../src/domain/gene/GenomeFactory.h"
 #include "../src/domain/adapters/FixedNoise.h"
 #include "../src/domain/adapters/Logger.h"
-#include "../src/domain/signal/ApoptosisSignal.h"
 
 namespace domain {
 
 /**
- * Test: Neoplastic cells that evade apoptosis become immortal
+ * Test: Neoplastic cells propagate immortality to offspring
+ *
+ * When cells become neoplastic (by reaching PRIMER state with high D2),
+ * they acquire immortality and pass this trait to their daughters.
  */
 class NeoplasticImmortalityTest : public ::testing::Test {
 protected:
@@ -21,112 +23,9 @@ protected:
     ports::ILoggerPtr logger_;
 };
 
-TEST_F(NeoplasticImmortalityTest, NeoplasticCellBecomesImmortalAfterEvadingApoptosis) {
-    // V2: Cell reaches PRIMER state (D1 > 2.0) WITH D2 > 5.0 to automatically become neoplastic
-    auto fixed_noise = std::make_unique<domain::adapters::FixedNoise>(CellNoise{0.01});
-
-    std::unordered_map<std::string, double> thresholds = {
-        {"BRCA1", 0.001},
-        {"TP53", 0.001}
-    };
-    std::unordered_map<std::string, double> instability_k = {
-        {"BRCA1", 0.0},  // No instability growth to avoid unwanted mutations
-        {"TP53", 0.0}    // No instability growth
-    };
-
-    auto genome = genome_factory::makeDefaultGenome(thresholds, instability_k, logger_);
-
-    // Force TP53 to -/- for high instability
-    genome.mutate("TP53");
-    genome.mutate("TP53");
-
-    auto cell = std::make_unique<AgenticCell>(
-        std::move(fixed_noise),
-        genome,
-        0.9,           // neoplasm_k: high (not used with automatic transformation)
-        0.001,         // low_delta_instability (not used, TP53 is -/-)
-        5.0,           // high_delta_instability: VERY HIGH (1.0 + 5.0 = 6.0 in one cycle)
-        0.0,           // division_rate: no division
-        0.0,           // neoplastic_division_rate
-        false,         // enable_big_bang_mode
-        100.0,         // apoptosis_instability_threshold (high to avoid other deaths)
-        nullptr,       // logger
-        2.0,           // d1_primer_threshold (standard)
-        5.0            // d2_apoptosis_threshold (standard)
-    );
-
-    cell->setId(0);
-
-    std::cout << "\n=== Step 1: Cell before becoming neoplastic ===" << std::endl;
-    std::cout << "Is alive: " << (cell->alive() ? "yes" : "no") << std::endl;
-    std::cout << "Is neoplastic: " << (cell->isNeoplastic() ? "yes" : "no") << std::endl;
-    std::cout << "D1 (DNA damage): " << cell->getD1() << std::endl;
-    std::cout << "D2 (Immunosuppression): " << cell->getD2() << std::endl;
-
-    // Execute ONE cycle: D1 and D2 jump from 1.0 to 6.0
-    // Cell enters PRIMER (D1 > 2.0) WITH D2 > 5.0, transforms automatically to neoplastic
-    std::cout << "\n=== Executing ONE cycle to reach PRIMER with high D2 ===" << std::endl;
-    cell->live();
-
-    std::cout << "\n=== Step 2: Cell after ONE cycle (automatic transformation) ===" << std::endl;
-    std::cout << "Is alive: " << (cell->alive() ? "yes" : "no") << std::endl;
-    std::cout << "Is neoplastic: " << (cell->isNeoplastic() ? "yes" : "no") << std::endl;
-    std::cout << "D1 (DNA damage): " << cell->getD1() << std::endl;
-    std::cout << "D2 (Immunosuppression): " << cell->getD2() << std::endl;
-
-    std::cout << "\n=== Step 2: Cell after accumulating instability ===" << std::endl;
-    std::cout << "Is neoplastic: " << (cell->isNeoplastic() ? "yes" : "no") << std::endl;
-    std::cout << "D1 (DNA damage): " << cell->getD1() << std::endl;
-    std::cout << "D2 (Immunosuppression): " << cell->getD2() << std::endl;
-
-    // Cell should have D1 > 2.0 and D2 > 5.0
-    EXPECT_GT(cell->getD1(), 2.0) << "D1 should be > 2.0 (PRIMER state)";
-    EXPECT_GT(cell->getD2(), 5.0) << "D2 should be > 5.0 (can evade apoptosis)";
-
-    // Send apoptosis signal - cell should evade because D2 > 5.0 and enter PRIMER → become neoplastic
-    std::cout << "\n=== Step 3: Sending apoptosis signal ===" << std::endl;
-    auto apoptosis_signal = std::make_unique<ApoptosisSignal>(
-        1,  // source: from tissue
-        "test_apoptosis",
-        std::vector<std::uint64_t>{0}  // targeted to cell 0
-    );
-    cell->receiveMessage(std::move(apoptosis_signal));
-
-    // Process the apoptosis signal - should NOT throw exception due to D2 > 5.0
-    cell->live();
-
-    std::cout << "\n=== Step 4: Cell after receiving apoptosis signal ===" << std::endl;
-    std::cout << "Is alive: " << (cell->alive() ? "yes" : "no") << std::endl;
-    std::cout << "Is neoplastic: " << (cell->isNeoplastic() ? "yes" : "no") << std::endl;
-    std::cout << "D1 (DNA damage): " << cell->getD1() << std::endl;
-    std::cout << "D2 (Immunosuppression): " << cell->getD2() << std::endl;
-
-    // Verify cell evaded apoptosis and became neoplastic (immortal)
-    EXPECT_TRUE(cell->alive()) << "Cell should still be alive after evading apoptosis";
-    EXPECT_TRUE(cell->isNeoplastic()) << "Cell should be neoplastic (immortal) after evading in PRIMER state";
-
-    // Now mutate BRCA1 multiple times to simulate continued damage
-    std::cout << "\n=== Step 5: Attempting to kill cell by mutating BRCA1 ===" << std::endl;
-    std::cout << "BRCA1 status before mutations: " << cell->getBRCA1Status() << std::endl;
-
-    cell->mutateGene("BRCA1");
-    std::cout << "BRCA1 status after 1st mutation: " << cell->getBRCA1Status() << std::endl;
-
-    cell->mutateGene("BRCA1");
-    std::cout << "BRCA1 status after 2nd mutation (should be disabled): " << cell->getBRCA1Status() << std::endl;
-
-    // Even with BRCA1 disabled, the cell should remain alive because it evaded apoptosis
-    std::cout << "\n=== Step 6: Cell status after BRCA1 disabled ===" << std::endl;
-    std::cout << "Is alive: " << (cell->alive() ? "yes" : "no") << std::endl;
-
-    EXPECT_TRUE(cell->alive()) << "Cell should be IMMORTAL and cannot die even with BRCA1 disabled";
-    EXPECT_FALSE(cell->getBRCA1Status() == "+/-" || cell->getBRCA1Status() == "+/+")
-        << "BRCA1 should be disabled";
-}
-
-TEST_F(NeoplasticImmortalityTest, ImmortalCellsPropagatImmunityToOffspring) {
-    // V2: Test that neoplastic cells (already immortal) propagate immunity to offspring
-    // We create a cell that will become neoplastic by having high D2 from the start
+TEST_F(NeoplasticImmortalityTest, NeoplasticCellsPropagateImmortalityToOffspring) {
+    // Test that neoplastic cells (immortal) propagate immunity to offspring
+    // Cell becomes neoplastic automatically when D1 > 2.0 AND D2 > 5.0
 
     auto fixed_noise = std::make_unique<domain::adapters::FixedNoise>(CellNoise{0.01});
 
@@ -144,8 +43,8 @@ TEST_F(NeoplasticImmortalityTest, ImmortalCellsPropagatImmunityToOffspring) {
     genome.mutate("TP53");
 
     // Strategy: Use VERY HIGH delta (5.0) so that in ONE cycle, both D1 and D2 jump to 6.0
-    // This way, when the cell enters PRIMER (D1=6.0 > 2.0), D2 is also 6.0 (> 5.0)
-    // So the cell transforms to neoplastic instead of dying
+    // When D1 > 2.0 (PRIMER) AND D2 > 5.0, the cell automatically becomes neoplastic
+    // This is an internal transformation, not triggered by external signals
     auto parent = std::make_unique<AgenticCell>(
         std::move(fixed_noise),
         genome,
@@ -175,7 +74,7 @@ TEST_F(NeoplasticImmortalityTest, ImmortalCellsPropagatImmunityToOffspring) {
              << ", isNeoplastic=" << parent->isNeoplastic()
              << ", alive=" << parent->alive() << std::endl;
 
-    // V2: With D1=6.0 and D2=6.0, cell should be neoplastic
+    // With D1=6.0 and D2=6.0, cell should be neoplastic and alive
     std::cout << "\n=== Parent status after transformation ===" << std::endl;
     std::cout << "Parent is alive: " << (parent->alive() ? "yes" : "no") << std::endl;
     std::cout << "Parent is neoplastic: " << (parent->isNeoplastic() ? "yes" : "no") << std::endl;
@@ -203,7 +102,7 @@ TEST_F(NeoplasticImmortalityTest, ImmortalCellsPropagatImmunityToOffspring) {
     std::cout << "Daughter BRCA1 status: " << daughter->getBRCA1Status() << std::endl;
     std::cout << "Daughter is still alive: " << (daughter->alive() ? "yes" : "no") << std::endl;
 
-    // V2: Daughter inherits has_evaded_apoptosis_=true (neoplastic), so BRCA1 -/- doesn't kill her
+    // Daughter inherits neoplastic status (immortal), so BRCA1 -/- doesn't kill her
     EXPECT_TRUE(daughter->alive())
         << "Daughter should be immortal (inherited neoplastic status from parent)";
     EXPECT_EQ(daughter->getBRCA1Status(), "-/-") << "BRCA1 should be disabled";

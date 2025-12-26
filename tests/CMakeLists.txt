@@ -21,7 +21,6 @@ add_executable(unit_tests
         ../src/domain/adapters/NullLogger.h
 
         ../src/domain/cell/CellLifeStage.h
-        ../src/domain/cell/InstabilityDeltas.h
         ../src/domain/cell/CellFactory.cpp
         ../src/domain/cell/CellFactory.h
         ../src/domain/cell/AgenticCell.cpp
@@ -36,7 +35,6 @@ add_executable(unit_tests
         ../src/domain/signal/ISignal.h
         ../src/domain/signal/BaseSignal.h
         ../src/domain/signal/NeoplasmSignal.h
-        ../src/domain/signal/ApoptosisSignal.h
         ../src/domain/signal/CellDivisionSignal.h
 
         ../src/domain/tissue/Tissue.cpp
@@ -60,10 +58,8 @@ add_executable(unit_tests
         TissueTest.cpp
         ThresholdTest.cpp
         CellDivisionInstabilityPropagationTest.cpp
-        ApoptosisTest.cpp
         NeoplasticImmortalityTest.cpp
         SimulationTissueV2IntegrationTest.cpp
-        CustomDeltaCalculatorTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales

@@ -1,13 +1,10 @@
 #include "AgenticCell.h"
 #include "../signal/NeoplasmSignal.h"
 #include "../signal/CellDivisionSignal.h"
-#include "../signal/ApoptosisSignal.h"
 #include "../exception/CellDeathException.h"
-#include "../exception/NeoplasticException.h"
 #include "../shared/Threshold.h"
 #include "../adapters/RandomNoise.h"
 #include "../adapters/NullLogger.h"
-#include "InstabilityDeltas.h"
 
 namespace domain {
 
@@ -289,11 +286,8 @@ namespace domain {
     }
 
     void AgenticCell::phase4_CytoplasmicRemodeling() {
-        std::string tp53_status = getTP53();
-        std::string brca1_status = getBRCA1();
-        auto [delta_d1, delta_d2] = InstabilityDeltas::getDeltas(tp53_status, brca1_status,
-                                                                   low_delta_instability_,
-                                                                   high_delta_instability_);
+        // Calculate instability deltas based on current genetic state
+        auto [delta_d1, delta_d2] = calculateInstabilityDeltas();
 
         double prev_d1 = d1_dna_damage_;
         double prev_d2 = d2_immunosuppression_;
@@ -308,6 +302,7 @@ namespace domain {
 
         CellLifeStage current_stage = getCurrentCellLifeStage();
         if (current_stage == CellLifeStage::PRIMER && !is_neoplastic_) {
+            std::string tp53_status = getTP53();
             logger_->logCell("[Phase4] Cell DETECTED in PRIMER state");
             logger_->logCell("[Phase4]   Reason: TP53=" + tp53_status + ", D1=" +
                            std::to_string(d1_dna_damage_) + " > " + std::to_string(d1_primer_threshold_));
@@ -357,6 +352,41 @@ namespace domain {
 
     void AgenticCell::updateInstability() {
         // Placeholder: D1/D2 updated in phase4, not here
+    }
+
+    std::pair<double, double> AgenticCell::calculateInstabilityDeltas() const {
+        // Extract current genetic status
+        std::string tp53_status = getTP53();
+        std::string brca1_status = getBRCA1();
+
+        // Calculate delta per gene individually
+        // Delta TP53: affects D1 directly and contributes to D2
+        double delta_tp53 = 0.0;
+        if (tp53_status == "+/+") {
+            delta_tp53 = 0.0;  // Wild-type: no instability
+        } else if (tp53_status == "+/-") {
+            delta_tp53 = low_delta_instability_;  // Heterozygous: low instability
+        } else if (tp53_status == "-/-") {
+            delta_tp53 = high_delta_instability_;  // Homozygous recessive: high instability
+        }
+
+        // Delta BRCA1: contributes only to D2 (immunosuppression)
+        double delta_brca1 = 0.0;
+        if (brca1_status == "+/+") {
+            delta_brca1 = 0.0;  // Wild-type: no contribution
+        } else if (brca1_status == "+/-") {
+            delta_brca1 = low_delta_instability_;  // Heterozygous: low contribution
+        } else if (brca1_status == "-/-") {
+            delta_brca1 = 2 * high_delta_instability_;  // Homozygous: very high contribution
+        }
+
+        // Decision matrix:
+        // D1 (DNA damage) = Δ(TP53) only
+        // D2 (Immunosuppression) = Δ(TP53) + Δ(BRCA1)
+        double delta_d1 = delta_tp53;
+        double delta_d2 = delta_tp53 + delta_brca1;
+
+        return {delta_d1, delta_d2};
     }
 
     std::unique_ptr<AgenticCell> AgenticCell::attemptDivision() {
