@@ -1,5 +1,6 @@
 #include "Genome.h"
 #include "GenomeFactory.h"
+#include "GeneConstants.h"
 #include "../adapters/NullLogger.h"
 #include <cassert>
 
@@ -75,10 +76,10 @@ void Genome::mutate(const std::string& name) {
 // Return true if TP53 indicates genomic instability (+/- or -/-)
 // Only TP53 +/+ (wild-type) is considered stable
 bool Genome::isUnstable() const {
-    const Gene* tp53 = getGene("TP53");
+    const Gene* tp53 = getGene(GeneNames::TP53);
     if (!tp53) return false;
     std::string s = tp53->status();
-    return (s == "+/-" || s == "-/-");
+    return (s == GeneticStatusStrings::HETEROZYGOUS || s == GeneticStatusStrings::HOMOZYGOUS_RECESSIVE);
 }
 
 } // namespace domain

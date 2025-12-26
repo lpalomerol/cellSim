@@ -1,5 +1,6 @@
 
 #include "Gene.h"
+#include "GeneConstants.h"
 #include <cassert>
 #include "../adapters/NullLogger.h"
 #include <utility>
@@ -38,7 +39,11 @@ namespace domain {
     }
 
     std::string Gene::status() const {
-        static const char* statuses[] = {"+/+", "+/-", "-/-"};
+        static const char* statuses[] = {
+            GeneticStatusStrings::WILD_TYPE,
+            GeneticStatusStrings::HETEROZYGOUS,
+            GeneticStatusStrings::HOMOZYGOUS_RECESSIVE
+        };
         return statuses[static_cast<int>(state_)];
     }
 
