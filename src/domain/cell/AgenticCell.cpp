@@ -55,26 +55,8 @@ namespace domain {
             return true;
         }
 
-        const Gene* brca1 = genome_.getGene(GeneNames::BRCA1);
-        const Gene* tp53 = genome_.getGene(GeneNames::TP53);
-
-        // BRCA1 missing → dead
-        if (!brca1) {
-            return false;
-        }
-
-        // BRCA1 -/- (disabled) is lethal ONLY if TP53 is functional
-        if (brca1->getStatus().isDisabled()) {
-            // TP53 -/- (disabled) cannot kill the cell → alive
-            if (tp53 && tp53->getStatus().isDisabled()) {
-                return true;
-            }
-            // TP53 is functional (enabled or partially enabled) → detects damage → dead
-            return false;
-        }
-
-        // BRCA1 functional (enabled or partially_enabled) → cell is alive
-        return true;
+        // Delegate viability decision to genome
+        return genome_.isCellViable();
     }
 
     bool AgenticCell::isNeoplastic() const {
@@ -82,10 +64,7 @@ namespace domain {
     }
 
     bool AgenticCell::isNeoplasticProtected() const {
-        const Gene* tp53 = genome_.getGene(GeneNames::TP53);
-        if (!tp53) return false;
-        auto status = tp53->getStatus();
-        return !status.isDisabled();  // Has functional copy (enabled or partially_enabled)
+        return genome_.hasNeoplasticProtection();
     }
 
     std::string AgenticCell::getTP53() const {

@@ -82,4 +82,34 @@ bool Genome::isUnstable() const {
     return !status.isEnabled();  // Any non-wildtype is unstable
 }
 
+bool Genome::isCellViable() const {
+    const Gene* brca1 = getGene(GeneNames::BRCA1);
+    const Gene* tp53 = getGene(GeneNames::TP53);
+
+    // BRCA1 missing → dead
+    if (!brca1) {
+        return false;
+    }
+
+    // BRCA1 -/- (disabled) is lethal ONLY if TP53 is functional
+    if (brca1->getStatus().isDisabled()) {
+        // TP53 -/- (disabled) cannot kill the cell → alive
+        if (tp53 && tp53->getStatus().isDisabled()) {
+            return true;
+        }
+        // TP53 functional (enabled or partially_enabled) → detects damage → dead
+        return false;
+    }
+
+    // BRCA1 functional (enabled or partially_enabled) → viable
+    return true;
+}
+
+bool Genome::hasNeoplasticProtection() const {
+    const Gene* tp53 = getGene(GeneNames::TP53);
+    if (!tp53) return false;
+    // Has protection if TP53 is NOT disabled (i.e., enabled or partially_enabled)
+    return !tp53->getStatus().isDisabled();
+}
+
 } // namespace domain

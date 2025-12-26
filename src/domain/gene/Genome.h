@@ -49,6 +49,18 @@ public:
     // Return true if TP53 indicates instability (TP53 == +/- or -/-)
     [[nodiscard]] bool isUnstable() const;
 
+    /// Determines if genomic state allows cell to be viable
+    /// Rules:
+    /// - BRCA1 missing → NOT viable
+    /// - BRCA1 disabled (-/-) + TP53 disabled (-/-) → viable (no checkpoint)
+    /// - BRCA1 disabled (-/-) + TP53 functional → NOT viable (checkpoint kills cell)
+    /// - BRCA1 functional (enabled or partially_enabled) → viable
+    [[nodiscard]] bool isCellViable() const;
+
+    /// Returns whether genome indicates neoplastic protection
+    /// TP53 functional (enabled or partially_enabled) can eliminate damaged cells
+    [[nodiscard]] bool hasNeoplasticProtection() const;
+
 private:
     std::unordered_map<std::string, Gene> genes_;
     ports::ILoggerPtr logger_;
