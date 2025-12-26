@@ -45,18 +45,17 @@ TEST_F(NeoplasticImmortalityTest, NeoplasticCellsPropagateImmortalityToOffspring
     // Strategy: Use VERY HIGH delta (5.0) so that in ONE cycle, both D1 and D2 jump to 6.0
     // When D1 > 2.0 (PRIMER) AND D2 > 5.0, the cell automatically becomes neoplastic
     // This is an internal transformation, not triggered by external signals
+    domain::InstabilityConfig instability{0.001, 5.0};
+    domain::DivisionConfig division{0.01, 0.01, false};
+    domain::ThresholdConfig config_thresholds{2.0, 5.0, 0.9};
+
     auto parent = std::make_unique<AgenticCell>(
         std::move(fixed_noise),
         genome,
-        0.9,           // neoplasm_k
-        0.001,         // low_delta (not used, TP53 is -/-)
-        5.0,           // high_delta - EXTREMELY HIGH: 1.0 + 5.0 = 6.0 in one cycle
-        0.01,          // division_rate: allow division
-        0.01,          // neoplastic_division_rate
-        false,         // enable_big_bang_mode
-        nullptr,       // logger
-        2.0,           // d1_primer_threshold (standard)
-        5.0            // d2_apoptosis_threshold (standard)
+        instability,
+        division,
+        config_thresholds,
+        nullptr  // logger
     );
 
     parent->setId(0);

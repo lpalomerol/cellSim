@@ -78,7 +78,8 @@ TEST(AgenticCellTest, TumoralWhenTP53InitiallyInactiveWithHighK) {
     domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus);
     std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
     domain::Genome genome(genes);
-    domain::AgenticCell cell(std::make_unique<test::HighNoise>(), genome, 1.0);
+    domain::ThresholdConfig thresholds{2.0, 5.0, 1.0}; // neoplasm_k = 1.0
+    domain::AgenticCell cell(std::make_unique<test::HighNoise>(), genome, {}, {}, thresholds);
     EXPECT_EQ(cell.getTP53(), "-/-");
     EXPECT_FALSE(cell.isNeoplastic());
     cell.live();
@@ -90,7 +91,8 @@ TEST(AgenticCellTest, LiveMakesCellTumoralWhenTP53MutatesAndKHigh) {
     domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus);
     std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
     domain::Genome genome(genes);
-    domain::AgenticCell cell(std::make_unique<test::HighNoise>(), genome, 1.0);
+    domain::ThresholdConfig thresholds{2.0, 5.0, 1.0}; // neoplasm_k = 1.0
+    domain::AgenticCell cell(std::make_unique<test::HighNoise>(), genome, {}, {}, thresholds);
     EXPECT_EQ(cell.getTP53(), "+/-");
     EXPECT_FALSE(cell.isNeoplastic());
     // V2: Mutations must be explicit
@@ -211,11 +213,10 @@ TEST(AgenticCellTest, GenomicInstabilityIncreaseMutationProbability) {
     std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
     domain::Genome genome(genes);
 
+    domain::InstabilityConfig instability{0.5, 0.3}; // low_delta=0.5, high_delta=0.3
+    domain::ThresholdConfig thresholds{2.0, 5.0, 0.0}; // neoplasm_k=0.0
     domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome,
-                             0.0, // neoplasm_k
-                             0.5, // low_delta (para TP53 +/-)
-                             0.3  // high_delta (reducido para NO alcanzar PRIMER en un ciclo)
-                             );
+                             instability, {}, thresholds);
 
     // TP53 -/- causa D1 alto rápidamente
     EXPECT_EQ(cell.getTP53(), "-/-");
@@ -304,12 +305,11 @@ TEST(AgenticCellTest, DivisionRateCustomValue) {
     std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
     domain::Genome genome(genes);
     // Constructor con division_rate personalizado
+    domain::InstabilityConfig instability{0.0001, 0.0002};
+    domain::DivisionConfig division{0.5, 0.001, false}; // division_rate alto (50%)
+    domain::ThresholdConfig thresholds{2.0, 5.0, 0.002};
     domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome,
-                             0.002, // neoplasm_k
-                             0.0001, // low_delta_instability
-                             0.0002, // high_delta_instability
-                             0.5    // division_rate alto (50%)
-                             ); // verbose
+                             instability, division, thresholds); // verbose
     cell.live();
     EXPECT_TRUE(cell.alive());
 }
@@ -320,8 +320,11 @@ TEST(AgenticCellTest, DivisionDisabledWhenRateIsZero) {
     std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
     domain::Genome genome(genes);
     // division_rate = 0.0 disables division
+    domain::InstabilityConfig instability{0.0001, 0.0002};
+    domain::DivisionConfig division{0.0, 0.001, false}; // division_rate = 0.0
+    domain::ThresholdConfig thresholds{2.0, 5.0, 0.002};
     domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome,
-                             0.002, 0.0001, 0.0002, 0.0);
+                             instability, division, thresholds);
     cell.live();
     EXPECT_TRUE(cell.alive()); // Sin intentos de división
 }
@@ -340,9 +343,11 @@ TEST(AgenticCellTest, DivisionAttemptWithVerboseOutput) {
         domain::CellNoise{0.5},  // Ciclos posteriores
         domain::CellNoise{0.5}
     };
+    domain::InstabilityConfig instability{0.0001, 0.0002};
+    domain::DivisionConfig division{0.5, 0.001, false};
+    domain::ThresholdConfig thresholds{2.0, 5.0, 0.002};
     domain::AgenticCell cell(std::make_unique<FakeNoise>(noise_sequence),
-                             genome,
-                             0.002, 0.0001, 0.0002, 0.5);
+                             genome, instability, division, thresholds);
     // El test pasa si no lanza excepciones durante la ejecución
     cell.live();
     EXPECT_TRUE(cell.alive());
@@ -355,9 +360,11 @@ TEST(AgenticCellTest, NoDivisionWhenRandomAboveThreshold) {
     domain::Genome genome(genes);
     // division_rate = 0.3, FakeNoise devuelve 1.0 (muy alto)
     // 1.0 < 0.3 es falso, no hay división
+    domain::InstabilityConfig instability{0.0001, 0.0002};
+    domain::DivisionConfig division{0.3, 0.001, false};
+    domain::ThresholdConfig thresholds{2.0, 5.0, 0.002};
     domain::AgenticCell cell(std::make_unique<FakeNoise>(std::vector<domain::CellNoise>{domain::CellNoise{1.0}}),
-                             genome,
-                             0.002, 0.0001, 0.0002, 0.3);
+                             genome, instability, division, thresholds);
     cell.live();
     EXPECT_TRUE(cell.alive()); // Sin intento de división
 }
@@ -374,9 +381,12 @@ TEST(AgenticCellTest, DivisionAttemptMultipleCycles) {
         domain::CellNoise{0.05}, // Ciclo 3: probablemente división
         domain::CellNoise{0.9}   // Ciclo 4: sin división
     };
+    domain::InstabilityConfig instability{0.0001, 0.0002};
+    domain::DivisionConfig division{0.2, 0.001, false};
+    domain::ThresholdConfig thresholds{2.0, 5.0, 0.002};
     domain::AgenticCell cell(std::make_unique<FakeNoise>(noise_sequence),
                              genome,
-                             0.002, 0.0001, 0.0002, 0.2);
+                             instability, division, thresholds);
 
     // Ejecutar múltiples ciclos
     for (int i = 0; i < 4; ++i) {

@@ -6,6 +6,7 @@
 #include "../ports/ILoggeable.h"
 #include "../signal/ISignal.h"
 #include "../gene/Genome.h"
+#include "CellConfig.h"
 #include <memory>
 #include <string>
 #include <queue>
@@ -22,30 +23,21 @@ namespace domain {
     /// - Phase 4 (Cytoplasmic Remodeling): Updates D1 and D2 separately with different deltas
     class AgenticCell final : public ICell, public ports::ILoggeable {
     public:
-        /// Constructor: Creates an AgenticCell with D1 and D2 instability counters
+
+        /// Constructor: Creates an AgenticCell using configuration objects (RECOMMENDED)
+        /// Uses Parameter Objects pattern for cleaner API and easier testing
         /// @param noise Random noise source (owned by this cell)
         /// @param genome Genetic makeup (taken by value)
-        /// @param neoplasm_k Base neoplasm threshold (default 0.002)
-        /// @param low_delta_instability Delta for TP53 +/- (default 0.001)
-        /// @param high_delta_instability Delta for TP53 -/- (default 0.003)
-        /// @param division_rate Probability of cell division in phase4 (default 0.001)
-        /// @param neoplastic_division_rate Probability for neoplastic cells in Big Bang mode (default 0.001)
-        /// @param enable_big_bang_mode If true, neoplastic cells divide faster (default false)
+        /// @param instability Configuration for D1/D2 delta rates
+        /// @param division Configuration for division rates
+        /// @param thresholds Configuration for state transition thresholds
         /// @param logger Optional logger (default NullLogger)
-        /// @param d1_primer_threshold D1 threshold to enter PRIMER state (default 2.0)
-        /// @param d2_apoptosis_threshold D2 threshold to resist extrinsic apoptosis (default 5.0)
-        ///
         AgenticCell(std::unique_ptr<INoiseSource> noise,
                        Genome genome,
-                       double neoplasm_k = 0.002,
-                       double low_delta_instability = 0.001,
-                       double high_delta_instability = 0.003,
-                       double division_rate = 0.001,
-                       double neoplastic_division_rate = 0.001,
-                       bool enable_big_bang_mode = false,
-                       const ports::ILoggerPtr& logger = nullptr,
-                       double d1_primer_threshold = 2.0,
-                       double d2_apoptosis_threshold = 5.0);
+                       const InstabilityConfig& instability = {},
+                       const DivisionConfig& division = {},
+                       const ThresholdConfig& thresholds = {},
+                       const ports::ILoggerPtr& logger = nullptr);
 
         // === ILoggeable implementation ===
         std::string getLogCategory() const override { return "CELL_V2"; }

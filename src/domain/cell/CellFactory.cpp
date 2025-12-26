@@ -37,19 +37,18 @@ std::unique_ptr<AgenticCell> CellFactory::createCustomCell(
     double d2_apoptosis_threshold,
     const ports::ILoggerPtr& logger) {
 
+    // Use new constructor with Parameter Objects
+    InstabilityConfig instability{low_delta_instability, high_delta_instability};
+    DivisionConfig division{division_rate, neoplastic_division_rate, enable_big_bang_mode};
+    ThresholdConfig thresholds{d1_primer_threshold, d2_apoptosis_threshold, neoplasm_k};
 
     return std::make_unique<AgenticCell>(
         std::move(noise),
         genome,
-        neoplasm_k,
-        low_delta_instability,
-        high_delta_instability,
-        division_rate,
-        neoplastic_division_rate,
-        enable_big_bang_mode,
-        logger,
-        d1_primer_threshold,
-        d2_apoptosis_threshold
+        instability,
+        division,
+        thresholds,
+        logger
     );
 }
 

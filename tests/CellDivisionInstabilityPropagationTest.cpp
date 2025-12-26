@@ -35,15 +35,16 @@ TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsParentGenomicInst
 
     auto genome = genome_factory::makeDefaultGenome(thresholds, instability_k, logger_);
 
+    domain::InstabilityConfig instability{0.0001, 0.5};
+    domain::DivisionConfig division{0.01, 0.01, false};
+    domain::ThresholdConfig config_thresholds{2.0, 5.0, 0.000};
+
     auto parent = std::make_unique<AgenticCell>(
         std::move(fixed_noise),
         genome,
-        0.000,         // neoplasm_k
-        0.0001,        // low_delta_instability
-        0.5,           // high_delta_instability: HIGH for quick instability growth
-        0.01,          // division_rate: 1% to trigger division easily
-        0.01,          // neoplastic_division_rate
-        false,         // enable_big_bang_mode
+        instability,
+        division,
+        config_thresholds,
         logger_
     );
 
@@ -87,16 +88,16 @@ TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsAccumulatedInstab
     // Force TP53 to -/- so it contributes high_delta_instability
     genome.mutate("TP53");
     genome.mutate("TP53");
+    domain::InstabilityConfig instability2{0.0001, 0.01};
+    domain::DivisionConfig division2{0.01, 0.01, false};
+    domain::ThresholdConfig config_thresholds2{2.0, 5.0, 0.002};
 
     auto parent = std::make_unique<AgenticCell>(
         std::move(fixed_noise),
         genome,
-        0.002,         // neoplasm_k
-        0.0001,        // low_delta_instability
-        0.01,           // high_delta_instability: HIGH
-        0.01,          // division_rate
-        0.01,          // neoplastic_division_rate
-        false,         // enable_big_bang_mode
+        instability2,
+        division2,
+        config_thresholds2,
         logger_
     );
 

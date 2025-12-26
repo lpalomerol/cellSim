@@ -9,33 +9,28 @@
 
 namespace domain {
 
-    /// Constructor: Initialize AgenticCell with D1 and D2 counters
+    /// Constructor: Initialize AgenticCell using Parameter Objects
     AgenticCell::AgenticCell(std::unique_ptr<INoiseSource> noise,
                                    Genome genome,
-                                   double neoplasm_k,
-                                   double low_delta_instability,
-                                   double high_delta_instability,
-                                   double division_rate,
-                                   double neoplastic_division_rate,
-                                   bool enable_big_bang_mode,
-                                   const ports::ILoggerPtr& logger,
-                                   double d1_primer_threshold,
-                                   double d2_apoptosis_threshold)
+                                   const InstabilityConfig& instability,
+                                   const DivisionConfig& division,
+                                   const ThresholdConfig& thresholds,
+                                   const ports::ILoggerPtr& logger)
         : noise_(std::move(noise)),
           logger_(logger ? logger : std::make_shared<adapters::NullLogger>()),
           genome_(std::move(genome)),
-          base_neoplasm_k_(neoplasm_k),
-          neoplasm_k_(domain::shared::Threshold(neoplasm_k)),
+          base_neoplasm_k_(thresholds.neoplasm_k),
+          neoplasm_k_(domain::shared::Threshold(thresholds.neoplasm_k)),
           is_neoplastic_(false),
-          division_rate_(division_rate),
-          neoplastic_division_rate_(neoplastic_division_rate),
-          enable_big_bang_mode_(enable_big_bang_mode),
-          low_delta_instability_(low_delta_instability),
-          high_delta_instability_(high_delta_instability),
+          division_rate_(division.base_rate),
+          neoplastic_division_rate_(division.neoplastic_rate),
+          enable_big_bang_mode_(division.enable_big_bang),
+          low_delta_instability_(instability.low_delta),
+          high_delta_instability_(instability.high_delta),
           d1_dna_damage_(1.0),
           d2_immunosuppression_(1.0),
-          d1_primer_threshold_(d1_primer_threshold),
-          d2_apoptosis_threshold_(d2_apoptosis_threshold) {
+          d1_primer_threshold_(thresholds.d1_primer),
+          d2_apoptosis_threshold_(thresholds.d2_apoptosis) {
 
         genome_.setNoiseSourceForAll(noise_.get());
         if (noise_) {
@@ -50,6 +45,7 @@ namespace domain {
                       + " | d1_threshold=" + std::to_string(d1_primer_threshold_)
                       + " | d2_threshold=" + std::to_string(d2_apoptosis_threshold_));
     }
+
 
     // ===== Simple Status Queries =====
 
@@ -419,18 +415,18 @@ namespace domain {
         // This ensures each daughter has a different random sequence
         unsigned daughter_seed = static_cast<unsigned>(seed_ + age_ + cell_id_);
 
+        // Build configuration objects from current cell state
+        InstabilityConfig instability{low_delta_instability_, high_delta_instability_};
+        DivisionConfig division{division_rate_, neoplastic_division_rate_, enable_big_bang_mode_};
+        ThresholdConfig thresholds{d1_primer_threshold_, d2_apoptosis_threshold_, base_neoplasm_k_};
+
         auto daughter = std::make_unique<AgenticCell>(
             std::make_unique<adapters::RandomNoise>(daughter_seed),
             genome_,
-            base_neoplasm_k_,
-            low_delta_instability_,
-            high_delta_instability_,
-            division_rate_,
-            neoplastic_division_rate_,
-            enable_big_bang_mode_,
-            logger_,
-            d1_primer_threshold_,      // Inherit thresholds
-            d2_apoptosis_threshold_
+            instability,
+            division,
+            thresholds,
+            logger_
         );
 
         daughter->d1_dna_damage_ = d1_dna_damage_;
