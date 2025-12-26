@@ -8,11 +8,14 @@
 #include "../ports/ILogger.h"
 #include "../ports/ILoggeable.h"
 #include "../shared/Threshold.h"
+#include "GeneStatus.h"
 
 namespace domain{
     class Gene : public ports::ILoggeable {
     public:
+        // Kept for backward compatibility with tests and existing code
         enum class State { PlusPlus, PlusMinus, MinusMinus };
+
         // Name is taken by value and moved into the member to avoid unnecessary copies
         explicit Gene(std::string name,
             State initial = State::PlusPlus,
@@ -22,7 +25,13 @@ namespace domain{
         );
 
         [[nodiscard]] const std::string& name() const;
+
+        /// Get functional status of gene (NEW: semantic API)
+        [[nodiscard]] GeneStatus getStatus() const;
+
+        /// Legacy compatibility: return string representation
         [[nodiscard]] std::string status() const;
+
         // Return a detail string: "NAME[status] p(mut)=threshold", e.g. "TP53[+/-] p(mut)=0.1"
         [[nodiscard]] std::string details(bool apply_instability = true) const;
 

@@ -58,22 +58,22 @@ namespace domain {
         const Gene* brca1 = genome_.getGene(GeneNames::BRCA1);
         const Gene* tp53 = genome_.getGene(GeneNames::TP53);
 
-        // BRCA1 missing or check: if not present, cell is dead
+        // BRCA1 missing → dead
         if (!brca1) {
             return false;
         }
 
-        // BRCA1 -/- is lethal ONLY if TP53 is functional
-        if (brca1->status() == GeneticStatusStrings::HOMOZYGOUS_RECESSIVE) {
-            // TP53 -/- cannot kill the cell → alive
-            if (tp53 && tp53->status() == GeneticStatusStrings::HOMOZYGOUS_RECESSIVE) {
+        // BRCA1 -/- (disabled) is lethal ONLY if TP53 is functional
+        if (brca1->getStatus().isDisabled()) {
+            // TP53 -/- (disabled) cannot kill the cell → alive
+            if (tp53 && tp53->getStatus().isDisabled()) {
                 return true;
             }
-            // TP53 is functional (+/+ or +/-) → detects damage → dead
+            // TP53 is functional (enabled or partially enabled) → detects damage → dead
             return false;
         }
 
-        // BRCA1 +/- (normal case) → cell is alive
+        // BRCA1 functional (enabled or partially_enabled) → cell is alive
         return true;
     }
 
@@ -84,8 +84,8 @@ namespace domain {
     bool AgenticCell::isNeoplasticProtected() const {
         const Gene* tp53 = genome_.getGene(GeneNames::TP53);
         if (!tp53) return false;
-        std::string status = tp53->status();
-        return status != GeneticStatusStrings::HOMOZYGOUS_RECESSIVE;
+        auto status = tp53->getStatus();
+        return !status.isDisabled();  // Has functional copy (enabled or partially_enabled)
     }
 
     std::string AgenticCell::getTP53() const {
@@ -189,15 +189,25 @@ namespace domain {
         std::string tp53_status = getTP53();
         std::string brca1_status = getBRCA1();
 
-        if (tp53_status == GeneticStatusStrings::HETEROZYGOUS && brca1_status == GeneticStatusStrings::HETEROZYGOUS) {
+        auto tp53 = genome_.getGene(GeneNames::TP53);
+        auto brca1 = genome_.getGene(GeneNames::BRCA1);
+
+        if (!tp53 || !brca1) {
+            logger_->logCell("[Trace] Unexpected genotype: TP53=" + tp53_status +
+                          ", BRCA1=" + brca1_status + ". Defaulting to DEAD.");
+            return CellLifeStage::DEAD;
+        }
+        if (tp53->getStatus().isPartiallyEnabled() &&
+            brca1->getStatus().isPartiallyEnabled()) {
             return CellLifeStage::UNSTABLE;
         }
 
-        if (tp53_status == GeneticStatusStrings::WILD_TYPE && brca1_status == GeneticStatusStrings::HETEROZYGOUS) {
+        if (tp53->getStatus().isEnabled() &&
+            brca1->getStatus().isPartiallyEnabled()) {
             return CellLifeStage::BASELINE;
         }
 
-        if (tp53_status == GeneticStatusStrings::HOMOZYGOUS_RECESSIVE) {
+        if (tp53->getStatus().isDisabled()) {
             if (d1_dna_damage_ > d1_primer_threshold_) {
                 return CellLifeStage::PRIMER;
             }
@@ -357,23 +367,32 @@ namespace domain {
 
         // Calculate delta per gene individually
         // Delta TP53: affects D1 directly and contributes to D2
+        const Gene* tp53 = genome_.getGene(GeneNames::TP53);
+        const Gene* brca1 = genome_.getGene(GeneNames::BRCA1);
+
         double delta_tp53 = 0.0;
-        if (tp53_status == GeneticStatusStrings::WILD_TYPE) {
-            delta_tp53 = 0.0;  // Wild-type: no instability
-        } else if (tp53_status == GeneticStatusStrings::HETEROZYGOUS) {
-            delta_tp53 = low_delta_instability_;  // Heterozygous: low instability
-        } else if (tp53_status == GeneticStatusStrings::HOMOZYGOUS_RECESSIVE) {
-            delta_tp53 = high_delta_instability_;  // Homozygous recessive: high instability
+        if (tp53) {
+            auto tp53_status = tp53->getStatus();
+            if (tp53_status.isEnabled()) {
+                delta_tp53 = 0.0;  // Wildtype: no instability
+            } else if (tp53_status.isPartiallyEnabled()) {
+                delta_tp53 = low_delta_instability_;  // Heterozygous: low instability
+            } else if (tp53_status.isDisabled()) {
+                delta_tp53 = high_delta_instability_;  // Homozygous recessive: high instability
+            }
         }
 
         // Delta BRCA1: contributes only to D2 (immunosuppression)
         double delta_brca1 = 0.0;
-        if (brca1_status == GeneticStatusStrings::WILD_TYPE) {
-            delta_brca1 = 0.0;  // Wild-type: no contribution
-        } else if (brca1_status == GeneticStatusStrings::HETEROZYGOUS) {
-            delta_brca1 = low_delta_instability_;  // Heterozygous: low contribution
-        } else if (brca1_status == GeneticStatusStrings::HOMOZYGOUS_RECESSIVE) {
-            delta_brca1 = 2 * high_delta_instability_;  // Homozygous: very high contribution
+        if (brca1) {
+            auto brca1_status = brca1->getStatus();
+            if (brca1_status.isEnabled()) {
+                delta_brca1 = 0.0;  // Wildtype: no contribution
+            } else if (brca1_status.isPartiallyEnabled()) {
+                delta_brca1 = low_delta_instability_;  // Heterozygous: low contribution
+            } else if (brca1_status.isDisabled()) {
+                delta_brca1 = 2 * high_delta_instability_;  // Homozygous: very high contribution
+            }
         }
 
         // Decision matrix:

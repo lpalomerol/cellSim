@@ -26,6 +26,19 @@ namespace domain {
         return name_;
     }
 
+    GeneStatus Gene::getStatus() const {
+        switch (state_) {
+            case State::PlusPlus:
+                return GeneStatus::enabled();
+            case State::PlusMinus:
+                return GeneStatus::partiallyEnabled();
+            case State::MinusMinus:
+                return GeneStatus::disabled();
+            default:
+                return GeneStatus::unknown();
+        }
+    }
+
     void Gene::mutate() {
         if (state_ == State::PlusPlus) {
             state_ = State::PlusMinus;

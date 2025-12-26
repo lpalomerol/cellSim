@@ -73,13 +73,13 @@ void Genome::mutate(const std::string& name) {
     }
 }
 
-// Return true if TP53 indicates genomic instability (+/- or -/-)
-// Only TP53 +/+ (wild-type) is considered stable
+// Return true if TP53 indicates genomic instability
+// Only TP53 +/+ (wildtype/enabled) is considered stable
 bool Genome::isUnstable() const {
     const Gene* tp53 = getGene(GeneNames::TP53);
     if (!tp53) return false;
-    std::string s = tp53->status();
-    return (s == GeneticStatusStrings::HETEROZYGOUS || s == GeneticStatusStrings::HOMOZYGOUS_RECESSIVE);
+    auto status = tp53->getStatus();
+    return !status.isEnabled();  // Any non-wildtype is unstable
 }
 
 } // namespace domain
