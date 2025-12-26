@@ -134,8 +134,7 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
     std::cout << "    low_delta=" << scenario.low_delta
               << ", high_delta=" << scenario.high_delta
               << ", division=" << scenario.division_rate << "\n";
-    std::cout << "    apoptosis_threshold=" << base_cfg.apoptosis_threshold
-              << ", duration=" << scenario.max_t << " años\n";
+    std::cout << ", duration=" << scenario.max_t << " años\n";
     std::cout << "  Ejecutando..." << std::flush;
 
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -163,7 +162,6 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
             scenario.division_rate,
             scenario.neoplastic_division_rate,
             scenario.enable_big_bang_mode,
-            base_cfg.apoptosis_threshold,
             2.0,  // d1_primer_threshold
             5.0,  // d2_apoptosis_threshold
             base_cfg.logger
@@ -216,13 +214,11 @@ int main() {
     std::cout << "║  Parámetros: BRCA1, TP53, neoplasm_k, low_delta,           ║\n";
     std::cout << "║              high_delta, division_rate, neoplastic_div      ║\n";
     std::cout << "║  Escenarios 10-12: Big Bang (TP53 -/- con división)         ║\n";
-    std::cout << "║  Apoptosis threshold: 10.0 (instabilidad máxima permitida)  ║\n";
     std::cout << "╚═══════════════════════════════════════════════════════════════╝\n";
 
     auto cfg = application::SimulationConfig::loadScenario("default", false);
     cfg.max_t = 50;
     cfg.n_cells = 1000;
-    cfg.apoptosis_threshold = 10.0;
 
     std::vector<ScenarioConfig> scenarios = {
         // === CONTROLES BASALES ===

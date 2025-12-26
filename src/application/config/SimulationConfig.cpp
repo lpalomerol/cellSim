@@ -13,7 +13,6 @@ namespace application {
         cfg.verbose = verbose;
         cfg.use_random_noise = true;
         cfg.division_rate = 0.001;
-        cfg.apoptosis_threshold = 10.0;
 
         // Gene parameters
         cfg.gene_thresholds = {{"TP53", 0.0010}, {"BRCA1", 0.0015}};
@@ -36,7 +35,6 @@ namespace application {
         cfg.verbose = verbose;
         cfg.use_random_noise = true;
         cfg.division_rate = 0.001;
-        cfg.apoptosis_threshold = 10.0;
 
         // Gene parameters (custom for interactive)
         cfg.gene_thresholds = {{"BRCA1", 0.0}, {"TP53", 0.00}};
@@ -59,7 +57,6 @@ namespace application {
         cfg.verbose = verbose;
         cfg.use_random_noise = true;
         cfg.division_rate = 0.1;
-        cfg.apoptosis_threshold = 0.01;
 
         // Gene parameters
         cfg.gene_thresholds = {{"BRCA1", 0.01}, {"TP53", 0.25}};

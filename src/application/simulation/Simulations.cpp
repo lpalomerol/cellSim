@@ -38,7 +38,6 @@ void Simulations::runAll() {
                     0.001,   // division_rate
                     0.001,   // neoplastic_division_rate (default)
                     false,   // enable_big_bang_mode (default false)
-                    10.0,    // apoptosis_threshold
                     2.0,     // d1_primer_threshold
                     5.0,     // d2_apoptosis_threshold
                     cfg_.logger)

@@ -31,10 +31,10 @@ namespace domain {
         /// @param division_rate Probability of cell division in phase4 (default 0.001)
         /// @param neoplastic_division_rate Probability for neoplastic cells in Big Bang mode (default 0.001)
         /// @param enable_big_bang_mode If true, neoplastic cells divide faster (default false)
-        /// @param apoptosis_instability_threshold Max D2 for apoptosis to work (default 10.0)
         /// @param logger Optional logger (default NullLogger)
         /// @param d1_primer_threshold D1 threshold to enter PRIMER state (default 2.0)
         /// @param d2_apoptosis_threshold D2 threshold to resist extrinsic apoptosis (default 5.0)
+        ///
         AgenticCell(std::unique_ptr<INoiseSource> noise,
                        Genome genome,
                        double neoplasm_k = 0.002,
@@ -43,7 +43,6 @@ namespace domain {
                        double division_rate = 0.001,
                        double neoplastic_division_rate = 0.001,
                        bool enable_big_bang_mode = false,
-                       double apoptosis_instability_threshold = 10.0,
                        const ports::ILoggerPtr& logger = nullptr,
                        double d1_primer_threshold = 2.0,
                        double d2_apoptosis_threshold = 5.0);
@@ -112,8 +111,6 @@ namespace domain {
         double neoplastic_division_rate_ = 0.001;
         bool enable_big_bang_mode_ = false;
 
-        // === Apoptosis threshold ===
-        double apoptosis_instability_threshold_ = 10.0;
 
         // === NEW: D1 and D2 instability counters ===
         /// D1: DNA damage counter (genomic instability). Starts at 1.0, grows each tick in phase4

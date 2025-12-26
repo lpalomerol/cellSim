@@ -18,7 +18,6 @@ namespace domain {
                                    double division_rate,
                                    double neoplastic_division_rate,
                                    bool enable_big_bang_mode,
-                                   double apoptosis_instability_threshold,
                                    const ports::ILoggerPtr& logger,
                                    double d1_primer_threshold,
                                    double d2_apoptosis_threshold)
@@ -31,7 +30,6 @@ namespace domain {
           division_rate_(division_rate),
           neoplastic_division_rate_(neoplastic_division_rate),
           enable_big_bang_mode_(enable_big_bang_mode),
-          apoptosis_instability_threshold_(apoptosis_instability_threshold),
           low_delta_instability_(low_delta_instability),
           high_delta_instability_(high_delta_instability),
           d1_dna_damage_(1.0),
@@ -308,7 +306,8 @@ namespace domain {
             logger_->logCell("[Phase4]   Reason: TP53=" + tp53_status + ", D1=" +
                            std::to_string(d1_dna_damage_) + " > " + std::to_string(d1_primer_threshold_));
 
-            // Check if cell can evade immune surveillance (D2 > threshold)
+            // Check if cell can evade immune surveillance
+            // Cell transforms to neoplastic if D2 exceeds the apoptosis threshold
             if (d2_immunosuppression_ > d2_apoptosis_threshold_) {
                 logger_->logCell("[Phase4]   D2=" + std::to_string(d2_immunosuppression_) +
                                " > " + std::to_string(d2_apoptosis_threshold_) +
@@ -429,7 +428,6 @@ namespace domain {
             division_rate_,
             neoplastic_division_rate_,
             enable_big_bang_mode_,
-            apoptosis_instability_threshold_,
             logger_,
             d1_primer_threshold_,      // Inherit thresholds
             d2_apoptosis_threshold_

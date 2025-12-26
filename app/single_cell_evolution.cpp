@@ -67,7 +67,6 @@ int main(int argc, char* argv[]) {
         config.division_rate,
         config.neoplastic_division_rate,
         config.enable_big_bang_mode,
-        config.apoptosis_threshold,
         2.0,         // d1_primer_threshold
         5.0,         // d2_apoptosis_threshold
         config.logger

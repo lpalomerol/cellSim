@@ -44,7 +44,6 @@ TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsParentGenomicInst
         0.01,          // division_rate: 1% to trigger division easily
         0.01,          // neoplastic_division_rate
         false,         // enable_big_bang_mode
-        10.0,          // apoptosis_instability_threshold
         logger_
     );
 
@@ -98,7 +97,6 @@ TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsAccumulatedInstab
         0.01,          // division_rate
         0.01,          // neoplastic_division_rate
         false,         // enable_big_bang_mode
-        10.0,          // apoptosis_instability_threshold
         logger_
     );
 

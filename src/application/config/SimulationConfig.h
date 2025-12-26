@@ -22,7 +22,6 @@ namespace application {
         double division_rate = 0.001;       // Tasa de división normal
         double neoplastic_division_rate = 0.001;  // Tasa de división neoplástica (Big Bang)
         bool enable_big_bang_mode = false;  // Activar Big Bang (división acelerada neoplástica)
-        double apoptosis_threshold = 10.0;  // Threshold de apoptosis
 
         // Parámetros de genes
         std::unordered_map<std::string, double> gene_thresholds;

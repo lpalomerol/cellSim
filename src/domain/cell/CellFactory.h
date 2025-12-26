@@ -26,7 +26,6 @@ public:
         double division_rate,
         double neoplastic_division_rate,
         bool enable_big_bang_mode,
-        double apoptosis_instability_threshold,
         double d1_primer_threshold,
         double d2_apoptosis_threshold,
         const ports::ILoggerPtr& logger = nullptr);
@@ -39,7 +38,6 @@ public:
         static constexpr double DIVISION_RATE = 0.001;
         static constexpr double NEOPLASTIC_DIVISION_RATE = 0.001;
         static constexpr bool ENABLE_BIG_BANG_MODE = false;
-        static constexpr double APOPTOSIS_INSTABILITY_THRESHOLD = 10.0;
         static constexpr double D1_PRIMER_THRESHOLD = 2.0;
         static constexpr double D2_APOPTOSIS_THRESHOLD = 5.0;
     };

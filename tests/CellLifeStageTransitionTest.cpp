@@ -216,7 +216,6 @@ TEST_F(CellLifeStageTransitionTest, Test13_evolution_BASELINE_to_UNSTABLE) {
         0.0,    // division_rate
         0.0,    // neoplastic_division_rate
         false,  // enable_big_bang_mode
-        10.0,   // apoptosis_threshold
         2.0,    // d1_primer_threshold
         5.0,    // d2_apoptosis_threshold
         logger_
@@ -258,7 +257,7 @@ TEST_F(CellLifeStageTransitionTest, Test14_evolution_UNSTABLE_to_UNPROTECTED) {
     auto cell = CellFactory::createCustomCell(
         std::make_unique<adapters::RandomNoise>(123),  // Different seed
         genome,
-        0.0, 0.0, 0.0, 0.0, 0.0, false, 10.0, 2.0, 5.0, logger_
+        0.0, 0.0, 0.0, 0.0, 0.0, false, 2.0, 5.0, logger_
     );
 
     // Initial state: UNSTABLE (TP53 +/-, BRCA1 +/-)
@@ -298,7 +297,6 @@ TEST_F(CellLifeStageTransitionTest, Test18_evolution_shows_immune_surveillance_c
         0.0,    // division_rate
         0.0,    // neoplastic_division_rate
         false,  // enable_big_bang_mode
-        10.0,   // apoptosis_threshold
         2.0,    // d1_primer_threshold
         5.0,    // d2_apoptosis_threshold
         logger_

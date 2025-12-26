@@ -54,7 +54,6 @@ TEST_F(NeoplasticImmortalityTest, NeoplasticCellsPropagateImmortalityToOffspring
         0.01,          // division_rate: allow division
         0.01,          // neoplastic_division_rate
         false,         // enable_big_bang_mode
-        100.0,         // apoptosis_instability_threshold (high to avoid other deaths)
         nullptr,       // logger
         2.0,           // d1_primer_threshold (standard)
         5.0            // d2_apoptosis_threshold (standard)
