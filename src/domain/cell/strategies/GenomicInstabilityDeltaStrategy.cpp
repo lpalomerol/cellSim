@@ -10,7 +10,7 @@ namespace domain {
 
         const Gene* tp53 = cell.getGenome().getGene(GeneNames::TP53);
         const Gene* brca1 = cell.getGenome().getGene(GeneNames::BRCA1);
-
+        const std::uint64_t age =  cell.getAge();
         // Calculate delta for TP53: affects D1 directly and contributes to D2
         double delta_tp53 = 0.0;
         if (tp53) {
@@ -33,8 +33,8 @@ namespace domain {
         // Decision matrix:
         // D1 (DNA damage) = Δ(TP53) only
         // D2 (Immunosuppression) = Δ(TP53) + Δ(BRCA1)
-        double delta_d1 = delta_tp53;
-        double delta_d2 = delta_tp53 + delta_brca1;
+        double delta_d1 = delta_tp53 + age * 0.00001;  // Small age factor for D1
+        double delta_d2 = delta_tp53 + delta_brca1 + age * 0.00001;  // Small age factor for D1;
 
         return InstabilityDeltas::create(delta_d1, delta_d2);
     }
