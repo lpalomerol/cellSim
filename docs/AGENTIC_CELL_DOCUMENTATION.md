@@ -113,7 +113,7 @@ Cada célula tiene 4 atributos que determinan su comportamiento:
 | **+/-** | Heterocigoto (1 copia funcional) | ✅ Célula viable, reparación parcial |
 | **-/-** | Homocigoto recesivo (0 copias funcionales) | ❌ **MUERTE inmediata** (apoptosis intrínseca) |
 
-> **Nota biológica**: BRCA1 nunca empieza como +/+ porque es un supresor tumoral que típicamente tiene una copia mutada de forma nativa en poblaciones de riesgo (ej: portadores de mutación BRCA1).
+> **Nota sobre el modelo**: En este modelo de simulación, BRCA1 inicia como +/- (heterocigoto) porque se simula una población con predisposición hereditaria al cáncer de mama (portadores de mutación germinal en BRCA1). En células normales sin predisposición hereditaria, BRCA1 sería +/+.
 
 #### 2.1.2 Gen TP53 (Tumor Protein 53 - "Guardián del Genoma")
 
@@ -508,7 +508,7 @@ donde:
   δ_TP53 = (igual que arriba)
   
   δ_BRCA1 = {
-    0.0            si BRCA1 = +/+ (no aplica, BRCA1 nativo es +/-)
+    0.0            si BRCA1 = +/+ (en modelo, BRCA1 inicia como +/-)
     low_delta      si BRCA1 = +/-  (típicamente 0.001)
     2×high_delta   si BRCA1 = -/-  (pero esto causa muerte)
   }
@@ -554,17 +554,18 @@ P(BRCA1: +/- → -/-) = μ_BRCA1 × D1  (mutación letal)
 Célula inicial:
   BRCA1 = +/-, TP53 = +/+, D1 = 1.0, D2 = 1.0, age = 0
 
-Después de 100 ciclos (TP53 = +/+):
-  D1 = 1.0 + 100 × (0.0 + 50×0.00001) = 1.0005  (casi sin cambio)
-  D2 = 1.0 + 100 × (0.0 + 0.001 + 50×0.00001) = 1.105
+Después de 100 ciclos (TP53 = +/+, age promedio = 50):
+  # Nota: age promedio durante 100 ciclos = 50 (promedio de 0 a 100)
+  D1 = 1.0 + 100 × (0.0 + 0.0005) = 1.05  (casi sin cambio, solo factor edad)
+  D2 = 1.0 + 100 × (0.0 + 0.001 + 0.0005) = 1.15
 
 Después de mutación TP53 (+/+ → +/-):
-  D1 = 1.0005 + ciclos × (0.001 + age×0.00001)
-  D2 = 1.105 + ciclos × (0.001 + 0.001 + age×0.00001)
+  D1 = 1.05 + ciclos × (0.001 + age×0.00001)
+  D2 = 1.15 + ciclos × (0.001 + 0.001 + age×0.00001)
 
 Después de 100 ciclos adicionales (TP53 = +/-):
-  D1 ≈ 1.0005 + 100 × 0.001 = 1.1005
-  D2 ≈ 1.105 + 100 × 0.002 = 1.305
+  D1 ≈ 1.05 + 100 × 0.001 = 1.15
+  D2 ≈ 1.15 + 100 × 0.002 = 1.35
 
 Después de segunda mutación TP53 (+/- → -/-):
   D1 crece ahora con high_delta (0.003)
@@ -825,11 +826,11 @@ docs/diagrams_luis/
 
 ### 9.4 Referencias Biológicas
 
-1. **Tomasetti et al. (2017)**: "Big bang model" of tumor growth
-2. **Tomasetti & Vogelstein (2015)**: Cancer driver genes and clonal expansion
-3. **Armitage & Doll (1954)**: Multi-stage carcinogenesis model
-4. **BRCA1 Function**: DNA double-strand break repair via homologous recombination
-5. **TP53 Function**: Cell cycle arrest, DNA repair initiation, apoptosis induction
+1. **Tomasetti C., Li L., Vogelstein B. (2017)**: Stem cell divisions, somatic mutations, cancer etiology, and cancer prevention. *Science*, 355(6331), 1330-1334.
+2. **Tomasetti C., Vogelstein B. (2015)**: Variation in cancer risk among tissues can be explained by the number of stem cell divisions. *Science*, 347(6217), 78-81.
+3. **Armitage P., Doll R. (1954)**: The age distribution of cancer and a multi-stage theory of carcinogenesis. *British Journal of Cancer*, 8(1), 1-12.
+4. **BRCA1 Function**: DNA double-strand break repair via homologous recombination. Ver: Venkitaraman AR. (2002). Cancer susceptibility and the functions of BRCA1 and BRCA2. *Cell*, 108(2), 171-182.
+5. **TP53 Function**: Cell cycle arrest, DNA repair initiation, apoptosis induction. Ver: Vogelstein B., Lane D., Levine A.J. (2000). Surfing the p53 network. *Nature*, 408(6810), 307-310.
 
 ---
 
