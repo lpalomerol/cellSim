@@ -40,6 +40,8 @@ Un modelo de simulación donde las células son **agentes autónomos** que evolu
 - ✅ **D1 alto + D2 bajo = APOPTOSIS EXTRÍNSECA** (el tejido mata la célula)
 - ✅ **D1 alto + D2 alto = TUMOR** (la célula evade y se transforma)
 
+> ⚙️ **NOTA DE CONFIGURABILIDAD**: Todos los procesos del modelo son **completamente configurables**. Los parámetros de D1 y D2 (deltas, umbrales, valores máximos), las tasas de mutación, división celular y transformación neoplásica pueden ajustarse según las necesidades del escenario de simulación. Ver la sección [Parámetros Configurables](#parámetros-configurables) para más detalles.
+
 ---
 
 ## 📚 Índice de Contenidos
@@ -52,7 +54,8 @@ Un modelo de simulación donde las células son **agentes autónomos** que evolu
 6. [Modelo Matemático](#6-modelo-matemático)
 7. [Ciclo de Vida Celular (6 Fases)](#7-ciclo-de-vida-celular-6-fases)
 8. [Escenarios y Validación](#8-escenarios-y-validación)
-9. [Referencias y Código Fuente](#9-referencias-y-código-fuente)
+9. [Parámetros Configurables](#9-parámetros-configurables)
+10. [Referencias y Código Fuente](#10-referencias-y-código-fuente)
 
 ---
 
@@ -92,18 +95,18 @@ Cuando estos sistemas fallan, las células pueden acumular mutaciones, evitar la
 Cada célula tiene 4 atributos que determinan su comportamiento:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    ESTRUCTURA DE LA CÉLULA                       │
-└─────────────────────────────────────────────────────────────────┘
++---------------------------------------------------------------+
+|                    ESTRUCTURA DE LA CÉLULA                     |
++---------------------------------------------------------------+
 
-                    ┌─────────────────────────┐
-                    │      CÉLULA            │
-                    ├─────────────────────────┤
-                    │ BRCA1: +/- o -/-       │ ← Gen de reparación ADN
-                    │ TP53:  +/+ o +/- o -/- │ ← Supresor tumoral
-                    │ D1:    [0, 999]        │ ← Inestabilidad genómica
-                    │ D2:    [0, 999]        │ ← Resistencia inmune
-                    └─────────────────────────┘
+                    +-------------------------+
+                    |        CÉLULA           |
+                    +-------------------------+
+                    | BRCA1: +/- o -/-        |  <-- Gen de reparación ADN
+                    | TP53:  +/+ o +/- o -/-  |  <-- Supresor tumoral
+                    | D1:    [0, 999]         |  <-- Inestabilidad genómica
+                    | D2:    [0, 999]         |  <-- Resistencia inmune
+                    +-------------------------+
 ```
 
 #### 2.1.1 Gen BRCA1 (Breast Cancer Susceptibility Gene 1)
@@ -142,26 +145,27 @@ D2 representa la **capacidad de la célula para evadir la respuesta inmune**:
 ### 2.2 Diagrama de la Célula
 
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│                        CÉLULA AGÉNTICA                              │
-├────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   ┌──────────────┐         ┌──────────────────────────────────┐    │
-│   │   GENOMA     │         │   ACUMULADORES DE INESTABILIDAD  │    │
-│   ├──────────────┤         ├──────────────────────────────────┤    │
-│   │ BRCA1: +/-   │←────────│ D1: Inestabilidad Genómica       │    │
-│   │ TP53:  +/+   │←────────│    (crece con edad + mutaciones) │    │
-│   └──────────────┘         │                                  │    │
-│         ↓                  │ D2: Resistencia Inmune           │    │
-│   ┌──────────────┐         │    (crece con edad + mutaciones) │    │
-│   │ MUTACIONES   │         └──────────────────────────────────┘    │
-│   │ (aleatorias) │                       ↓                         │
-│   └──────────────┘         ┌──────────────────────────────────┐    │
-│                            │   ESTADO DERIVADO (CellLifeStage) │    │
-│                            │   • BASELINE / UNSTABLE /         │    │
-│                            │   • UNPROTECTED / PRIMER / TUMORAL│    │
-│                            └──────────────────────────────────┘    │
-└────────────────────────────────────────────────────────────────────┘
++------------------------------------------------------------------------+
+|                          CÉLULA AGÉNTICA                                |
++------------------------------------------------------------------------+
+|                                                                         |
+|   +----------------+           +----------------------------------+     |
+|   |    GENOMA      |           |  ACUMULADORES DE INESTABILIDAD   |     |
+|   +----------------+           +----------------------------------+     |
+|   | BRCA1: +/-     |<--------->| D1: Inestabilidad Genómica       |     |
+|   | TP53:  +/+     |<--------->|     (crece con edad + mutaciones)|     |
+|   +----------------+           |                                  |     |
+|          |                     | D2: Resistencia Inmune           |     |
+|          v                     |     (crece con edad + mutaciones)|     |
+|   +----------------+           +----------------------------------+     |
+|   |  MUTACIONES    |                          |                         |
+|   |  (aleatorias)  |                          v                         |
+|   +----------------+           +----------------------------------+     |
+|                                | ESTADO DERIVADO (CellLifeStage)  |     |
+|                                | - BASELINE / UNSTABLE            |     |
+|                                | - UNPROTECTED / PRIMER / TUMORAL |     |
+|                                +----------------------------------+     |
++------------------------------------------------------------------------+
 ```
 
 ---
@@ -173,42 +177,43 @@ D2 representa la **capacidad de la célula para evadir la respuesta inmune**:
 El estado de la célula se **deriva en tiempo real** de sus atributos internos:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│              ESTADOS CELULARES (CellLifeStage)                   │
-└─────────────────────────────────────────────────────────────────┘
++---------------------------------------------------------------+
+|              ESTADOS CELULARES (CellLifeStage)                 |
++---------------------------------------------------------------+
 
-    ┌──────────┐      ┌──────────┐      ┌─────────────┐
-    │  DEAD    │      │ BASELINE │ ──→  │  UNSTABLE   │
-    │  (Muerta)│      │ (Sana)   │      │ (Inestable) │
-    └──────────┘      └──────────┘      └─────────────┘
-                           │                   │
-                           │                   ↓
-                      TP53 +/+           TP53 +/-
-                           │                   │
-                           │                   │
-                           └─────────┬─────────┘
-                                     ↓
-                           ┌─────────────────┐
-                           │  UNPROTECTED    │
-                           │  (Sin protección)│
-                           │  TP53 -/-       │
-                           └────────┬────────┘
-                                    │
+    +----------+      +----------+      +-------------+
+    |   DEAD   |      | BASELINE | ---> |  UNSTABLE   |
+    | (Muerta) |      |  (Sana)  |      | (Inestable) |
+    +----------+      +----------+      +-------------+
+                           |                   |
+                           |                   v
+                      TP53 +/+            TP53 +/-
+                           |                   |
+                           |                   |
+                           +--------+----------+
+                                    |
+                                    v
+                           +-----------------+
+                           |   UNPROTECTED   |
+                           | (Sin protección)|
+                           |    TP53 -/-     |
+                           +--------+--------+
+                                    |
                               D1 > umbral
-                                    ↓
-                           ┌─────────────────┐
-                           │    PRIMER       │
-                           │  (Pre-tumoral)  │
-                           │  Detectable     │
-                           └────────┬────────┘
-                                    │
+                                    v
+                           +-----------------+
+                           |     PRIMER      |
+                           |  (Pre-tumoral)  |
+                           |   Detectable    |
+                           +--------+--------+
+                                    |
                            D2 > umbral (evade)
-                                    ↓
-                           ┌─────────────────┐
-                           │   TUMORAL       │
-                           │  (Neoplásica)   │
-                           │  Inmortal       │
-                           └─────────────────┘
+                                    v
+                           +-----------------+
+                           |    TUMORAL      |
+                           |  (Neoplásica)   |
+                           |    Inmortal     |
+                           +-----------------+
 ```
 
 ### 3.2 Tabla de Estados
@@ -253,65 +258,65 @@ def get_cell_life_stage(cell):
 ### 4.1 Diagrama de Evolución Completo
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│           EVOLUCIÓN CELULAR: DE SANA A TUMORAL                          │
-└─────────────────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------------------+
+|            EVOLUCIÓN CELULAR: DE SANA A TUMORAL                          |
++-------------------------------------------------------------------------+
 
-TIEMPO ────────────────────────────────────────────────────────────────────→
+TIEMPO ----------------------------------------------------------------------->
 
-        ┌──────────────────────────────────────────────────────────────────┐
-        │  CÉLULA SANA (BASELINE)                                          │
-        │  BRCA1: +/-    TP53: +/+    D1: 1.0    D2: 1.0                   │
-        │  ✅ Protegida por TP53    ✅ Sin acumulación de daño             │
-        └────────────────────────────────┬─────────────────────────────────┘
-                                         │
-                            ┌────────────┴────────────┐
-                            │ MUTACIÓN TP53 (+/+ → +/-)│
-                            │ Probabilidad: ~1% /ciclo │
-                            └────────────┬────────────┘
-                                         ↓
-        ┌──────────────────────────────────────────────────────────────────┐
-        │  CÉLULA INESTABLE (UNSTABLE)                                     │
-        │  BRCA1: +/-    TP53: +/-    D1: 1.0+δ    D2: 1.0+δ               │
-        │  ⚠️ Protección parcial    ⚠️ D1/D2 crecen con low_delta         │
-        └────────────────────────────────┬─────────────────────────────────┘
-                                         │
-                            ┌────────────┴────────────┐
-                            │ MUTACIÓN TP53 (+/- → -/-)│
-                            │ Probabilidad: ~1% /ciclo │
-                            └────────────┬────────────┘
-                                         ↓
-        ┌──────────────────────────────────────────────────────────────────┐
-        │  CÉLULA SIN PROTECCIÓN (UNPROTECTED)                             │
-        │  BRCA1: +/-    TP53: -/-    D1: crece    D2: crece               │
-        │  ❌ Sin protección TP53    ❌ D1/D2 crecen con high_delta        │
-        │  ⚠️ Vulnerable a transformación neoplásica                       │
-        └────────────────────────────────┬─────────────────────────────────┘
-                                         │
-                            ┌────────────┴────────────┐
-                            │ D1 > d1_primer_threshold │
-                            │ (típicamente D1 > 2.0)   │
-                            └────────────┬────────────┘
-                                         ↓
-        ┌──────────────────────────────────────────────────────────────────┐
-        │  CÉLULA PRE-TUMORAL (PRIMER)                                     │
-        │  BRCA1: +/-    TP53: -/-    D1: alto    D2: variable             │
-        │  🔍 Detectable por el tejido                                     │
-        │  🎯 El tejido intenta inducir apoptosis extrínseca               │
-        └──────────────────────┬───────────────────────┬───────────────────┘
-                               │                       │
-              ┌────────────────┴────────────┐ ┌───────┴───────────────────┐
-              │ D2 < d2_apoptosis_threshold │ │ D2 > d2_apoptosis_threshold│
-              │ (D2 bajo = no evade)        │ │ (D2 alto = evade apoptosis)│
-              └────────────────┬────────────┘ └───────┬───────────────────┘
-                               ↓                       ↓
-        ┌──────────────────────────────┐  ┌────────────────────────────────┐
-        │        APOPTOSIS              │  │     CÉLULA TUMORAL (TUMORAL)   │
-        │  ❌ Célula muere              │  │  BRCA1: +/-    TP53: -/-       │
-        │  (apoptosis extrínseca)       │  │  D1: alto    D2: alto          │
-        │                               │  │  🔴 Neoplásica    🔴 Inmortal  │
-        └──────────────────────────────┘  │  🔴 Puede dividirse (Big Bang)  │
-                                          └────────────────────────────────┘
+        +----------------------------------------------------------------------+
+        |  CÉLULA SANA (BASELINE)                                              |
+        |  BRCA1: +/-    TP53: +/+    D1: 1.0    D2: 1.0                       |
+        |  [OK] Protegida por TP53    [OK] Sin acumulación de daño             |
+        +----------------------------------+-----------------------------------+
+                                           |
+                              +------------+------------+
+                              | MUTACIÓN TP53 (+/+ -> +/-)|
+                              | Probabilidad: ~1% /ciclo  |
+                              +------------+------------+
+                                           v
+        +----------------------------------------------------------------------+
+        |  CÉLULA INESTABLE (UNSTABLE)                                         |
+        |  BRCA1: +/-    TP53: +/-    D1: 1.0+d    D2: 1.0+d                   |
+        |  [!] Protección parcial    [!] D1/D2 crecen con low_delta            |
+        +----------------------------------+-----------------------------------+
+                                           |
+                              +------------+------------+
+                              | MUTACIÓN TP53 (+/- -> -/-)|
+                              | Probabilidad: ~1% /ciclo  |
+                              +------------+------------+
+                                           v
+        +----------------------------------------------------------------------+
+        |  CÉLULA SIN PROTECCIÓN (UNPROTECTED)                                 |
+        |  BRCA1: +/-    TP53: -/-    D1: crece    D2: crece                   |
+        |  [X] Sin protección TP53    [X] D1/D2 crecen con high_delta          |
+        |  [!] Vulnerable a transformación neoplásica                          |
+        +----------------------------------+-----------------------------------+
+                                           |
+                              +------------+------------+
+                              | D1 > d1_primer_threshold  |
+                              | (típicamente D1 > 2.0)    |
+                              +------------+------------+
+                                           v
+        +----------------------------------------------------------------------+
+        |  CÉLULA PRE-TUMORAL (PRIMER)                                         |
+        |  BRCA1: +/-    TP53: -/-    D1: alto    D2: variable                 |
+        |  [?] Detectable por el tejido                                        |
+        |  [!] El tejido intenta inducir apoptosis extrínseca                  |
+        +------------------+---------------------------+-----------------------+
+                           |                           |
+          +----------------+---------------+  +--------+------------------------+
+          | D2 < d2_apoptosis_threshold    |  | D2 > d2_apoptosis_threshold     |
+          | (D2 bajo = no evade)           |  | (D2 alto = evade apoptosis)     |
+          +----------------+---------------+  +--------+------------------------+
+                           v                           v
+        +------------------------------+  +------------------------------------+
+        |        APOPTOSIS             |  |     CÉLULA TUMORAL (TUMORAL)       |
+        |  [X] Célula muere            |  |  BRCA1: +/-    TP53: -/-           |
+        |  (apoptosis extrínseca)      |  |  D1: alto    D2: alto              |
+        |                              |  |  [!] Neoplásica    [!] Inmortal    |
+        +------------------------------+  |  [!] Puede dividirse (Big Bang)    |
+                                          +------------------------------------+
 ```
 
 ### 4.2 Caminos Posibles
@@ -322,10 +327,10 @@ La célula puede tomar diferentes caminos según las mutaciones que acumule:
 
 ```
 BASELINE (BRCA1 +/-, TP53 +/+)
-    │
-    ├── MUTACIÓN BRCA1 (+/- → -/-)
-    │
-    ↓
+    |
+    +-- MUTACIÓN BRCA1 (+/- -> -/-)
+    |
+    v
 MUERTE INMEDIATA (apoptosis intrínseca en Fase 1)
 ```
 
@@ -334,26 +339,26 @@ MUERTE INMEDIATA (apoptosis intrínseca en Fase 1)
 #### Camino 2: Apoptosis Extrínseca
 
 ```
-BASELINE → UNSTABLE → UNPROTECTED → PRIMER
-    │
-    ├── D2 bajo (< umbral)
-    ├── Tejido detecta célula anómala
-    ├── Envía señal de apoptosis
-    │
-    ↓
+BASELINE -> UNSTABLE -> UNPROTECTED -> PRIMER
+    |
+    +-- D2 bajo (< umbral)
+    +-- Tejido detecta célula anómala
+    +-- Envía señal de apoptosis
+    |
+    v
 MUERTE (apoptosis extrínseca en Fase 2)
 ```
 
 #### Camino 3: Transformación Tumoral (Big Bang)
 
 ```
-BASELINE → UNSTABLE → UNPROTECTED → PRIMER
-    │
-    ├── D1 alto + D2 alto
-    ├── Célula evade apoptosis extrínseca
-    ├── Transformación neoplásica
-    │
-    ↓
+BASELINE -> UNSTABLE -> UNPROTECTED -> PRIMER
+    |
+    +-- D1 alto + D2 alto
+    +-- Célula evade apoptosis extrínseca
+    +-- Transformación neoplásica
+    |
+    v
 TUMORAL (inmortal, puede dividirse)
 ```
 
@@ -433,34 +438,34 @@ Donde los deltas (δ) dependen del estado mutacional:
 ### 5.3 Diagrama de Acumulación
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│         DINÁMICA DE ACUMULACIÓN DE D1 Y D2                              │
-└─────────────────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------------------+
+|         DINÁMICA DE ACUMULACIÓN DE D1 Y D2                               |
++-------------------------------------------------------------------------+
 
 D1, D2
-   │
-   │                                           ╱╱╱╱╱ TP53 -/- (high_delta)
-   │                                       ╱╱╱╱
-   │                                    ╱╱╱╱
-   │                                 ╱╱╱╱
-   │                              ╱╱╱╱
-   │                           ╱╱╱╱
-   │                        ╱╱╱╱
-   │                     ╱╱╱╱
-   │                  ╱╱╱╱  ────── TP53 +/- (low_delta)
-   │               ╱╱╱  ──────
-   │            ╱╱╱ ──────
-   │         ╱╱ ──────
-   │      ╱ ──────
-   │   ╱──────  ═══════════════ TP53 +/+ (delta = 0)
-   │╱══════════════════════════════════════════════════════════
-   └────────────────────────────────────────────────────────────── Tiempo
+   |
+   |                                           /// TP53 -/- (high_delta)
+   |                                       ///
+   |                                    ///
+   |                                 ///
+   |                              ///
+   |                           ///
+   |                        ///
+   |                     ///
+   |                  ///  ------ TP53 +/- (low_delta)
+   |               ///  ------
+   |            ///  ------
+   |         ///  ------
+   |      /// ------
+   |   ///------  =============== TP53 +/+ (delta = 0)
+   |///===========================================================
+   +----------------------------------------------------------------- Tiempo
         0        10        20        30        40        50
 
 LEYENDA:
-  ═══ TP53 +/+ : D1/D2 estables (solo crece mínimamente con edad)
-  ─── TP53 +/- : D1/D2 crecen moderadamente
-  ╱╱╱ TP53 -/- : D1/D2 crecen rápidamente
+  === TP53 +/+ : D1/D2 estables (solo crece mínimamente con edad)
+  --- TP53 +/- : D1/D2 crecen moderadamente
+  /// TP53 -/- : D1/D2 crecen rápidamente
 ```
 
 ### 5.4 Tabla de Incrementos por Ciclo
@@ -588,35 +593,35 @@ Después de 100 ciclos más (TP53 = -/-):
 Cada célula ejecuta **6 fases secuenciales** en cada tick de simulación:
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    CICLO DE VIDA CELULAR (6 FASES)                       │
-└─────────────────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------------------+
+|                    CICLO DE VIDA CELULAR (6 FASES)                       |
++-------------------------------------------------------------------------+
 
-  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
-  │  FASE 0     │   │  FASE 1     │   │  FASE 2     │
-  │  Baseline   │──→│  G1 Check   │──→│ Endocytosis │
-  │  Assessment │   │  (BRCA1)    │   │ (Apoptosis) │
-  └─────────────┘   └─────────────┘   └─────────────┘
-                          │                  │
+  +-------------+   +-------------+   +-------------+
+  |   FASE 0    |   |   FASE 1    |   |   FASE 2    |
+  |  Baseline   |-->|  G1 Check   |-->| Endocytosis |
+  |  Assessment |   |  (BRCA1)    |   | (Apoptosis) |
+  +-------------+   +-------------+   +-------------+
+                          |                  |
                     BRCA1 -/- ?         D2 < umbral?
-                          ↓                  ↓
+                          v                  v
                       MUERTE             MUERTE
                     (intrínseca)       (extrínseca)
 
                     (si sobrevive)    (si sobrevive)
-                          ↓                  ↓
-                    ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
-                    │  FASE 3     │   │  FASE 4     │   │  FASE 5     │
-                    │  Nuclear    │──→│ Remodeling  │──→│ Exocytosis  │
-                    │  Dynamics   │   │  (D1, D2)   │   │ (Señales)   │
-                    └─────────────┘   └─────────────┘   └─────────────┘
-                          │                  │                  │
+                          v                  v
+                    +-------------+   +-------------+   +-------------+
+                    |   FASE 3    |   |   FASE 4    |   |   FASE 5    |
+                    |  Nuclear    |-->| Remodeling  |-->| Exocytosis  |
+                    |  Dynamics   |   |  (D1, D2)   |   | (Señales)   |
+                    +-------------+   +-------------+   +-------------+
+                          |                  |                  |
                      Mutaciones         Actualiza         Emite señales
                     (BRCA1, TP53)       D1 y D2          al tejido
-                                             │
-                                    ¿División? ¿Transformación?
-                                             ↓
-                                    age++ → Siguiente ciclo
+                                             |
+                                    Division? Transformacion?
+                                             v
+                                    age++ -> Siguiente ciclo
 ```
 
 ### 7.2 Detalle de Cada Fase
@@ -787,9 +792,110 @@ FASE 4: DOMINIO (Años 70-80)
 
 ---
 
-## 9. Referencias y Código Fuente
+## 9. Parámetros Configurables
 
-### 9.1 Archivos Clave del Código
+> ⚙️ **IMPORTANTE**: El modelo Agentic Cell es **completamente configurable**. Todos los parámetros pueden ajustarse para simular diferentes escenarios biológicos, desde poblaciones normales hasta casos de alta predisposición genética.
+
+### 9.1 Configuración de Inestabilidad (InstabilityConfig)
+
+Controla cómo crecen los acumuladores D1 y D2:
+
+| Parámetro | Valor por Defecto | Descripción | Rango Típico |
+|-----------|-------------------|-------------|--------------|
+| `low_delta` | 0.001 | Incremento de D1/D2 para mutaciones heterocigotas (TP53 +/-) | 0.0001 - 0.01 |
+| `high_delta` | 0.003 | Incremento de D1/D2 para mutaciones homocigotas (TP53 -/-) | 0.001 - 0.05 |
+| `max_d1` | 999.0 | Valor máximo de saturación para D1 | 100.0 - 999.0 |
+| `max_d2` | 999.0 | Valor máximo de saturación para D2 | 100.0 - 999.0 |
+
+**Ejemplo de uso:**
+```cpp
+InstabilityConfig config;
+config.low_delta = 0.002;   // Incremento más rápido
+config.high_delta = 0.01;   // Inestabilidad severa
+config.max_d1 = 500.0;      // Saturación más temprana
+```
+
+### 9.2 Configuración de División (DivisionConfig)
+
+Controla las tasas de reproducción celular:
+
+| Parámetro | Valor por Defecto | Descripción | Rango Típico |
+|-----------|-------------------|-------------|--------------|
+| `base_rate` | 0.001 | Probabilidad de división por ciclo (células normales) | 0.0001 - 0.15 |
+| `neoplastic_rate` | 0.001 | Probabilidad de división por ciclo (células neoplásicas) | 0.001 - 0.25 |
+| `enable_big_bang` | false | Modo Big Bang: división acelerada de neoplásicas | true/false |
+
+### 9.3 Configuración de Umbrales (ThresholdConfig)
+
+Controla los puntos de transición entre estados:
+
+| Parámetro | Valor por Defecto | Descripción | Rango Típico |
+|-----------|-------------------|-------------|--------------|
+| `d1_primer` | 2.0 | Umbral de D1 para entrar en estado PRIMER | 1.0 - 10.0 |
+| `d2_apoptosis` | 5.0 | Umbral de D2 para resistir apoptosis extrínseca | 3.0 - 20.0 |
+| `neoplasm_k` | 0.002 | Probabilidad base de transformación neoplásica | 0.001 - 0.1 |
+
+### 9.4 Tasas de Mutación
+
+Las tasas de mutación para cada gen también son configurables:
+
+| Gen | Parámetro | Valor por Defecto | Descripción |
+|-----|-----------|-------------------|-------------|
+| BRCA1 | `BRCA1_threshold` | 0.05 (5%) | Probabilidad de mutación +/- → -/- por ciclo |
+| TP53 | `TP53_threshold` | 0.01 (1%) | Probabilidad de mutación por ciclo |
+
+### 9.5 Cómo Ajustar los Parámetros
+
+Los parámetros se pueden ajustar de tres formas:
+
+1. **En código**: Modificando los structs de configuración al crear células
+2. **Por escenario**: Usando `SimulationConfig` para cargar configuraciones predefinidas
+3. **En tiempo de ejecución**: Algunos parámetros pueden modificarse dinámicamente
+
+**Ejemplo de configuración completa:**
+```cpp
+// Configurar una célula con parámetros personalizados
+InstabilityConfig instab{
+    .low_delta = 0.002,
+    .high_delta = 0.008,
+    .max_d1 = 999.0,
+    .max_d2 = 999.0
+};
+
+DivisionConfig div{
+    .base_rate = 0.05,
+    .neoplastic_rate = 0.10,
+    .enable_big_bang = true
+};
+
+ThresholdConfig thresh{
+    .d1_primer = 3.0,
+    .d2_apoptosis = 8.0,
+    .neoplasm_k = 0.01
+};
+
+auto cell = std::make_unique<AgenticCell>(
+    noise, genome, instab, div, thresh, logger
+);
+```
+
+### 9.6 Efectos de Modificar D1 y D2
+
+La siguiente tabla resume el efecto de modificar los parámetros de D1 y D2:
+
+| Cambio | Efecto en Simulación | Interpretación Biológica |
+|--------|---------------------|--------------------------|
+| ↑ `low_delta` | Células acumulan inestabilidad más rápido en TP53 +/- | Mayor sensibilidad a haploinsuficiencia |
+| ↑ `high_delta` | Células en TP53 -/- progresan más rápido a PRIMER | Mayor agresividad tumoral |
+| ↓ `d1_primer` | Células entran en PRIMER con menos daño | Detección más temprana por el tejido |
+| ↑ `d2_apoptosis` | Células necesitan más resistencia para evadir | Sistema inmune más efectivo |
+| ↑ `neoplasm_k` | Mayor probabilidad de transformación | Microambiente pro-tumoral |
+
+---
+
+## 10. Referencias y Código Fuente
+
+### 10.1 Archivos Clave del Código
 
 | Archivo | Descripción |
 |---------|-------------|
@@ -800,7 +906,7 @@ FASE 4: DOMINIO (Años 70-80)
 | `src/domain/cell/model/InstabilityDeltas.h` | Value object para deltas D1/D2 |
 | `src/domain/gene/Genome.h` | Genoma con BRCA1 y TP53 |
 
-### 9.2 Documentación Adicional
+### 10.2 Documentación Adicional
 
 | Documento | Descripción |
 |-----------|-------------|
@@ -811,26 +917,28 @@ FASE 4: DOMINIO (Años 70-80)
 | `BIG_BANG_SUMMARY.md` | Resumen ejecutivo del Big Bang |
 | `INDEX.md` | Índice de validación con 14 escenarios |
 
-### 9.3 Diagramas Originales
+### 10.3 Diagramas Originales
 
 Los diagramas originales de la discusión del modelo se encuentran en:
 
 ```
 docs/diagrams_luis/
-├── celula.png           # Estructura de la célula
-├── estado_1.png         # Estados iniciales
-├── estado_2_base.png    # Estados con duplicidades
-├── estado_2_simplificado.png  # Estados simplificados
-└── resumen.txt          # Notas del meeting
++-- celula.png                # Estructura de la célula
++-- estado_1.png              # Estados iniciales
++-- estado_2_base.png         # Estados con duplicidades
++-- estado_2_simplificado.png # Estados simplificados
++-- resumen.txt               # Notas del meeting
 ```
 
-### 9.4 Referencias Biológicas
+### 10.4 Referencias Biológicas
 
-1. **Tomasetti C., Li L., Vogelstein B. (2017)**: Stem cell divisions, somatic mutations, cancer etiology, and cancer prevention. *Science*, 355(6331), 1330-1334.
-2. **Tomasetti C., Vogelstein B. (2015)**: Variation in cancer risk among tissues can be explained by the number of stem cell divisions. *Science*, 347(6217), 78-81.
-3. **Armitage P., Doll R. (1954)**: The age distribution of cancer and a multi-stage theory of carcinogenesis. *British Journal of Cancer*, 8(1), 1-12.
-4. **BRCA1 Function**: DNA double-strand break repair via homologous recombination. Ver: Venkitaraman AR. (2002). Cancer susceptibility and the functions of BRCA1 and BRCA2. *Cell*, 108(2), 171-182.
-5. **TP53 Function**: Cell cycle arrest, DNA repair initiation, apoptosis induction. Ver: Vogelstein B., Lane D., Levine A.J. (2000). Surfing the p53 network. *Nature*, 408(6810), 307-310.
+> 📚 **Nota sobre las referencias**: Las siguientes referencias son académicas y verificadas. Corresponden a artículos publicados en revistas científicas de alto impacto (Science, Nature, Cell, British Journal of Cancer). Se recomienda consultar las fuentes originales para profundizar en los conceptos biológicos.
+
+1. **Tomasetti C., Li L., Vogelstein B. (2017)**: Stem cell divisions, somatic mutations, cancer etiology, and cancer prevention. *Science*, 355(6331), 1330-1334. DOI: 10.1126/science.aaf9011
+2. **Tomasetti C., Vogelstein B. (2015)**: Variation in cancer risk among tissues can be explained by the number of stem cell divisions. *Science*, 347(6217), 78-81. DOI: 10.1126/science.1260825
+3. **Armitage P., Doll R. (1954)**: The age distribution of cancer and a multi-stage theory of carcinogenesis. *British Journal of Cancer*, 8(1), 1-12. DOI: 10.1038/bjc.1954.1
+4. **Venkitaraman A.R. (2002)**: Cancer susceptibility and the functions of BRCA1 and BRCA2. *Cell*, 108(2), 171-182. DOI: 10.1016/s0092-8674(02)00615-3
+5. **Vogelstein B., Lane D., Levine A.J. (2000)**: Surfing the p53 network. *Nature*, 408(6810), 307-310. DOI: 10.1038/35042675
 
 ---
 
