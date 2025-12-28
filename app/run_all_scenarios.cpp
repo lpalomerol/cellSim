@@ -338,10 +338,7 @@ int main() {
 
     // Ejecutar solo el escenario 09 para validar cambios
     for (const auto& scenario : scenarios) {
-        if (scenario.name == "11_big_bang_tumoral_reproduccion") {
-            runScenario(scenario, cfg);
-            break;
-        }
+        runScenario(scenario, cfg);
     }
 
     auto total_end = std::chrono::system_clock::now();

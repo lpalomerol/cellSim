@@ -49,16 +49,27 @@ public:
     // Return true if TP53 indicates instability (TP53 == +/- or -/-)
     [[nodiscard]] bool isUnstable() const;
 
-    /// Determines if genomic state allows cell to be viable
-    /// Rules:
-    /// - BRCA1 missing → NOT viable
-    /// - BRCA1 disabled (-/-) + TP53 disabled (-/-) → viable (no checkpoint)
-    /// - BRCA1 disabled (-/-) + TP53 functional → NOT viable (checkpoint kills cell)
-    /// - BRCA1 functional (enabled or partially_enabled) → viable
-    [[nodiscard]] bool isCellViable() const;
+    // ===== Genomic Queries (Information Provider - NOT Decision Maker) =====
+
+    /// Query: Does the cell have BRCA1 mutation (disabled)?
+    /// BRCA1 -/- compromises DNA repair capability
+    [[nodiscard]] bool hasBRCA1Mutation() const;
+
+    /// Query: Does the cell have functional TP53?
+    /// TP53 functional (enabled or partially_enabled) can detect DNA damage
+    [[nodiscard]] bool hasTP53Function() const;
+
+    /// Query: Is TP53 completely lost (disabled)?
+    /// TP53 -/- means no tumor suppressor checkpoint
+    [[nodiscard]] bool hasTP53Loss() const;
+
+    /// Query: Does TP53 indicate genomic instability?
+    /// TP53 +/- or -/- suggests compromised genome integrity
+    [[nodiscard]] bool hasTP53Instability() const;
 
     /// Returns whether genome indicates neoplastic protection
     /// TP53 functional (enabled or partially_enabled) can eliminate damaged cells
+    /// DEPRECATED: Prefer hasTP53Function() for clarity
     [[nodiscard]] bool hasNeoplasticProtection() const;
 
 private:

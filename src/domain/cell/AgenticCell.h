@@ -151,9 +151,7 @@ namespace domain {
         // === Private helper methods ===
         void develop_neoplasm();
         void increaseAge();
-        void adjust_neoplasm_k();
         std::unique_ptr<AgenticCell> attemptDivision();
-        void attemptApoptosis();
 
         /// Calculate instability deltas (delta_d1, delta_d2) based on current genetic state
         /// @return pair<double, double> where first=delta_d1, second=delta_d2
@@ -165,8 +163,6 @@ namespace domain {
         /// Delegates to injected IInstabilityDeltaStrategy to calculate D1/D2 increments
         [[nodiscard]] InstabilityDeltas calculateInstabilityDeltas() const;
 
-        /// Update D1 and D2 based on BRCA1 and TP53 status
-        void updateInstability();
     };
 
 } // namespace domain

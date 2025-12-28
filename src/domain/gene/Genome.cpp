@@ -76,40 +76,48 @@ void Genome::mutate(const std::string& name) {
 // Return true if TP53 indicates genomic instability
 // Only TP53 +/+ (wildtype/enabled) is considered stable
 bool Genome::isUnstable() const {
-    const Gene* tp53 = getGene(GeneNames::TP53);
-    if (!tp53) return false;
-    auto status = tp53->getStatus();
-    return !status.isEnabled();  // Any non-wildtype is unstable
+    return hasTP53Instability();
 }
 
-bool Genome::isCellViable() const {
+// ===== Genomic Queries (Information Provider) =====
+
+bool Genome::hasBRCA1Mutation() const {
     const Gene* brca1 = getGene(GeneNames::BRCA1);
-    const Gene* tp53 = getGene(GeneNames::TP53);
-
-    // BRCA1 missing → dead
     if (!brca1) {
-        return false;
+        return false;  // Gene missing ≠ mutation
     }
+    return brca1->getStatus().isDisabled();  // BRCA1 -/-
+}
 
-    // BRCA1 -/- (disabled) is lethal ONLY if TP53 is functional
-    if (brca1->getStatus().isDisabled()) {
-        // TP53 -/- (disabled) cannot kill the cell → alive
-        if (tp53 && tp53->getStatus().isDisabled()) {
-            return true;
-        }
-        // TP53 functional (enabled or partially_enabled) → detects damage → dead
-        return false;
+bool Genome::hasTP53Function() const {
+    const Gene* tp53 = getGene(GeneNames::TP53);
+    if (!tp53) {
+        return false;  // No gene = no function
     }
+    // Functional = enabled or partially_enabled (NOT disabled)
+    return !tp53->getStatus().isDisabled();
+}
 
-    // BRCA1 functional (enabled or partially_enabled) → viable
-    return true;
+bool Genome::hasTP53Loss() const {
+    const Gene* tp53 = getGene(GeneNames::TP53);
+    if (!tp53) {
+        return true;  // Missing = complete loss
+    }
+    return tp53->getStatus().isDisabled();  // TP53 -/-
+}
+
+bool Genome::hasTP53Instability() const {
+    const Gene* tp53 = getGene(GeneNames::TP53);
+    if (!tp53) {
+        return true;  // Missing = instability
+    }
+    // Unstable if NOT wildtype (+/+)
+    return !tp53->getStatus().isEnabled();
 }
 
 bool Genome::hasNeoplasticProtection() const {
-    const Gene* tp53 = getGene(GeneNames::TP53);
-    if (!tp53) return false;
-    // Has protection if TP53 is NOT disabled (i.e., enabled or partially_enabled)
-    return !tp53->getStatus().isDisabled();
+    // Neoplastic protection = TP53 function
+    return hasTP53Function();
 }
 
 } // namespace domain

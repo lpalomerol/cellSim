@@ -334,13 +334,6 @@ namespace domain {
         logger_->logCell("[Transform] Cell became NEOPLASTIC (is_neoplastic_=true, immortal)");
     }
 
-    void AgenticCell::adjust_neoplasm_k() {
-        // Placeholder: adjust neoplasm probability if needed
-    }
-
-    void AgenticCell::updateInstability() {
-        // Placeholder: D1/D2 updated in phase4, not here
-    }
 
     /// Calculate instability deltas using the injected strategy
     InstabilityDeltas AgenticCell::calculateInstabilityDeltas() const {
@@ -368,9 +361,6 @@ namespace domain {
         return nullptr;
     }
 
-    void AgenticCell::attemptApoptosis() {
-        // Placeholder: apoptosis handled in phase2_Endocytosis
-    }
 
     std::unique_ptr<AgenticCell> AgenticCell::clone() const {
         // Generate unique seed for daughter cell based on mother's seed and current state
