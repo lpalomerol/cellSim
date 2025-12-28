@@ -5,7 +5,7 @@
 
 namespace domain {
 
-    std::pair<double, double> GenomicInstabilityDeltaStrategy::calculateDeltas(
+    InstabilityDeltas GenomicInstabilityDeltaStrategy::calculateDeltas(
         const AgenticCell& cell) const {
 
         const Gene* tp53 = cell.getGenome().getGene(GeneNames::TP53);
@@ -36,7 +36,7 @@ namespace domain {
         double delta_d1 = delta_tp53;
         double delta_d2 = delta_tp53 + delta_brca1;
 
-        return {delta_d1, delta_d2};
+        return InstabilityDeltas::create(delta_d1, delta_d2);
     }
 
     double GenomicInstabilityDeltaStrategy::calculateGeneDelta(

@@ -126,6 +126,10 @@ namespace domain {
         double low_delta_instability_ = 0.0001;
         double high_delta_instability_ = 0.0002;
 
+        // === Saturation limits for D1 and D2 ===
+        double max_d1_ = 999.0;
+        double max_d2_ = 999.0;
+
         // === Instability delta calculation strategy ===
         std::unique_ptr<IInstabilityDeltaStrategy> delta_strategy_;
 
@@ -154,9 +158,8 @@ namespace domain {
         /// - D1 (DNA damage) depends only on TP53
         /// - D2 (Immunosuppression) depends on both TP53 and BRCA1 (additive)
         ///
-        /// Future scalability: This method can be replaced by a std::function member
-        /// to allow injection of custom delta calculation strategies.
-        [[nodiscard]] std::pair<double, double> calculateInstabilityDeltas() const;
+        /// Delegates to injected IInstabilityDeltaStrategy to calculate D1/D2 increments
+        [[nodiscard]] InstabilityDeltas calculateInstabilityDeltas() const;
 
         /// Update D1 and D2 based on BRCA1 and TP53 status
         void updateInstability();

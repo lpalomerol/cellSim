@@ -25,6 +25,7 @@ add_executable(unit_tests
         ../src/domain/cell/CellFactory.h
         ../src/domain/cell/AgenticCell.cpp
         ../src/domain/cell/AgenticCell.h
+        ../src/domain/cell/model/InstabilityDeltas.h
         ../src/domain/cell/strategies/IInstabilityDeltaStrategy.h
         ../src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.h
         ../src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.cpp

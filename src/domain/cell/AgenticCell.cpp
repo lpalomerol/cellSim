@@ -32,6 +32,8 @@ namespace domain {
           d2_immunosuppression_(1.0),
           d1_primer_threshold_(thresholds.d1_primer),
           d2_apoptosis_threshold_(thresholds.d2_apoptosis),
+          max_d1_(instability.max_d1),
+          max_d2_(instability.max_d2),
           delta_strategy_(std::make_unique<GenomicInstabilityDeltaStrategy>(
               instability.low_delta, instability.high_delta)) {
 
@@ -274,18 +276,19 @@ namespace domain {
 
     void AgenticCell::phase4_CytoplasmicRemodeling() {
         // Calculate instability deltas based on current genetic state
-        auto [delta_d1, delta_d2] = calculateInstabilityDeltas();
+        InstabilityDeltas deltas = calculateInstabilityDeltas();
 
         double prev_d1 = d1_dna_damage_;
         double prev_d2 = d2_immunosuppression_;
 
-        d1_dna_damage_ = std::min(d1_dna_damage_ + delta_d1, 999.0);
-        d2_immunosuppression_ = std::min(d2_immunosuppression_ + delta_d2, 999.0);
+        // Apply deltas with configured saturation limits
+        d1_dna_damage_ = std::min(deltas.applyToD1(d1_dna_damage_), max_d1_);
+        d2_immunosuppression_ = std::min(deltas.applyToD2(d2_immunosuppression_), max_d2_);
 
         logger_->logCell("[Phase4] d1_update: " + std::to_string(prev_d1) + " → " +
-                       std::to_string(d1_dna_damage_) + " (delta=" + std::to_string(delta_d1) + ")");
+                       std::to_string(d1_dna_damage_) + " (delta=" + std::to_string(deltas.d1()) + ")");
         logger_->logCell("[Phase4] d2_update: " + std::to_string(prev_d2) + " → " +
-                       std::to_string(d2_immunosuppression_) + " (delta=" + std::to_string(delta_d2) + ")");
+                       std::to_string(d2_immunosuppression_) + " (delta=" + std::to_string(deltas.d2()) + ")");
 
         CellLifeStage current_stage = getCurrentCellLifeStage();
         if (current_stage == CellLifeStage::PRIMER && !is_neoplastic_) {
@@ -343,7 +346,7 @@ namespace domain {
     }
 
     /// Calculate instability deltas using the injected strategy
-    std::pair<double, double> AgenticCell::calculateInstabilityDeltas() const {
+    InstabilityDeltas AgenticCell::calculateInstabilityDeltas() const {
         return delta_strategy_->calculateDeltas(*this);
     }
 

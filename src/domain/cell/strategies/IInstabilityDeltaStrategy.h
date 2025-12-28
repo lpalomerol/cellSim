@@ -1,6 +1,6 @@
 #pragma once
 
-#include <utility>
+#include "../model/InstabilityDeltas.h"
 
 namespace domain {
 
@@ -15,8 +15,8 @@ namespace domain {
 
         /// Calculate the increments for D1 and D2 based on cell state
         /// @param cell The cell to evaluate
-        /// @return pair<delta_d1, delta_d2> where first is DNA damage increment, second is immunosuppression increment
-        virtual std::pair<double, double> calculateDeltas(const AgenticCell& cell) const = 0;
+        /// @return InstabilityDeltas value object with DNA damage (d1) and immunosuppression (d2) increments
+        [[nodiscard]] virtual InstabilityDeltas calculateDeltas(const AgenticCell& cell) const = 0;
     };
 
 } // namespace domain

@@ -10,6 +10,14 @@ namespace domain {
 
         /// Delta for homozygous recessive mutations (e.g., TP53 -/-)
         double high_delta = 0.003;
+
+        /// Maximum value for D1 (DNA damage) - prevents overflow
+        /// Default 999.0 acts as saturation limit
+        double max_d1 = 999.0;
+
+        /// Maximum value for D2 (immunosuppression) - prevents overflow
+        /// Default 999.0 acts as saturation limit
+        double max_d2 = 999.0;
     };
 
     /// Configuration for cell division rates
