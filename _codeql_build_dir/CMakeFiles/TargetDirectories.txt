@@ -1,6 +1,0 @@
-/home/runner/work/cellSim/cellSim/_codeql_build_dir/CMakeFiles/cellSim.dir
-/home/runner/work/cellSim/cellSim/_codeql_build_dir/CMakeFiles/interactive.dir
-/home/runner/work/cellSim/cellSim/_codeql_build_dir/CMakeFiles/single_cell_evolution.dir
-/home/runner/work/cellSim/cellSim/_codeql_build_dir/CMakeFiles/run_all_scenarios.dir
-/home/runner/work/cellSim/cellSim/_codeql_build_dir/CMakeFiles/edit_cache.dir
-/home/runner/work/cellSim/cellSim/_codeql_build_dir/CMakeFiles/rebuild_cache.dir
