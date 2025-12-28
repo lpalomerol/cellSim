@@ -340,10 +340,6 @@ namespace domain {
     }
 
     std::pair<double, double> AgenticCell::calculateInstabilityDeltas() const {
-        // Extract current genetic status
-        std::string tp53_status = getTP53();
-        std::string brca1_status = getBRCA1();
-
         // Calculate delta per gene individually
         // Delta TP53: affects D1 directly and contributes to D2
         const Gene* tp53 = genome_.getGene(GeneNames::TP53);
