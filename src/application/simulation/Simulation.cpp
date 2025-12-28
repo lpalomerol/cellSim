@@ -103,7 +103,7 @@ namespace application {
                     // Verificar si la neoplástica ha evasado apoptosis (es inmortal)
                     // Intentar hacer dynamic_cast a AgenticCell para acceder al método
                     auto* agentic_cell = dynamic_cast<domain::AgenticCell*>(cell.get());
-                    if (agentic_cell && agentic_cell->hasEvasedApoptosis()) {
+                    if (agentic_cell && agentic_cell->hasEvadedApoptosis()) {
                         neoplastic_apoptosis_resistant++;
                     } else {
                         neoplastic_apoptosis_susceptible++;

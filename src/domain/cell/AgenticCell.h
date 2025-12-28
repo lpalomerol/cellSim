@@ -8,6 +8,7 @@
 #include "../gene/Genome.h"
 #include "CellConfig.h"
 #include "strategies/IInstabilityDeltaStrategy.h"
+#include "strategies/IViabilityStrategy.h"
 #include <memory>
 #include <string>
 #include <queue>
@@ -73,7 +74,7 @@ namespace domain {
         bool isNeoplasticProtected() const;
         std::uint64_t getSeed() const { return seed_; }
         std::uint64_t getAge() const { return age_; }
-        bool hasEvasedApoptosis() const { return has_evaded_apoptosis_; }
+        bool hasEvadedApoptosis() const { return has_evaded_apoptosis_; }
         std::unique_ptr<AgenticCell> clone() const;
 
         /// Get const reference to genome (used by strategies and other components)
@@ -132,6 +133,9 @@ namespace domain {
 
         // === Instability delta calculation strategy ===
         std::unique_ptr<IInstabilityDeltaStrategy> delta_strategy_;
+
+        // === Viability calculation strategy ===
+        std::unique_ptr<IViabilityStrategy> viability_strategy_;
 
         // === Pending daughter cell (for division without signals) ===
         std::unique_ptr<AgenticCell> pending_daughter_;

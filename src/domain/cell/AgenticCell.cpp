@@ -7,6 +7,7 @@
 #include "../adapters/NullLogger.h"
 #include "../gene/GeneConstants.h"
 #include "strategies/GenomicInstabilityDeltaStrategy.h"
+#include "strategies/GenomicViabilityStrategy.h"
 
 namespace domain {
 
@@ -35,7 +36,8 @@ namespace domain {
           max_d1_(instability.max_d1),
           max_d2_(instability.max_d2),
           delta_strategy_(std::make_unique<GenomicInstabilityDeltaStrategy>(
-              instability.low_delta, instability.high_delta)) {
+              instability.low_delta, instability.high_delta)),
+          viability_strategy_(std::make_unique<GenomicViabilityStrategy>()) {
 
         genome_.setNoiseSourceForAll(noise_.get());
         if (noise_) {
@@ -55,13 +57,8 @@ namespace domain {
     // ===== Simple Status Queries =====
 
     bool AgenticCell::alive() const {
-        // If cell has evaded apoptosis (is neoplastic), always alive
-        if (has_evaded_apoptosis_) {
-            return true;
-        }
-
-        // Delegate viability decision to genome
-        return genome_.isCellViable();
+        // Delegate viability decision to injected strategy
+        return viability_strategy_->isAlive(*this);
     }
 
     bool AgenticCell::isNeoplastic() const {
@@ -381,7 +378,7 @@ namespace domain {
         unsigned daughter_seed = static_cast<unsigned>(seed_ + age_ + cell_id_);
 
         // Build configuration objects from current cell state
-        InstabilityConfig instability{low_delta_instability_, high_delta_instability_};
+        InstabilityConfig instability{low_delta_instability_, high_delta_instability_, max_d1_, max_d2_};
         DivisionConfig division{division_rate_, neoplastic_division_rate_, enable_big_bang_mode_};
         ThresholdConfig thresholds{d1_primer_threshold_, d2_apoptosis_threshold_, base_neoplasm_k_};
 
