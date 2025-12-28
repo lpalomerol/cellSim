@@ -35,7 +35,8 @@ Un modelo de simulación donde las células son **agentes autónomos** que evolu
 
 ### Reglas de Oro
 
-- ✅ **BRCA1 -/- = MUERTE** (apoptosis intrínseca inmediata)
+- ✅ **BRCA1 -/- + TP53 funcional = MUERTE** (apoptosis intrínseca: TP53 detecta el daño)
+- ✅ **BRCA1 -/- + TP53 -/- = VIVE** (TP53 no puede detectar el daño, célula vulnerable pero viva)
 - ✅ **TP53 -/- = VULNERABLE** (permite transformación neoplásica)
 - ✅ **D1 alto + D2 bajo = APOPTOSIS EXTRÍNSECA** (el tejido mata la célula)
 - ✅ **D1 alto + D2 alto = TUMOR** (la célula evade y se transforma)
@@ -114,9 +115,18 @@ Cada célula tiene 4 atributos que determinan su comportamiento:
 | Estado | Significado | Consecuencia |
 |--------|-------------|--------------|
 | **+/-** | Heterocigoto (1 copia funcional) | ✅ Célula viable, reparación parcial |
-| **-/-** | Homocigoto recesivo (0 copias funcionales) | ❌ **MUERTE inmediata** (apoptosis intrínseca) |
+| **-/-** | Homocigoto recesivo (0 copias funcionales) | ⚠️ **Depende de TP53** (ver tabla abajo) |
+
+**Interacción BRCA1 con TP53:**
+
+| BRCA1 | TP53 | Resultado | Explicación |
+|-------|------|-----------|-------------|
+| -/- | +/+ o +/- | ❌ **MUERTE** | TP53 funcional detecta el daño severo de ADN y activa apoptosis intrínseca |
+| -/- | -/- | ✅ **VIVE** (vulnerable) | TP53 no funcional no puede detectar el daño, la célula sobrevive pero es muy inestable |
 
 > **Nota sobre el modelo**: En este modelo de simulación, BRCA1 inicia como +/- (heterocigoto) porque se simula una población con predisposición hereditaria al cáncer de mama (portadores de mutación germinal en BRCA1). En células normales sin predisposición hereditaria, BRCA1 sería +/+.
+
+> **Implicación biológica**: La pérdida de BRCA1 solo es letal si TP53 está activo porque TP53 es el "guardián del genoma" que detecta el daño y activa la muerte celular. Si TP53 ya ha mutado a -/-, la célula pierde este mecanismo de control y puede sobrevivir incluso con BRCA1 -/-, aunque estará altamente inestable.
 
 #### 2.1.2 Gen TP53 (Tumor Protein 53 - "Guardián del Genoma")
 
@@ -323,7 +333,7 @@ TIEMPO ----------------------------------------------------------------------->
 
 La célula puede tomar diferentes caminos según las mutaciones que acumule:
 
-#### Camino 1: Muerte por BRCA1
+#### Camino 1: Muerte por BRCA1 (cuando TP53 funcional)
 
 ```
 BASELINE (BRCA1 +/-, TP53 +/+)
@@ -334,7 +344,7 @@ BASELINE (BRCA1 +/-, TP53 +/+)
 MUERTE INMEDIATA (apoptosis intrínseca en Fase 1)
 ```
 
-> **Nota**: Si BRCA1 muta a -/- antes que TP53, la célula muere inmediatamente. BRCA1 -/- es incompatible con la vida celular.
+> **Nota**: Si BRCA1 muta a -/- mientras TP53 es funcional (+/+ o +/-), la célula muere por apoptosis intrínseca. Sin embargo, si TP53 ya ha mutado a -/-, la célula puede sobrevivir con BRCA1 -/- (aunque muy inestable).
 
 #### Camino 2: Apoptosis Extrínseca
 
@@ -475,9 +485,9 @@ LEYENDA:
 | Célula sana | +/+ | +/- | 0.0 + age×0.00001 | 0.0 + low + age×0.00001 | Estable |
 | Primera mutación | +/- | +/- | low + age×0.00001 | low + low + age×0.00001 | Crece lento |
 | Sin protección | -/- | +/- | high + age×0.00001 | high + low + age×0.00001 | Crece rápido |
-| Máximo riesgo | -/- | -/- | high + age×0.00001 | high + 2×high + age×0.00001 | BRCA1 -/- → Muerte |
+| TP53-/- y BRCA1-/- | -/- | -/- | high + age×0.00001 | high + 2×high + age×0.00001 | Vive (muy inestable) |
 
-> **Nota**: BRCA1 -/- causa muerte inmediata, por lo que el escenario "máximo riesgo" es teórico.
+> **Nota**: BRCA1 -/- solo causa muerte inmediata si TP53 es funcional. Si TP53 ya es -/-, la célula sobrevive pero con máxima inestabilidad.
 
 ---
 
@@ -515,7 +525,7 @@ donde:
   δ_BRCA1 = {
     0.0            si BRCA1 = +/+ (en modelo, BRCA1 inicia como +/-)
     low_delta      si BRCA1 = +/-  (típicamente 0.001)
-    2×high_delta   si BRCA1 = -/-  (pero esto causa muerte)
+    2×high_delta   si BRCA1 = -/-  (solo aplica si TP53 -/-, si no → muerte)
   }
   
   max_D2 = 999.0 (saturación)
@@ -542,8 +552,10 @@ P(TP53: +/- → -/-) = μ_TP53 × D1    (segunda mutación)
 #### Transiciones de BRCA1
 
 ```
-P(BRCA1: +/- → -/-) = μ_BRCA1 × D1  (mutación letal)
+P(BRCA1: +/- → -/-) = μ_BRCA1 × D1  (letal si TP53 funcional)
 ```
+
+> **Nota importante**: BRCA1 -/- solo es letal cuando TP53 es funcional (+/+ o +/-). Si TP53 ya ha mutado a -/-, la célula puede sobrevivir con BRCA1 -/-.
 
 ### 6.3 Umbrales de Decisión
 
@@ -634,15 +646,16 @@ Cada célula ejecuta **6 fases secuenciales** en cada tick de simulación:
 
 #### Fase 1: G1 Integrity Checkpoint
 
-- **Propósito**: Verificar integridad de BRCA1
-- **Acción**: Si `BRCA1 == "-/-"`, la célula **muere inmediatamente**
+- **Propósito**: Verificar integridad de BRCA1 (solo si TP53 funcional)
+- **Acción**: Si `BRCA1 == "-/-"` y TP53 es funcional, la célula **muere**
 - **Resultado**: Lanza `CellDeathException` (apoptosis intrínseca) o continúa
 
 ```cpp
 // Pseudocódigo
-if (BRCA1 == "-/-") {
-    throw CellDeathException("BRCA1 knockout");
+if (BRCA1 == "-/-" && TP53_funcional) {
+    throw CellDeathException("BRCA1 knockout detectado por TP53");
 }
+// Si TP53 -/-, la célula sobrevive con BRCA1 -/-
 ```
 
 #### Fase 2: Endocytosis (Checkpoint de Apoptosis)
@@ -669,7 +682,7 @@ if (recibe_senal_apoptosis) {
 - **Propósito**: Aplicar mutaciones estocásticas
 - **Acción**: Evalúa probabilidad de mutación para cada gen
 - **Resultado**: Genes pueden transitar:
-  - BRCA1: +/- → -/- (letal en próximo ciclo)
+  - BRCA1: +/- → -/- (letal si TP53 funcional)
   - TP53: +/+ → +/- → -/- (progresivo)
 
 ```cpp
@@ -956,7 +969,7 @@ docs/diagrams_luis/
 |---------|-----------|
 | **Agente** | Entidad autónoma que toma decisiones basadas en su estado interno |
 | **Apoptosis** | Muerte celular programada |
-| **Apoptosis intrínseca** | Muerte activada por defectos internos (ej: BRCA1 -/-) |
+| **Apoptosis intrínseca** | Muerte activada por defectos internos detectados por TP53 (ej: BRCA1 -/- con TP53 funcional) |
 | **Apoptosis extrínseca** | Muerte inducida por señales externas (ej: sistema inmune) |
 | **BRCA1** | Gen supresor tumoral que repara ADN |
 | **D1** | Contador de inestabilidad genómica (DNA damage) |
