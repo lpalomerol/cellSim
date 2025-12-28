@@ -7,6 +7,7 @@
 #include "../signal/ISignal.h"
 #include "../gene/Genome.h"
 #include "CellConfig.h"
+#include "strategies/IInstabilityDeltaStrategy.h"
 #include <memory>
 #include <string>
 #include <queue>
@@ -75,6 +76,9 @@ namespace domain {
         bool hasEvasedApoptosis() const { return has_evaded_apoptosis_; }
         std::unique_ptr<AgenticCell> clone() const;
 
+        /// Get const reference to genome (used by strategies and other components)
+        [[nodiscard]] const Genome& getGenome() const { return genome_; }
+
         /// Take ownership of pending daughter cell (if any) after live() cycle
         /// Returns nullptr if no division occurred this cycle
         std::unique_ptr<AgenticCell> takePendingDaughter() { return std::move(pending_daughter_); }
@@ -121,6 +125,9 @@ namespace domain {
         // === Instability deltas (same as before) ===
         double low_delta_instability_ = 0.0001;
         double high_delta_instability_ = 0.0002;
+
+        // === Instability delta calculation strategy ===
+        std::unique_ptr<IInstabilityDeltaStrategy> delta_strategy_;
 
         // === Pending daughter cell (for division without signals) ===
         std::unique_ptr<AgenticCell> pending_daughter_;

@@ -23,6 +23,9 @@ set(COMMON_SOURCES
         src/domain/cell/CellFactory.h
         src/domain/cell/AgenticCell.cpp
         src/domain/cell/AgenticCell.h
+        src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.cpp
+        src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.h
+        src/domain/cell/strategies/IInstabilityDeltaStrategy.h
         src/domain/gene/Gene.cpp
         src/domain/gene/Gene.h
         src/domain/gene/Genome.cpp

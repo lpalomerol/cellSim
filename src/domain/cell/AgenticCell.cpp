@@ -6,6 +6,7 @@
 #include "../adapters/RandomNoise.h"
 #include "../adapters/NullLogger.h"
 #include "../gene/GeneConstants.h"
+#include "strategies/GenomicInstabilityDeltaStrategy.h"
 
 namespace domain {
 
@@ -30,7 +31,9 @@ namespace domain {
           d1_dna_damage_(1.0),
           d2_immunosuppression_(1.0),
           d1_primer_threshold_(thresholds.d1_primer),
-          d2_apoptosis_threshold_(thresholds.d2_apoptosis) {
+          d2_apoptosis_threshold_(thresholds.d2_apoptosis),
+          delta_strategy_(std::make_unique<GenomicInstabilityDeltaStrategy>(
+              instability.low_delta, instability.high_delta)) {
 
         genome_.setNoiseSourceForAll(noise_.get());
         if (noise_) {
@@ -339,48 +342,9 @@ namespace domain {
         // Placeholder: D1/D2 updated in phase4, not here
     }
 
+    /// Calculate instability deltas using the injected strategy
     std::pair<double, double> AgenticCell::calculateInstabilityDeltas() const {
-        // Extract current genetic status
-        std::string tp53_status = getTP53();
-        std::string brca1_status = getBRCA1();
-
-        // Calculate delta per gene individually
-        // Delta TP53: affects D1 directly and contributes to D2
-        const Gene* tp53 = genome_.getGene(GeneNames::TP53);
-        const Gene* brca1 = genome_.getGene(GeneNames::BRCA1);
-
-        double delta_tp53 = 0.0;
-        if (tp53) {
-            auto tp53_status = tp53->getStatus();
-            if (tp53_status.isEnabled()) {
-                delta_tp53 = 0.0;  // Wildtype: no instability
-            } else if (tp53_status.isPartiallyEnabled()) {
-                delta_tp53 = low_delta_instability_;  // Heterozygous: low instability
-            } else if (tp53_status.isDisabled()) {
-                delta_tp53 = high_delta_instability_;  // Homozygous recessive: high instability
-            }
-        }
-
-        // Delta BRCA1: contributes only to D2 (immunosuppression)
-        double delta_brca1 = 0.0;
-        if (brca1) {
-            auto brca1_status = brca1->getStatus();
-            if (brca1_status.isEnabled()) {
-                delta_brca1 = 0.0;  // Wildtype: no contribution
-            } else if (brca1_status.isPartiallyEnabled()) {
-                delta_brca1 = low_delta_instability_;  // Heterozygous: low contribution
-            } else if (brca1_status.isDisabled()) {
-                delta_brca1 = 2 * high_delta_instability_;  // Homozygous: very high contribution
-            }
-        }
-
-        // Decision matrix:
-        // D1 (DNA damage) = Δ(TP53) only
-        // D2 (Immunosuppression) = Δ(TP53) + Δ(BRCA1)
-        double delta_d1 = delta_tp53;
-        double delta_d2 = delta_tp53 + delta_brca1;
-
-        return {delta_d1, delta_d2};
+        return delta_strategy_->calculateDeltas(*this);
     }
 
     std::unique_ptr<AgenticCell> AgenticCell::attemptDivision() {
