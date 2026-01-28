@@ -111,6 +111,8 @@ add_executable(cellSim_cli app/main_cli.cpp
         src/application/simulation/Simulation.h
         src/application/simulation/Simulations.cpp
         src/application/simulation/Simulations.h
+        src/application/simulation/PopulationTracker.cpp
+        src/application/simulation/PopulationTracker.h
         ${COMMON_SOURCES}
         src/domain/tissue/Tissue.cpp
         src/domain/tissue/Tissue.h)
