@@ -47,18 +47,21 @@ namespace application {
             snapshots_.push_back(snapshot);
         }
 
-        // Exportar a Markdown
+        // Exportar a Markdown con parámetros completos
         std::string toMarkdown(const std::string& scenario_name, int run_number,
-                              const std::string& config_desc) const;
+                              const std::string& config_desc,
+                              const std::string& config_json = "") const;
 
-        // Exportar a CSV
-        std::string toCSV(const std::string& scenario_name, int run_number) const;
+        // Exportar a CSV con parámetros completos como comentarios
+        std::string toCSV(const std::string& scenario_name, int run_number,
+                         const std::string& config_json = "") const;
 
         // Guardar a archivos
         void saveToFiles(const std::string& output_dir,
                         const std::string& scenario_name,
                         int run_number,
-                        const std::string& config_desc) const;
+                        const std::string& config_desc,
+                        const std::string& config_json = "") const;
 
         // Getter
         [[nodiscard]] const std::vector<YearlySnapshot>& snapshots() const {

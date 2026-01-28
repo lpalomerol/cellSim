@@ -254,11 +254,38 @@ int main(int argc, char* argv[]) {
                    << ", cells=" << cfg.n_cells
                    << ", max_t=" << cfg.max_t;
 
+        // Build JSON configuration string for output files
+        json config_json_out;
+        config_json_out["config"]["seed"] = cfg.seed;
+        config_json_out["config"]["verbose"] = cfg.verbose;
+        config_json_out["config"]["use_random_noise"] = cfg.use_random_noise;
+        config_json_out["simulation_context"]["max_t"] = cfg.max_t;
+        config_json_out["simulation_context"]["n_cells"] = cfg.n_cells;
+        config_json_out["tissue_parameters"]["neoplasm_k"] = cfg.neoplasm_k;
+        config_json_out["tissue_parameters"]["division_rate"] = cfg.division_rate;
+        config_json_out["tissue_parameters"]["neoplastic_division_rate"] = cfg.neoplastic_division_rate;
+        config_json_out["tissue_parameters"]["enable_big_bang_mode"] = cfg.enable_big_bang_mode;
+        config_json_out["tissue_parameters"]["d1_threshold"] = cfg.d1_threshold;
+        config_json_out["tissue_parameters"]["d2_threshold"] = cfg.d2_threshold;
+        config_json_out["tissue_parameters"]["low_delta"] = cfg.low_delta;
+        config_json_out["tissue_parameters"]["high_delta"] = cfg.high_delta;
+
+        // Add genes
+        json genes_obj;
+        for (const auto& [gene, mutation_rate] : cfg.gene_thresholds) {
+            double instability_rate = cfg.gene_instability_k.at(gene);
+            genes_obj[gene]["mutation_rate"] = mutation_rate;
+            genes_obj[gene]["instability_rate"] = instability_rate;
+        }
+        config_json_out["tissue_parameters"]["genes"] = genes_obj;
+
+        std::string config_json_str = config_json_out.dump(2);  // Pretty print with 2 spaces
+
         // Extract scenario name from config file
         std::string scenario_name = fs::path(config_path).stem().string();
 
         // Save results
-        tracker.saveToFiles(output_dir, scenario_name, 1, config_desc.str());
+        tracker.saveToFiles(output_dir, scenario_name, 1, config_desc.str(), config_json_str);
 
         // Print summary
         const auto& snaps = tracker.snapshots();

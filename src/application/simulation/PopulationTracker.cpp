@@ -4,7 +4,8 @@
 namespace application {
 
     std::string PopulationTracker::toMarkdown(const std::string& scenario_name, int run_number,
-                                             const std::string& config_desc) const {
+                                             const std::string& config_desc,
+                                             const std::string& config_json) const {
         std::ostringstream oss;
 
         oss << "# Población Celular - Escenario: " << scenario_name << " (Run #" << run_number << ")\n\n";
@@ -21,6 +22,15 @@ namespace application {
         oss << "\n";
 
         oss << "---\n\n";
+
+        // Sección de configuración si está disponible
+        if (!config_json.empty()) {
+            oss << "## Configuración JSON\n\n";
+            oss << "```json\n";
+            oss << config_json << "\n";
+            oss << "```\n\n";
+            oss << "---\n\n";
+        }
 
         oss << "## Evolución Anual de Población\n\n";
 
@@ -90,8 +100,22 @@ namespace application {
         return oss.str();
     }
 
-    std::string PopulationTracker::toCSV(const std::string& scenario_name, int run_number) const {
+    std::string PopulationTracker::toCSV(const std::string& scenario_name, int run_number,
+                                        const std::string& config_json) const {
         std::ostringstream oss;
+
+        // Líneas comentadas con configuración JSON - cada línea con # al inicio
+        if (!config_json.empty()) {
+            oss << "# ========== Configuration JSON ==========\n";
+            // Procesar línea por línea del JSON
+            std::istringstream iss(config_json);
+            std::string line;
+            while (std::getline(iss, line)) {
+                oss << "# " << line << "\n";
+            }
+            oss << "# ==========================================\n";
+            oss << "#\n";
+        }
 
         // Encabezado CSV con D1/D2
         oss << "scenario,run,year,total_cells,alive_cells,dead_cells_cumulative,";
@@ -126,7 +150,8 @@ namespace application {
     void PopulationTracker::saveToFiles(const std::string& output_dir,
                                        const std::string& scenario_name,
                                        int run_number,
-                                       const std::string& config_desc) const {
+                                       const std::string& config_desc,
+                                       const std::string& config_json) const {
         namespace fs = std::filesystem;
 
         // Crear directorio si no existe
@@ -135,13 +160,13 @@ namespace application {
         // Guardar Markdown
         std::string md_file = output_dir + "/" + scenario_name + "_run" + std::to_string(run_number) + "_POPULATION.md";
         std::ofstream md_stream(md_file);
-        md_stream << toMarkdown(scenario_name, run_number, config_desc);
+        md_stream << toMarkdown(scenario_name, run_number, config_desc, config_json);
         md_stream.close();
 
         // Guardar CSV
         std::string csv_file = output_dir + "/" + scenario_name + "_run" + std::to_string(run_number) + "_POPULATION.csv";
         std::ofstream csv_stream(csv_file);
-        csv_stream << toCSV(scenario_name, run_number);
+        csv_stream << toCSV(scenario_name, run_number, config_json);
         csv_stream.close();
     }
 
