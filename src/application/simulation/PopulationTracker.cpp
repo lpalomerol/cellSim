@@ -147,10 +147,81 @@ namespace application {
         return oss.str();
     }
 
+    int PopulationTracker::getTumorThresholdYear() const {
+        for (const auto& snap : snapshots_) {
+            if (snap.alive_cells > 0) {
+                double neoplastic_pct = static_cast<double>(snap.neoplastic_alive) / snap.alive_cells;
+                if (neoplastic_pct > tumor_threshold_) {
+                    return snap.year;
+                }
+            }
+        }
+        return -1;  // Nunca se supera el threshold
+    }
+
+    std::string PopulationTracker::toSummaryCsv(const std::string& scenario_name, int run_number,
+                                               const std::string& config_desc,
+                                               long execution_time_ms,
+                                               const std::string& config_json) const {
+        std::ostringstream oss;
+
+        // Configuración JSON como comentarios
+        if (!config_json.empty()) {
+            oss << "# ========== Configuration ==========\n";
+            std::istringstream iss(config_json);
+            std::string line;
+            while (std::getline(iss, line)) {
+                oss << "# " << line << "\n";
+            }
+            oss << "# ====================================\n";
+            oss << "#\n";
+        }
+
+        // Información general
+        int tumor_year = getTumorThresholdYear();
+
+        oss << "key,value\n";
+        oss << "scenario," << scenario_name << "\n";
+        oss << "run," << run_number << "\n";
+        oss << "execution_time_ms," << execution_time_ms << "\n";
+        oss << "config_description,\"" << config_desc << "\"\n";
+        oss << "tumor_threshold_pct," << (tumor_threshold_ * 100.0) << "\n";
+        oss << "tumor_threshold_year," << tumor_year << "\n";
+        oss << "total_years," << (snapshots_.size() > 0 ? snapshots_.back().year : 0) << "\n";
+
+        if (!snapshots_.empty()) {
+            oss << "initial_cells," << snapshots_[0].total_cells << "\n";
+            oss << "final_alive_cells," << snapshots_.back().alive_cells << "\n";
+            oss << "final_dead_cells," << snapshots_.back().dead_cells_cumulative << "\n";
+            oss << "final_neoplastic_cells," << snapshots_.back().neoplastic_alive << "\n";
+            double final_neo_pct = snapshots_.back().alive_cells > 0 ?
+                (100.0 * snapshots_.back().neoplastic_alive / snapshots_.back().alive_cells) : 0.0;
+            oss << "final_neoplastic_pct," << std::fixed << std::setprecision(2) << final_neo_pct << "\n";
+        }
+
+        // Tabla de evolución neoplástica año a año
+        oss << "#\n";
+        oss << "# ===== Neoplastic Percentage Evolution =====\n";
+        oss << "year,neoplastic_pct,threshold_exceeded\n";
+
+        for (const auto& snap : snapshots_) {
+            double neo_pct = snap.alive_cells > 0 ?
+                (100.0 * snap.neoplastic_alive / snap.alive_cells) : 0.0;
+            int exceeded = (neo_pct > tumor_threshold_ * 100.0) ? 1 : 0;
+
+            oss << snap.year << ","
+                << std::fixed << std::setprecision(2) << neo_pct << ","
+                << exceeded << "\n";
+        }
+
+        return oss.str();
+    }
+
     void PopulationTracker::saveToFiles(const std::string& output_dir,
                                        const std::string& scenario_name,
                                        int run_number,
                                        const std::string& config_desc,
+                                       long execution_time_ms,
                                        const std::string& config_json) const {
         namespace fs = std::filesystem;
 
@@ -163,11 +234,17 @@ namespace application {
         md_stream << toMarkdown(scenario_name, run_number, config_desc, config_json);
         md_stream.close();
 
-        // Guardar CSV
+        // Guardar CSV de población
         std::string csv_file = output_dir + "/" + scenario_name + "_run" + std::to_string(run_number) + "_POPULATION.csv";
         std::ofstream csv_stream(csv_file);
         csv_stream << toCSV(scenario_name, run_number, config_json);
         csv_stream.close();
+
+        // Guardar CSV de resumen con threshold tumoral
+        std::string summary_file = output_dir + "/" + scenario_name + "_run" + std::to_string(run_number) + "_SUMMARY.csv";
+        std::ofstream summary_stream(summary_file);
+        summary_stream << toSummaryCsv(scenario_name, run_number, config_desc, execution_time_ms, config_json);
+        summary_stream.close();
     }
 
 } // namespace application

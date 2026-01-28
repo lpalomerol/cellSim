@@ -284,8 +284,8 @@ int main(int argc, char* argv[]) {
         // Extract scenario name from config file
         std::string scenario_name = fs::path(config_path).stem().string();
 
-        // Save results
-        tracker.saveToFiles(output_dir, scenario_name, 1, config_desc.str(), config_json_str);
+        // Save results (incluye SUMMARY.csv con tiempo de ejecución)
+        tracker.saveToFiles(output_dir, scenario_name, 1, config_desc.str(), duration.count(), config_json_str);
 
         // Print summary
         const auto& snaps = tracker.snapshots();
@@ -310,10 +310,20 @@ int main(int argc, char* argv[]) {
         std::cout << "    D1 (DNA damage): " << snaps.back().min_d1 << " - " << snaps.back().max_d1 << std::endl;
         std::cout << "    D2 (Immunosuppression): " << snaps.back().min_d2 << " - " << snaps.back().max_d2 << std::endl;
 
+        // Mostrar información del threshold tumoral
+        int tumor_year = tracker.getTumorThresholdYear();
+        std::cout << "\n  Tumor threshold (10% neoplastic):" << std::endl;
+        if (tumor_year >= 0) {
+            std::cout << "    ⚠️  EXCEEDED at year " << tumor_year << std::endl;
+        } else {
+            std::cout << "    ✓ Not exceeded" << std::endl;
+        }
+
         std::cout << "\n" << std::string(50, '=') << std::endl;
         std::cout << "Files saved to: " << output_dir << "/" << std::endl;
-        std::cout << "  - " << scenario_name << "_run1_population.csv" << std::endl;
-        std::cout << "  - " << scenario_name << "_run1_report.md" << std::endl;
+        std::cout << "  - " << scenario_name << "_run1_POPULATION.csv" << std::endl;
+        std::cout << "  - " << scenario_name << "_run1_POPULATION.md" << std::endl;
+        std::cout << "  - " << scenario_name << "_run1_SUMMARY.csv" << std::endl;
         std::cout << std::string(50, '=') << std::endl;
 
         return 0;

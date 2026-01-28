@@ -1,31 +1,31 @@
 {
   "config": {
-    "description": "Default simulation configuration - equivalent to SimulationConfig::loadDefault()",
+    "description": "Default simulation - tumor threshold ~65 years with high variability",
     "seed": -1,
     "verbose": false,
     "use_random_noise": true
   },
   "simulation_context": {
     "max_t": 80,
-    "n_cells": 1000
+    "n_cells": 300
   },
   "tissue_parameters": {
-    "neoplasm_k": 0.03,
-    "division_rate": 0.001,
-    "neoplastic_division_rate": 0.001,
-    "enable_big_bang_mode": false,
+    "neoplasm_k": 0.025,
+    "division_rate": 0.008,
+    "neoplastic_division_rate": 0.025,
+    "enable_big_bang_mode": true,
     "d1_threshold": 2.0,
     "d2_threshold": 5.0,
-    "low_delta": 0.0001,
-    "high_delta": 0.0002,
+    "low_delta": 0.15,
+    "high_delta": 0.4,
     "genes": {
       "TP53": {
-        "mutation_rate": 0.0010,
-        "instability_rate": 0.0010
+        "mutation_rate": 0.003,
+        "instability_rate": 0.003
       },
       "BRCA1": {
-        "mutation_rate": 0.0015,
-        "instability_rate": 0.0015
+        "mutation_rate": 0.008,
+        "instability_rate": 0.008
       }
     }
   }

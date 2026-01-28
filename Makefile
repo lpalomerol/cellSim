@@ -46,6 +46,61 @@ cellSim_cli: build
 	@echo "✅ cellSim_cli compilado"
 	@./build/cellSim_cli --config configs/default.json --verbose
 
+cellSim_cli_silent: build
+	@echo "✅ cellSim_cli compilado"
+	@./build/cellSim_cli --config configs/default.json
+
+# ============================================================
+# Targets para simulaciones múltiples con variabilidad
+# ============================================================
+
+# Ejecutar escenario default una vez
+default: build
+	@./cmake-build-debug/cellSim_cli --config configs/default.json
+
+# Ejecutar N simulaciones con diferentes seeds (default N=10)
+N ?= 10
+multi: build
+	@echo "🧬 Ejecutando $(N) simulaciones con diferentes seeds..."
+	@mkdir -p traces/multi
+	@for seed in $$(seq 1 $(N)); do \
+		echo "  → Seed $$seed..."; \
+		./cmake-build-debug/cellSim_cli --config configs/default.json --seed $$seed --output traces/multi/seed_$$seed 2>/dev/null; \
+	done
+	@echo ""
+	@echo "📊 Resumen de años donde se excede el 10% de neoplásticas:"
+	@echo "seed,tumor_threshold_year"
+	@for seed in $$(seq 1 $(N)); do \
+		year=$$(grep "tumor_threshold_year" traces/multi/seed_$$seed/default_run1_SUMMARY.csv 2>/dev/null | cut -d',' -f2); \
+		echo "$$seed,$$year"; \
+	done
+	@echo ""
+	@echo "📈 Estadísticas:"
+	@years=""; for seed in $$(seq 1 $(N)); do \
+		year=$$(grep "tumor_threshold_year" traces/multi/seed_$$seed/default_run1_SUMMARY.csv 2>/dev/null | cut -d',' -f2); \
+		if [ "$$year" != "-1" ] && [ -n "$$year" ]; then years="$$years $$year"; fi; \
+	done; \
+	if [ -n "$$years" ]; then \
+		echo "$$years" | tr ' ' '\n' | grep -v '^$$' | awk '{ sum += $$1; sumsq += $$1*$$1; n++ } END { if(n>0) { mean=sum/n; sd=sqrt(sumsq/n - mean*mean); printf "  Promedio: %.1f años\n  SD: %.1f años\n  N: %d\n", mean, sd, n } }'; \
+	else \
+		echo "  No hay datos válidos"; \
+	fi
+
+# Ejecutar simulaciones rápidas (5 seeds)
+multi-quick: build
+	@$(MAKE) multi N=5
+
+# Ejecutar simulaciones extensas (20 seeds)
+multi-full: build
+	@$(MAKE) multi N=20
+
+# Limpiar resultados de simulaciones múltiples
+clean-multi:
+	@rm -rf traces/multi
+	@echo "🧹 Limpiados resultados de simulaciones múltiples"
+
+
+
 # Compilar solo tests (sin ejecutar)
 unit_tests: build
 	@echo "✅ unit_tests compilado"

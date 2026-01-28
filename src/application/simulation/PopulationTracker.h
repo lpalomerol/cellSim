@@ -40,7 +40,8 @@ namespace application {
      */
     class PopulationTracker {
     public:
-        PopulationTracker() = default;
+        explicit PopulationTracker(double tumor_threshold = 0.1)
+            : tumor_threshold_(tumor_threshold) {}
 
         // Agregar snapshot de un año
         void addSnapshot(const YearlySnapshot& snapshot) {
@@ -56,11 +57,18 @@ namespace application {
         std::string toCSV(const std::string& scenario_name, int run_number,
                          const std::string& config_json = "") const;
 
-        // Guardar a archivos
+        // Exportar resumen CSV con configuración y umbral tumoral
+        std::string toSummaryCsv(const std::string& scenario_name, int run_number,
+                                const std::string& config_desc,
+                                long execution_time_ms,
+                                const std::string& config_json = "") const;
+
+        // Guardar a archivos (incluyendo SUMMARY.csv)
         void saveToFiles(const std::string& output_dir,
                         const std::string& scenario_name,
                         int run_number,
                         const std::string& config_desc,
+                        long execution_time_ms = 0,
                         const std::string& config_json = "") const;
 
         // Getter
@@ -68,8 +76,12 @@ namespace application {
             return snapshots_;
         }
 
+        // Obtener año en que se supera el threshold tumoral (-1 si nunca)
+        [[nodiscard]] int getTumorThresholdYear() const;
+
     private:
         std::vector<YearlySnapshot> snapshots_;
+        double tumor_threshold_;  // Threshold de neoplásticas para considerar tumor (default 10%)
 
         // Helper para formatear porcentajes
         static std::string formatPercent(double value) {
