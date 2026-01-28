@@ -23,6 +23,12 @@ namespace application {
         double neoplastic_division_rate = 0.001;  // Tasa de división neoplástica (Big Bang)
         bool enable_big_bang_mode = false;  // Activar Big Bang (división acelerada neoplástica)
 
+        // Parámetros de thresholds y deltas
+        double d1_threshold = 2.0;          // D1 (DNA damage) primer/progression threshold
+        double d2_threshold = 5.0;          // D2 (Immunosuppression) apoptosis resistance threshold
+        double low_delta = 0.0001;          // Delta bajo para instabilidad genómica
+        double high_delta = 0.0002;         // Delta alto para instabilidad genómica
+
         // Parámetros de genes
         std::unordered_map<std::string, double> gene_thresholds;
         std::unordered_map<std::string, double> gene_instability_k;

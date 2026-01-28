@@ -168,6 +168,12 @@ int main(int argc, char* argv[]) {
         std::cout << "  Neoplastic division rate: " << cfg.neoplastic_division_rate << std::endl;
         std::cout << "  Big Bang mode: " << (cfg.enable_big_bang_mode ? "enabled" : "disabled") << std::endl;
 
+        std::cout << "\n  Thresholds and Deltas:" << std::endl;
+        std::cout << "    D1 threshold (DNA damage): " << cfg.d1_threshold << std::endl;
+        std::cout << "    D2 threshold (Immunosuppression): " << cfg.d2_threshold << std::endl;
+        std::cout << "    Low delta: " << cfg.low_delta << std::endl;
+        std::cout << "    High delta: " << cfg.high_delta << std::endl;
+
         std::cout << "\n  Configured genes:" << std::endl;
         for (const auto& [gene, mutation_rate] : cfg.gene_thresholds) {
             double instability_rate = cfg.gene_instability_k.at(gene);
@@ -209,13 +215,13 @@ int main(int argc, char* argv[]) {
                 std::move(noise),
                 genome,
                 cfg.neoplasm_k,
-                0.0001,  // low_delta (default from Simulations)
-                0.0002,  // high_delta (default from Simulations)
+                cfg.low_delta,
+                cfg.high_delta,
                 cfg.division_rate,
                 cfg.neoplastic_division_rate,
                 cfg.enable_big_bang_mode,
-                2.0,  // d1_primer_threshold
-                5.0,  // d2_apoptosis_threshold
+                cfg.d1_threshold,
+                cfg.d2_threshold,
                 cfg.logger
             );
 

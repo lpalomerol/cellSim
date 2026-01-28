@@ -14,6 +14,10 @@
     "division_rate": 0.0,
     "neoplastic_division_rate": 0.0,
     "enable_big_bang_mode": false,
+    "d1_threshold": 2.0,
+    "d2_threshold": 5.0,
+    "low_delta": 0.0001,
+    "high_delta": 0.0002,
     "genes": {
       "TP53": {
         "mutation_rate": 0.0,

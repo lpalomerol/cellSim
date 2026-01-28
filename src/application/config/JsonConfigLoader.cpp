@@ -73,6 +73,20 @@ namespace application {
             cfg.neoplastic_division_rate = tissue_section.at("neoplastic_division_rate").get<double>();
             cfg.enable_big_bang_mode = tissue_section.at("enable_big_bang_mode").get<bool>();
 
+            // Parámetros de thresholds y deltas (opcionales con valores por defecto)
+            if (tissue_section.contains("d1_threshold")) {
+                cfg.d1_threshold = tissue_section.at("d1_threshold").get<double>();
+            }
+            if (tissue_section.contains("d2_threshold")) {
+                cfg.d2_threshold = tissue_section.at("d2_threshold").get<double>();
+            }
+            if (tissue_section.contains("low_delta")) {
+                cfg.low_delta = tissue_section.at("low_delta").get<double>();
+            }
+            if (tissue_section.contains("high_delta")) {
+                cfg.high_delta = tissue_section.at("high_delta").get<double>();
+            }
+
             // Genes: TP53 y BRCA1
             if (!tissue_section.contains("genes")) {
                 throw std::runtime_error("Error: falta el objeto 'genes' en 'tissue_parameters'");
@@ -147,6 +161,23 @@ namespace application {
         }
         if (cfg.neoplastic_division_rate < 0.0) {
             throw std::runtime_error("Error: neoplastic_division_rate debe ser >= 0.0, recibido: " + std::to_string(cfg.neoplastic_division_rate));
+        }
+
+        // Validar thresholds y deltas
+        if (cfg.d1_threshold < 0.0) {
+            throw std::runtime_error("Error: d1_threshold debe ser >= 0.0, recibido: " + std::to_string(cfg.d1_threshold));
+        }
+        if (cfg.d2_threshold < 0.0) {
+            throw std::runtime_error("Error: d2_threshold debe ser >= 0.0, recibido: " + std::to_string(cfg.d2_threshold));
+        }
+        if (cfg.low_delta < 0.0) {
+            throw std::runtime_error("Error: low_delta debe ser >= 0.0, recibido: " + std::to_string(cfg.low_delta));
+        }
+        if (cfg.high_delta < 0.0) {
+            throw std::runtime_error("Error: high_delta debe ser >= 0.0, recibido: " + std::to_string(cfg.high_delta));
+        }
+        if (cfg.low_delta > cfg.high_delta) {
+            throw std::runtime_error("Error: low_delta debe ser <= high_delta");
         }
 
         // Validar genes (deben existir TP53 y BRCA1 con valores >= 0.0)
