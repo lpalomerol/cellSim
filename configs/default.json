@@ -1,0 +1,30 @@
+{
+  "config": {
+    "description": "Default simulation configuration - equivalent to SimulationConfig::loadDefault()",
+    "seed": -1,
+    "verbose": false,
+    "use_random_noise": true
+  },
+  "simulation_context": {
+    "max_t": 80,
+    "n_cells": 1000
+  },
+  "tissue_parameters": {
+    "neoplasm_k": 0.03,
+    "division_rate": 0.001,
+    "neoplastic_division_rate": 0.001,
+    "enable_big_bang_mode": false,
+    "genes": {
+      "TP53": {
+        "mutation_rate": 0.0010,
+        "instability_rate": 0.0010
+      },
+      "BRCA1": {
+        "mutation_rate": 0.0015,
+        "instability_rate": 0.0015
+      }
+    }
+  }
+}
+
+

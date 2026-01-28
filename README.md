@@ -31,6 +31,78 @@ docs/                                # Documentación del proyecto
 | **interactive** | Modo interactivo con control manual | Verbose logging |
 | **single_cell_evolution** | Análisis detallado de célula única | single_cell_evolution_log.txt |
 | **run_all_scenarios** | ✨ **VALIDACIÓN**: 14 escenarios (controles + realistas + **Big Bang**) | Markdown + CSV |
+| **cellSim_cli** | 🔧 Simulación configurable con JSON | Configurable por CLI |
+
+## 🔧 Ejecutable CLI Configurable (NUEVO)
+
+**cellSim_cli** permite ejecutar simulaciones con configuración JSON personalizada estructurada en tres grupos lógicos.
+
+### Uso básico
+
+```bash
+./build/cellSim_cli --config configs/default.json
+```
+
+### Opciones disponibles
+
+- `--config <path>`: Archivo JSON de configuración (obligatorio)
+- `--max-t <años>`: Años de simulación (override)
+- `--cells <número>`: Número de células (override)
+- `--seed <valor>`: Semilla aleatoria, -1=aleatorio (override)
+- `--neoplasm-k <probabilidad>`: Prob. base neoplasia 0.0-1.0 (override)
+- `--verbose`: Activar logging detallado (override)
+- `--division-rate <tasa>`: Tasa de división celular (override)
+- `--help`: Mostrar ayuda completa
+
+### Estructura JSON requerida
+
+El JSON se organiza en tres secciones:
+
+**1. config** (configuración básica):
+- `description`: Texto descriptivo (opcional)
+- `seed`: Semilla aleatoria (-1 = aleatorio)
+- `verbose`: Logging detallado (true/false)
+- `use_random_noise`: Ruido aleatorio vs fijo (true/false)
+
+**2. simulation_context** (contexto de simulación):
+- `max_t`: Años simulados
+- `n_cells`: Número de células
+
+**3. tissue_parameters** (parámetros del tejido):
+- `neoplasm_k`: Probabilidad base de neoplasia
+- `division_rate`: Tasa de división celular normal
+- `neoplastic_division_rate`: Tasa de división neoplástica
+- `enable_big_bang_mode`: Modo Big Bang (true/false)
+- `genes`: Objeto con TP53 y BRCA1, cada uno con:
+  - `mutation_rate`: Tasa de mutación
+  - `instability_rate`: Tasa de inestabilidad
+
+### Plantillas disponibles
+
+- `configs/default.json`: Configuración estándar
+- `configs/high_tp53.json`: Alta mutación TP53
+- `configs/no_mutations.json`: Sin mutaciones (baseline)
+
+### Ejemplos
+
+```bash
+# Ejecutar con seed fija
+./build/cellSim_cli --config configs/default.json --seed 42
+
+# Escenario TP53 con 50 células
+./build/cellSim_cli --config configs/high_tp53.json --cells 50 --verbose
+
+# Baseline sin mutaciones, 100 años
+./build/cellSim_cli --config configs/no_mutations.json --max-t 100
+```
+
+### Validaciones automáticas
+
+- `seed >= -1`
+- `max_t > 0`, `n_cells > 0`
+- `0.0 <= neoplasm_k <= 1.0`
+- Tasas de mutación/división >= 0.0
+- Presencia obligatoria de genes TP53 y BRCA1 con ambas tasas
 
 ## 💥 Modo Big Bang (NUEVO)
 

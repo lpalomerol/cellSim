@@ -41,6 +41,11 @@ interactive: build
 	@echo "✅ interactive compilado"
 	@./build/interactive
 
+# Compilar y ejecutar cellSim_cli con configuración por defecto
+cellSim_cli: build
+	@echo "✅ cellSim_cli compilado"
+	@./build/cellSim_cli --config configs/default.json --verbose
+
 # Compilar solo tests (sin ejecutar)
 unit_tests: build
 	@echo "✅ unit_tests compilado"

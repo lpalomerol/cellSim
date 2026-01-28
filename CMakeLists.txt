@@ -8,6 +8,13 @@ option(BUILD_TESTS "Construir tests unitarios (puede descargar googletest)" OFF)
 
 include(FetchContent)
 
+# Librerías externas
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
+FetchContent_Declare(cxxopts GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git GIT_TAG v3.2.1)
+FetchContent_MakeAvailable(cxxopts)
+
 # Fuentes comunes del núcleo de la aplicación
 set(COMMON_SOURCES
         src/domain/ports/ICell.h
@@ -94,6 +101,20 @@ add_executable(run_all_scenarios app/run_all_scenarios.cpp
         src/domain/cell/CellFactory.h
         src/domain/cell/AgenticCell.cpp
         src/domain/cell/AgenticCell.h)
+
+
+# Ejecutable CLI con configuración JSON
+add_executable(cellSim_cli app/main_cli.cpp
+        src/application/config/JsonConfigLoader.cpp
+        src/application/config/JsonConfigLoader.h
+        src/application/simulation/Simulation.cpp
+        src/application/simulation/Simulation.h
+        src/application/simulation/Simulations.cpp
+        src/application/simulation/Simulations.h
+        ${COMMON_SOURCES}
+        src/domain/tissue/Tissue.cpp
+        src/domain/tissue/Tissue.h)
+target_link_libraries(cellSim_cli PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts)
 
 
 # Añadir tests solo si BUILD_TESTS=ON (tests pueden descargar googletest)
