@@ -7,7 +7,7 @@
   },
   "simulation_context": {
     "max_t": 80,
-    "n_cells": 300
+    "n_cells": 500
   },
   "tissue_parameters": {
     "neoplasm_k": 0.025,

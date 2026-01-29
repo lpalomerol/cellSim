@@ -59,7 +59,7 @@ default: build
 	@./cmake-build-debug/cellSim_cli --config configs/default.json
 
 # Ejecutar N simulaciones con diferentes seeds (default N=10)
-N ?= 10
+N ?= 50
 multi: build
 	@echo "🧬 Ejecutando $(N) simulaciones con diferentes seeds..."
 	@mkdir -p traces/multi
