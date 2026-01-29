@@ -2,7 +2,7 @@ rebuild:
 	cmake -S . -B build -DUSE_CXXOPTS=OFF -DBUILD_TESTS=ON
 	cmake --build build
 
-.PHONY: build test all all-test cellSim run_all_scenarios single_cell_evolution interactive unit_tests clean
+.PHONY: build test all all-test cellSim run_all_scenarios single_cell_evolution interactive unit_tests clean install uninstall
 
 # Alias para rebuild
 build: rebuild
@@ -111,4 +111,34 @@ clean:
 	@echo "🧹 Limpiando build directory..."
 	@rm -rf build
 	@echo "✅ Limpieza completada"
+
+# ============================================================
+# Targets para instalación y desinstalación
+# ============================================================
+
+# Directorio de instalación (personalizable con PREFIX=/ruta)
+PREFIX ?= /usr/local
+BINDIR = $(PREFIX)/bin
+
+# Instalar binarios en el sistema
+install: rebuild
+	@echo "📦 Instalando binarios en $(BINDIR)..."
+	@mkdir -p $(BINDIR)
+	@install -m 755 build/cellSim $(BINDIR)/cellSim
+	@install -m 755 build/cellSim_cli $(BINDIR)/cellSim_cli
+	@install -m 755 build/run_all_scenarios $(BINDIR)/run_all_scenarios
+	@install -m 755 build/single_cell_evolution $(BINDIR)/single_cell_evolution
+	@install -m 755 build/interactive $(BINDIR)/interactive
+	@echo "✅ Instalación completada en $(BINDIR)"
+	@echo "   Ahora puedes ejecutar: cellSim, cellSim_cli, etc. desde cualquier directorio"
+
+# Desinstalar binarios del sistema
+uninstall:
+	@echo "🗑️  Desinstalando binarios de $(BINDIR)..."
+	@rm -f $(BINDIR)/cellSim
+	@rm -f $(BINDIR)/cellSim_cli
+	@rm -f $(BINDIR)/run_all_scenarios
+	@rm -f $(BINDIR)/single_cell_evolution
+	@rm -f $(BINDIR)/interactive
+	@echo "✅ Desinstalación completada"
 

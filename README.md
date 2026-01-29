@@ -4,6 +4,103 @@
 
 Simulador de evolución celular y neoplasia. Permite simular múltiples células a lo largo de los años, aplicando reglas de mutación genética y aparición de neoplasias.
 
+## 📦 Instalación
+
+### Requisitos previos
+
+- **CMake** >= 3.14
+- **g++** o **clang++** con soporte C++17
+- **make**
+
+```bash
+# Ubuntu/Debian
+sudo apt install cmake g++ make
+
+# Fedora/RHEL
+sudo dnf install cmake gcc-c++ make
+
+# macOS
+brew install cmake
+```
+
+### Instalación rápida (script automatizado)
+
+```bash
+# Clonar el repositorio
+git clone https://github.com/lpalomerol/cellSim.git
+cd cellSim
+
+# Instalación global (requiere sudo)
+chmod +x install.sh
+./install.sh
+
+# O instalación local (sin sudo)
+PREFIX=$HOME/.local ./install.sh
+```
+
+Los binarios se instalarán en `/usr/local/bin` (o en `$PREFIX/bin` si se especifica).
+
+### Instalación manual con Makefile
+
+```bash
+# Compilar el proyecto
+make rebuild
+
+# Instalar en /usr/local/bin (requiere sudo)
+sudo make install
+
+# O instalar en directorio personalizado
+make install PREFIX=$HOME/.local
+
+# Verificar instalación
+which cellSim_cli
+cellSim_cli --help
+```
+
+### Desinstalación
+
+```bash
+# Con script
+./uninstall.sh
+
+# O con Makefile
+sudo make uninstall
+
+# Si instalaste en directorio personalizado
+make uninstall PREFIX=$HOME/.local
+```
+
+### Añadir al PATH (instalación local)
+
+Si instalaste en `$HOME/.local`, añade esto a tu `~/.bashrc` o `~/.zshrc`:
+
+```bash
+export PATH=$HOME/.local/bin:$PATH
+```
+
+Luego recarga el shell:
+
+```bash
+source ~/.bashrc  # o source ~/.zshrc
+```
+
+### Compilación sin instalación
+
+Si solo quieres compilar y ejecutar sin instalar:
+
+```bash
+# Con Makefile
+make rebuild
+
+# Ejecutar desde build/
+./build/cellSim_cli --config configs/default.json
+
+# O con CMake directamente
+mkdir build && cd build
+cmake ..
+make -j4
+```
+
 ## Estructura del proyecto
 
 ```
