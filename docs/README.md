@@ -8,6 +8,8 @@
 
 **Audiencia:** Biólogos moleculares, bioinformáticos, y investigadores en oncología.
 
+> 📖 **Nueva documentación disponible**: Para una descripción completa del modelo Agentic Cell, incluyendo estructura de la célula, estados, evolución de D1/D2, y modelo matemático, consulta **[AGENTIC_CELL_DOCUMENTATION.md](./AGENTIC_CELL_DOCUMENTATION.md)**.
+
 ---
 
 ## 🧬 Modelo Biológico
