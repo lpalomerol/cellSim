@@ -214,10 +214,11 @@ El simulador incluye 5 nuevos escenarios que modelan la **transformación masiva
 
 | Archivo | Descripción |
 |---------|-----------|
+| `docs/AGENTIC_CELL_DOCUMENTATION.md` | 🧬 **Documentación completa del modelo Agentic Cell** (NUEVO - Para biólogos y matemáticos) |
 | `docs/README.md` | Modelo biológico y parámetros (🎯 COMIENZA AQUÍ) |
 | `docs/diagrams.md` | FSM de genes, ciclo celular, diagramas comparativos |
-| `docs/BIG_BANG_MODE.md` | 💥 Transformación masiva neoplástica (NUEVO) |
-| `BIG_BANG_SUMMARY.md` | 📊 Resumen ejecutivo del Big Bang (NUEVO) |
+| `docs/BIG_BANG_MODE.md` | 💥 Transformación masiva neoplástica |
+| `BIG_BANG_SUMMARY.md` | 📊 Resumen ejecutivo del Big Bang |
 | `INDEX.md` | Índice de validación con 14 escenarios |
 | `USAGE_GUIDE.md` | Cómo interpretar resultados |
 | `EXECUTIVE_DASHBOARD.md` | Gráficos para stakeholders |
