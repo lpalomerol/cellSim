@@ -16,7 +16,6 @@ namespace application {
         int max_t = 100;                    // Años de simulación
         int n_cells = 1000;                 // Número de células
         long seed = -1;                     // Semilla (-1 = variar)
-        double neoplasm_k = 0.05;          // Probabilidad base de neoplasia
         bool verbose = false;               // Trazas verbose
         bool use_random_noise = true;       // true = RandomNoise, false = FixedNoise
         double division_rate = 0.001;       // Tasa de división normal

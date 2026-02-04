@@ -39,7 +39,6 @@ int main() {
         domain::CellFactory::createCustomCell(
             std::move(cell_noise),
             std::move(genome),
-            config.neoplasm_k,
             0.1,
             0.2,
             config.division_rate,

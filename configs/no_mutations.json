@@ -10,7 +10,6 @@
     "n_cells": 1000
   },
   "tissue_parameters": {
-    "neoplasm_k": 0.0,
     "division_rate": 0.0,
     "neoplastic_division_rate": 0.0,
     "enable_big_bang_mode": false,

@@ -21,8 +21,6 @@ namespace domain {
         : noise_(std::move(noise)),
           logger_(logger ? logger : std::make_shared<adapters::NullLogger>()),
           genome_(std::move(genome)),
-          base_neoplasm_k_(thresholds.neoplasm_k),
-          neoplasm_k_(domain::shared::Threshold(thresholds.neoplasm_k)),
           is_neoplastic_(false),
           division_rate_(division.base_rate),
           neoplastic_division_rate_(division.neoplastic_rate),
@@ -370,7 +368,7 @@ namespace domain {
         // Build configuration objects from current cell state
         InstabilityConfig instability{low_delta_instability_, high_delta_instability_, max_d1_, max_d2_};
         DivisionConfig division{division_rate_, neoplastic_division_rate_, enable_big_bang_mode_};
-        ThresholdConfig thresholds{d1_primer_threshold_, d2_apoptosis_threshold_, base_neoplasm_k_};
+        ThresholdConfig thresholds{d1_primer_threshold_, d2_apoptosis_threshold_};
 
         auto daughter = std::make_unique<AgenticCell>(
             std::make_unique<adapters::RandomNoise>(daughter_seed),

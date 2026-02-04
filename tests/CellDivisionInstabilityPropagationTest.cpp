@@ -37,7 +37,7 @@ TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsParentGenomicInst
 
     domain::InstabilityConfig instability{0.0001, 0.5};
     domain::DivisionConfig division{0.01, 0.01, false};
-    domain::ThresholdConfig config_thresholds{2.0, 5.0, 0.000};
+    domain::ThresholdConfig config_thresholds{2.0, 5.0};
 
     auto parent = std::make_unique<AgenticCell>(
         std::move(fixed_noise),
@@ -90,7 +90,7 @@ TEST_F(CellDivisionInstabilityPropagationTest, DaughterInheritsAccumulatedInstab
     genome.mutate("TP53");
     domain::InstabilityConfig instability2{0.0001, 0.01};
     domain::DivisionConfig division2{0.01, 0.01, false};
-    domain::ThresholdConfig config_thresholds2{2.0, 5.0, 0.002};
+    domain::ThresholdConfig config_thresholds2{2.0, 5.0};
 
     auto parent = std::make_unique<AgenticCell>(
         std::move(fixed_noise),

@@ -20,7 +20,6 @@ public:
     static std::unique_ptr<AgenticCell> createCustomCell(
         std::unique_ptr<INoiseSource> noise,
         const Genome& genome,
-        double neoplasm_k,
         double low_delta_instability,
         double high_delta_instability,
         double division_rate,
@@ -32,7 +31,6 @@ public:
 
     /// Default parameters (package them for clarity)
     struct Defaults {
-        static constexpr double NEOPLASM_K = 0.002;
         static constexpr double LOW_DELTA_INSTABILITY = 0.0001;
         static constexpr double HIGH_DELTA_INSTABILITY = 0.0002;
         static constexpr double DIVISION_RATE = 0.001;

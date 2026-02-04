@@ -47,7 +47,7 @@ TEST_F(NeoplasticImmortalityTest, NeoplasticCellsPropagateImmortalityToOffspring
     // This is an internal transformation, not triggered by external signals
     domain::InstabilityConfig instability{0.001, 5.0};
     domain::DivisionConfig division{0.01, 0.01, false};
-    domain::ThresholdConfig config_thresholds{2.0, 5.0, 0.9};
+    domain::ThresholdConfig config_thresholds{2.0, 5.0};
 
     auto parent = std::make_unique<AgenticCell>(
         std::move(fixed_noise),

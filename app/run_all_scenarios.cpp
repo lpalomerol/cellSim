@@ -115,7 +115,6 @@ struct ScenarioConfig {
     std::string description;
     double brca1_threshold;
     double tp53_threshold;
-    double neoplasm_k;
     double low_delta;
     double high_delta;
     double division_rate;
@@ -129,8 +128,7 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
     std::cout << " | " << scenario.description << "\n";
     std::cout << "  Parámetros:\n";
     std::cout << "    BRCA1=" << scenario.brca1_threshold
-              << ", TP53=" << scenario.tp53_threshold
-              << ", neoplasm_k=" << scenario.neoplasm_k << "\n";
+              << ", TP53=" << scenario.tp53_threshold << "\n";
     std::cout << "    low_delta=" << scenario.low_delta
               << ", high_delta=" << scenario.high_delta
               << ", division=" << scenario.division_rate << "\n";
@@ -156,7 +154,6 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
         auto cell = domain::CellFactory::createCustomCell(
             std::move(noise),  // Pasar noise con seed única
             genome,
-            scenario.neoplasm_k,
             scenario.low_delta,
             scenario.high_delta,
             scenario.division_rate,
@@ -188,7 +185,6 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
     // Guardar
     std::string config_desc = "BRCA1=" + std::to_string(scenario.brca1_threshold) +
                              ", TP53=" + std::to_string(scenario.tp53_threshold) +
-                             ", neoplasm_k=" + std::to_string(scenario.neoplasm_k) +
                              ", div=" + std::to_string(scenario.division_rate);
 
     std::string output_dir = "traces/" + scenario.name;
@@ -211,7 +207,7 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
 int main() {
     std::cout << "\n╔═══════════════════════════════════════════════════════════════╗\n";
     std::cout << "║  VALIDACIÓN - 12 ESCENARIOS: 9 CONTROL + 3 BIG BANG       ║\n";
-    std::cout << "║  Parámetros: BRCA1, TP53, neoplasm_k, low_delta,           ║\n";
+    std::cout << "║  Parámetros: BRCA1, TP53, low_delta,                      ║\n";
     std::cout << "║              high_delta, division_rate, neoplastic_div      ║\n";
     std::cout << "║  Escenarios 10-12: Big Bang (TP53 -/- con división)         ║\n";
     std::cout << "╚═══════════════════════════════════════════════════════════════╝\n";
@@ -224,7 +220,7 @@ int main() {
         // === CONTROLES BASALES ===
         {"01_ctrl_baseline_no_mutations_no_division",
          "Baseline: Sin mutaciones, sin reproducción",
-         0.0, 0.0, 0.0,      // BRCA1=0, TP53=0, neoplasm_k=0
+         0.0, 0.0,           // BRCA1=0, TP53=0
          0.5, 1.0,           // low_delta=0.5, high_delta=1.0
          0.0,                // division_rate=0
          0.0,                // neoplastic_division_rate=0
@@ -233,7 +229,7 @@ int main() {
 
         {"02_ctrl_baseline_no_mutations_high_division",
          "Baseline: Sin mutaciones, reproducción 15%",
-         0.0, 0.0, 0.0,      // BRCA1=0, TP53=0, neoplasm_k=0
+         0.0, 0.0,           // BRCA1=0, TP53=0
          0.5, 1.0,           // low_delta=0.5, high_delta=1.0
          0.15,               // division_rate=15%
          0.0,                // neoplastic_division_rate=0
@@ -243,7 +239,7 @@ int main() {
         // === CONTROLES PARAMÉTRICOS ===
         {"03_ctrl_brca_mutations_high",
          "Mutaciones BRCA1 altas (20%)",
-         0.2, 0.0, 0.0,      // BRCA1=0.2 (20%), TP53=0, neoplasm_k=0
+         0.2, 0.0,           // BRCA1=0.2 (20%), TP53=0
          0.5, 1.0,           // low_delta=0.5, high_delta=1.0
          0.0,                // division_rate=0
          0.0,                // neoplastic_division_rate=0
@@ -252,7 +248,7 @@ int main() {
 
         {"04_ctrl_tp53_mutations_high",
          "Mutaciones TP53 altas (10%) con neoplasma - SIN incremento D1/D2",
-         0.0, 0.10, 0.10,    // BRCA1=0, TP53=0.10 (10%), neoplasm_k=0.10
+         0.0, 0.10,          // BRCA1=0, TP53=0.10 (10%)
          0.0, 0.0,           // low_delta=0.0, high_delta=0.0 (D1/D2 NO aumentan)
          0.0,                // division_rate=0
          0.0,                // neoplastic_division_rate=0
@@ -261,7 +257,7 @@ int main() {
 
         {"05_ctrl_tp53_mutations_high_unstable",
          "TP53 altas (10%) + inestabilidad alta",
-         0.0, 0.10, 0.10,    // BRCA1=0, TP53=0.10 (10%), neoplasm_k=0.10
+         0.0, 0.10,          // BRCA1=0, TP53=0.10 (10%)
          0.1, 0.5,           // low_delta=0.1, high_delta=0.5 (más inestabilidad)
          0.0,                // division_rate=0
          0.0,                // neoplastic_division_rate=0
@@ -271,7 +267,7 @@ int main() {
         // === ESCENARIOS REALISTAS ===
         {"06_realistic_baseline",
          "Realista baseline: Mutaciones moderadas, sin división",
-         0.05, 0.01, 0.05,   // BRCA1=0.05 (5%), TP53=0.01 (1%), neoplasm_k=0.05
+         0.05, 0.01,         // BRCA1=0.05 (5%), TP53=0.01 (1%)
          0.5, 1.0,           // low_delta=0.5, high_delta=1.0
          0.0,                // division_rate=0
          0.0,                // neoplastic_division_rate=0
@@ -280,7 +276,7 @@ int main() {
 
         {"07_realistic_low_tp53_instability",
          "Realista: TP53 baja (0.5%), inestabilidad moderada",
-         0.05, 0.005, 0.05,  // BRCA1=0.05 (5%), TP53=0.005 (0.5%), neoplasm_k=0.05
+         0.05, 0.005,        // BRCA1=0.05 (5%), TP53=0.005 (0.5%)
          0.5, 1.0,           // low_delta=0.5, high_delta=1.0
          0.05,               // division_rate=5%
          0.0,                // neoplastic_division_rate=0
@@ -289,7 +285,7 @@ int main() {
 
         {"08_realistic_high_tp53_instability",
          "Realista: TP53 moderada (2%), inestabilidad alta",
-         0.05, 0.02, 0.05,   // BRCA1=0.05 (5%), TP53=0.02 (2%), neoplasm_k=0.05
+         0.05, 0.02,         // BRCA1=0.05 (5%), TP53=0.02 (2%)
          1.0, 1.5,           // low_delta=1.0, high_delta=1.5 (inestabilidad más alta)
          0.05,               // division_rate=5%
          0.0,                // neoplastic_division_rate=0
@@ -298,7 +294,7 @@ int main() {
 
         {"09_realistic_balanced",
          "Realista: Parámetros balanceados",
-         0.05, 0.025, 0.05,   // BRCA1=0.05 (5%), TP53=0.01 (1%), neoplasm_k=0.05
+         0.05, 0.025,        // BRCA1=0.05 (5%), TP53=0.025 (2.5%)
          0.1, 0.3,           // low_delta=0.1, high_delta=0.3 (↑ aumentado para evasión inmune)
          0.05,               // division_rate=5%
          0.0,                // neoplastic_division_rate=0
@@ -308,7 +304,7 @@ int main() {
         // === BIG BANG TUMORAL ===
         {"10_big_bang_tumoral",
          "Big Bang Tumoral: TP53 -/- con división acelerada (20%)",
-         0.05, 0.02, 0.20,   // BRCA1=0.05 (5%), TP53=0.02 (2%), neoplasm_k=0.20
+         0.05, 0.02,         // BRCA1=0.05 (5%), TP53=0.02 (2%)
          0.5, 1.0,           // low_delta=0.5, high_delta=1.0 (↑ aumentado para evasión inmune)
          0.0,                // division_rate=0 (células normales no se dividen)
          0.20,               // neoplastic_division_rate=20% (células TP53 -/- dividen)
@@ -317,17 +313,17 @@ int main() {
 
         {"11_big_bang_tumoral_reproduccion",
          "Big Bang con Reproducción Normal: TP53 -/- (10%) + Normal (5%)",
-         0.05, 0.01, 0.02,   // BRCA1=0.05 (5%), TP53=0.02 (2%), neoplasm_k=0.20
-         0.05, .3,           // low_delta=0.5, high_delta=1.0 (↑ aumentado para evasión inmune)
-         0.055,               // division_rate=5% (células normales sí se dividen)
-         0.25,              // neoplastic_division_rate=10% (células TP53 -/- dividen menos)
+         0.05, 0.01,         // BRCA1=0.05 (5%), TP53=0.01 (1%)
+         0.05, .3,           // low_delta=0.05, high_delta=0.3 (↑ aumentado para evasión inmune)
+         0.055,              // division_rate=5% (células normales sí se dividen)
+         0.25,               // neoplastic_division_rate=10% (células TP53 -/- dividen menos)
          true,               // enable_big_bang_mode=true
-         80},                // max_t=30 años
+         80},                // max_t=80 años
 
         {"12_big_bang_tumoral_low_threshold",
          "Big Bang con Bajo Threshold TP53: TP53 -/- (10%) + Normal (5%)",
-         0.05, 0.01, 0.02,  // BRCA1=0.05 (5%), TP53=0.01 (1%), neoplasm_k=0.02
-         0.2, 0.5,          // low_delta=0.2, high_delta=0.5 (↑ aumentado para evasión inmune)
+         0.05, 0.01,         // BRCA1=0.05 (5%), TP53=0.01 (1%)
+         0.2, 0.5,           // low_delta=0.2, high_delta=0.5 (↑ aumentado para evasión inmune)
          0.05,               // division_rate=5% (células normales sí se dividen)
          0.10,               // neoplastic_division_rate=10% (células TP53 -/- dividen)
          true,               // enable_big_bang_mode=true

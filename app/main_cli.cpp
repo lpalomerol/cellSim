@@ -144,7 +144,6 @@ int main(int argc, char* argv[]) {
         if (result.count("max-t")) cfg.max_t = result["max-t"].as<int>();
         if (result.count("cells")) cfg.n_cells = result["cells"].as<int>();
         if (result.count("seed")) cfg.seed = result["seed"].as<long>();
-        if (result.count("neoplasm-k")) cfg.neoplasm_k = result["neoplasm-k"].as<double>();
         if (result.count("verbose")) {
             cfg.verbose = result["verbose"].as<bool>();
             cfg.logger->setVerbose(cfg.verbose);
@@ -163,7 +162,6 @@ int main(int argc, char* argv[]) {
         std::cout << "  Maximum time (years): " << cfg.max_t << std::endl;
 
         std::cout << "\n[Tissue Parameters]" << std::endl;
-        std::cout << "  Neoplasm probability: " << cfg.neoplasm_k << std::endl;
         std::cout << "  Normal division rate: " << cfg.division_rate << std::endl;
         std::cout << "  Neoplastic division rate: " << cfg.neoplastic_division_rate << std::endl;
         std::cout << "  Big Bang mode: " << (cfg.enable_big_bang_mode ? "enabled" : "disabled") << std::endl;
@@ -214,7 +212,6 @@ int main(int argc, char* argv[]) {
             auto cell = domain::CellFactory::createCustomCell(
                 std::move(noise),
                 genome,
-                cfg.neoplasm_k,
                 cfg.low_delta,
                 cfg.high_delta,
                 cfg.division_rate,
@@ -249,8 +246,7 @@ int main(int argc, char* argv[]) {
 
         // Build config description for files
         std::ostringstream config_desc;
-        config_desc << "neoplasm_k=" << cfg.neoplasm_k
-                   << ", div=" << cfg.division_rate
+        config_desc << "div=" << cfg.division_rate
                    << ", cells=" << cfg.n_cells
                    << ", max_t=" << cfg.max_t;
 
@@ -261,7 +257,6 @@ int main(int argc, char* argv[]) {
         config_json_out["config"]["use_random_noise"] = cfg.use_random_noise;
         config_json_out["simulation_context"]["max_t"] = cfg.max_t;
         config_json_out["simulation_context"]["n_cells"] = cfg.n_cells;
-        config_json_out["tissue_parameters"]["neoplasm_k"] = cfg.neoplasm_k;
         config_json_out["tissue_parameters"]["division_rate"] = cfg.division_rate;
         config_json_out["tissue_parameters"]["neoplastic_division_rate"] = cfg.neoplastic_division_rate;
         config_json_out["tissue_parameters"]["enable_big_bang_mode"] = cfg.enable_big_bang_mode;

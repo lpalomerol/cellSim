@@ -32,7 +32,6 @@ void Simulations::runAll() {
                 domain::CellFactory::createCustomCell(
                     std::move(noise),
                     std::move(genome),
-                    cfg_.neoplasm_k,
                     0.0001,  // low_delta_instability
                     0.0002,  // high_delta_instability
                     0.001,   // division_rate

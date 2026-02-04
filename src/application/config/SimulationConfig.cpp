@@ -9,7 +9,6 @@ namespace application {
         cfg.max_t = 80;
         cfg.n_cells = 1000;
         cfg.seed = -1;
-        cfg.neoplasm_k = 0.03;
         cfg.verbose = verbose;
         cfg.use_random_noise = true;
         cfg.division_rate = 0.001;
@@ -31,7 +30,6 @@ namespace application {
         cfg.max_t = 30;
         cfg.n_cells = 1;
         cfg.seed = 4;
-        cfg.neoplasm_k = 0.5;
         cfg.verbose = verbose;
         cfg.use_random_noise = true;
         cfg.division_rate = 0.001;
@@ -53,7 +51,6 @@ namespace application {
         cfg.max_t = 100;
         cfg.n_cells = 1;
         cfg.seed = 42;
-        cfg.neoplasm_k = 0.05;
         cfg.verbose = verbose;
         cfg.use_random_noise = true;
         cfg.division_rate = 0.1;
@@ -84,26 +81,21 @@ namespace application {
         cfg.logger = logger;
 
         if (scenario_name == "default") {
-            cfg.neoplasm_k = 0.05;
             cfg.gene_thresholds = {{"BRCA1", 0.01}, {"TP53", 0.01}};
             cfg.gene_instability_k = {{"BRCA1", 0.01}, {"TP53", 0.01}};
         } else if (scenario_name == "no_mutations") {
-            cfg.neoplasm_k = 0.0;
             cfg.gene_thresholds = {{"BRCA1", 0.0}, {"TP53", 0.0}};
             cfg.gene_instability_k = {{"BRCA1", 0.0}, {"TP53", 0.0}};
             cfg.division_rate = 0.0;
         } else if (scenario_name == "high_brca_apoptosis") {
-            cfg.neoplasm_k = 0.02;
             cfg.gene_thresholds = {{"BRCA1", 0.5}, {"TP53", 0.01}};
             cfg.gene_instability_k = {{"BRCA1", 0.1}, {"TP53", 0.01}};
             cfg.division_rate = 0.0;
         } else if (scenario_name == "high_tp53_mutation") {
-            cfg.neoplasm_k = 0.8;
             cfg.gene_thresholds = {{"BRCA1", 0.001}, {"TP53", 0.3}};
             cfg.gene_instability_k = {{"BRCA1", 0.001}, {"TP53", 0.2}};
             cfg.division_rate = 0.0;
         } else if (scenario_name == "cell_division_healthy") {
-            cfg.neoplasm_k = 0.0;
             cfg.gene_thresholds = {{"BRCA1", 0.0}, {"TP53", 0.0}};
             cfg.gene_instability_k = {{"BRCA1", 0.0}, {"TP53", 0.0}};
             cfg.division_rate = 0.1;  // 10% division rate

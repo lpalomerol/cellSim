@@ -68,7 +68,6 @@ namespace application {
             }
             auto& tissue_section = j["tissue_parameters"];
 
-            cfg.neoplasm_k = tissue_section.at("neoplasm_k").get<double>();
             cfg.division_rate = tissue_section.at("division_rate").get<double>();
             cfg.neoplastic_division_rate = tissue_section.at("neoplastic_division_rate").get<double>();
             cfg.enable_big_bang_mode = tissue_section.at("enable_big_bang_mode").get<bool>();
@@ -153,9 +152,6 @@ namespace application {
         }
 
         // Validar tissue_parameters
-        if (cfg.neoplasm_k < 0.0 || cfg.neoplasm_k > 1.0) {
-            throw std::runtime_error("Error: neoplasm_k debe estar en [0.0, 1.0], recibido: " + std::to_string(cfg.neoplasm_k));
-        }
         if (cfg.division_rate < 0.0) {
             throw std::runtime_error("Error: division_rate debe ser >= 0.0, recibido: " + std::to_string(cfg.division_rate));
         }

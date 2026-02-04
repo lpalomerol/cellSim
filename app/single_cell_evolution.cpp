@@ -28,7 +28,6 @@ int main(int argc, char* argv[]) {
     std::cout << "\nParámetros de simulación:" << std::endl;
     std::cout << "  - Años simulados: " << config.max_t << std::endl;
     std::cout << "  - Células: 1 (única)" << std::endl;
-    std::cout << "  - Probabilidad base neoplasia (neoplasm_k): " << config.neoplasm_k << std::endl;
     std::cout << "\nGenes y umbrales:" << std::endl;
     for (const auto& [gene, threshold] : config.gene_thresholds) {
         std::cout << "  - " << gene << ": threshold=" << threshold
@@ -61,7 +60,6 @@ int main(int argc, char* argv[]) {
     auto single_cell = domain::CellFactory::createCustomCell(
         std::move(noise),
         genome,
-        config.neoplasm_k,
         0.0001,      // low_delta_instability
         0.0002,      // high_delta_instability
         config.division_rate,

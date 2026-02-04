@@ -12,7 +12,6 @@ std::unique_ptr<AgenticCell> CellFactory::createNormalCell(
     return createCustomCell(
         std::move(noise),
         genome,
-        Defaults::NEOPLASM_K,
         Defaults::LOW_DELTA_INSTABILITY,
         Defaults::HIGH_DELTA_INSTABILITY,
         Defaults::DIVISION_RATE,
@@ -27,7 +26,6 @@ std::unique_ptr<AgenticCell> CellFactory::createNormalCell(
 std::unique_ptr<AgenticCell> CellFactory::createCustomCell(
     std::unique_ptr<INoiseSource> noise,
     const Genome& genome,
-    double neoplasm_k,
     double low_delta_instability,
     double high_delta_instability,
     double division_rate,
@@ -40,7 +38,7 @@ std::unique_ptr<AgenticCell> CellFactory::createCustomCell(
     // Use new constructor with Parameter Objects
     InstabilityConfig instability{low_delta_instability, high_delta_instability};
     DivisionConfig division{division_rate, neoplastic_division_rate, enable_big_bang_mode};
-    ThresholdConfig thresholds{d1_primer_threshold, d2_apoptosis_threshold, neoplasm_k};
+    ThresholdConfig thresholds{d1_primer_threshold, d2_apoptosis_threshold};
 
     return std::make_unique<AgenticCell>(
         std::move(noise),

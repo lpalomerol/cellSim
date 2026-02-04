@@ -210,7 +210,6 @@ TEST_F(CellLifeStageTransitionTest, Test13_evolution_BASELINE_to_UNSTABLE) {
     auto cell = CellFactory::createCustomCell(
         std::make_unique<adapters::RandomNoise>(42),  // Fixed seed
         genome,
-        0.0,    // neoplasm_k
         0.0,    // low_delta (D1/D2 don't grow)
         0.0,    // high_delta
         0.0,    // division_rate
@@ -257,7 +256,7 @@ TEST_F(CellLifeStageTransitionTest, Test14_evolution_UNSTABLE_to_UNPROTECTED) {
     auto cell = CellFactory::createCustomCell(
         std::make_unique<adapters::RandomNoise>(123),  // Different seed
         genome,
-        0.0, 0.0, 0.0, 0.0, 0.0, false, 2.0, 5.0, logger_
+        0.0, 0.0, 0.0, 0.0, false, 2.0, 5.0, logger_
     );
 
     // Initial state: UNSTABLE (TP53 +/-, BRCA1 +/-)
@@ -291,7 +290,6 @@ TEST_F(CellLifeStageTransitionTest, Test18_evolution_shows_immune_surveillance_c
     auto cell = CellFactory::createCustomCell(
         std::make_unique<adapters::RandomNoise>(2024),
         genome,
-        0.0,    // neoplasm_k
         0.5,    // low_delta (for TP53 +/+)
         1.0,    // high_delta (for TP53 -/-)
         0.0,    // division_rate

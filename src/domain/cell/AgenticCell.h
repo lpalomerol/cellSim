@@ -93,8 +93,6 @@ namespace domain {
         Genome genome_;
 
         // === Neoplasm tracking ===
-        double base_neoplasm_k_ = 0.002;
-        domain::shared::Threshold neoplasm_k_;
         bool is_neoplastic_ = false;
         bool has_evaded_apoptosis_ = false;
 

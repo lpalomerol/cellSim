@@ -44,10 +44,6 @@ namespace domain {
         /// When D2 > this value, cell evades extrinsic apoptosis signals
         /// Also triggers transformation to neoplastic when cell is in PRIMER stage
         double d2_apoptosis = 5.0;
-
-        /// Base probability threshold for neoplastic transformation
-        /// Initial value for neoplasm threshold (increases with age/divisions)
-        double neoplasm_k = 0.002;
     };
 
 } // namespace domain

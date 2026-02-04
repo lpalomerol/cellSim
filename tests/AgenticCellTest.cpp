@@ -78,7 +78,7 @@ TEST(AgenticCellTest, TumoralWhenTP53InitiallyInactiveWithHighK) {
     domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus);
     std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
     domain::Genome genome(genes);
-    domain::ThresholdConfig thresholds{2.0, 5.0, 1.0}; // neoplasm_k = 1.0
+    domain::ThresholdConfig thresholds{2.0, 5.0}; // d1_primer=2.0, d2_apoptosis=5.0
     domain::AgenticCell cell(std::make_unique<test::HighNoise>(), genome, {}, {}, thresholds);
     EXPECT_EQ(cell.getTP53(), "-/-");
     EXPECT_FALSE(cell.isNeoplastic());
@@ -91,7 +91,7 @@ TEST(AgenticCellTest, LiveMakesCellTumoralWhenTP53MutatesAndKHigh) {
     domain::Gene brca1("BRCA1", domain::Gene::State::PlusMinus);
     std::unordered_map<std::string, domain::Gene> genes{{tp53.name(), tp53}, {brca1.name(), brca1}};
     domain::Genome genome(genes);
-    domain::ThresholdConfig thresholds{2.0, 5.0, 1.0}; // neoplasm_k = 1.0
+    domain::ThresholdConfig thresholds{2.0, 5.0}; // d1_primer=2.0, d2_apoptosis=5.0
     domain::AgenticCell cell(std::make_unique<test::HighNoise>(), genome, {}, {}, thresholds);
     EXPECT_EQ(cell.getTP53(), "+/-");
     EXPECT_FALSE(cell.isNeoplastic());
@@ -214,7 +214,7 @@ TEST(AgenticCellTest, GenomicInstabilityIncreaseMutationProbability) {
     domain::Genome genome(genes);
 
     domain::InstabilityConfig instability{0.5, 0.3}; // low_delta=0.5, high_delta=0.3
-    domain::ThresholdConfig thresholds{2.0, 5.0, 0.0}; // neoplasm_k=0.0
+    domain::ThresholdConfig thresholds{2.0, 5.0}; // d1_primer=2.0, d2_apoptosis=5.0
     domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome,
                              instability, {}, thresholds);
 
@@ -307,7 +307,7 @@ TEST(AgenticCellTest, DivisionRateCustomValue) {
     // Constructor con division_rate personalizado
     domain::InstabilityConfig instability{0.0001, 0.0002};
     domain::DivisionConfig division{0.5, 0.001, false}; // division_rate alto (50%)
-    domain::ThresholdConfig thresholds{2.0, 5.0, 0.002};
+    domain::ThresholdConfig thresholds{2.0, 5.0}; // d1_primer=2.0, d2_apoptosis=5.0
     domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome,
                              instability, division, thresholds); // verbose
     cell.live();
@@ -322,7 +322,7 @@ TEST(AgenticCellTest, DivisionDisabledWhenRateIsZero) {
     // division_rate = 0.0 disables division
     domain::InstabilityConfig instability{0.0001, 0.0002};
     domain::DivisionConfig division{0.0, 0.001, false}; // division_rate = 0.0
-    domain::ThresholdConfig thresholds{2.0, 5.0, 0.002};
+    domain::ThresholdConfig thresholds{2.0, 5.0}; // d1_primer=2.0, d2_apoptosis=5.0
     domain::AgenticCell cell(std::make_unique<test::DummyNoise>(), genome,
                              instability, division, thresholds);
     cell.live();
@@ -345,7 +345,7 @@ TEST(AgenticCellTest, DivisionAttemptWithVerboseOutput) {
     };
     domain::InstabilityConfig instability{0.0001, 0.0002};
     domain::DivisionConfig division{0.5, 0.001, false};
-    domain::ThresholdConfig thresholds{2.0, 5.0, 0.002};
+    domain::ThresholdConfig thresholds{2.0, 5.0}; // d1_primer=2.0, d2_apoptosis=5.0
     domain::AgenticCell cell(std::make_unique<FakeNoise>(noise_sequence),
                              genome, instability, division, thresholds);
     // El test pasa si no lanza excepciones durante la ejecución
@@ -362,7 +362,7 @@ TEST(AgenticCellTest, NoDivisionWhenRandomAboveThreshold) {
     // 1.0 < 0.3 es falso, no hay división
     domain::InstabilityConfig instability{0.0001, 0.0002};
     domain::DivisionConfig division{0.3, 0.001, false};
-    domain::ThresholdConfig thresholds{2.0, 5.0, 0.002};
+    domain::ThresholdConfig thresholds{2.0, 5.0}; // d1_primer=2.0, d2_apoptosis=5.0
     domain::AgenticCell cell(std::make_unique<FakeNoise>(std::vector<domain::CellNoise>{domain::CellNoise{1.0}}),
                              genome, instability, division, thresholds);
     cell.live();
@@ -383,7 +383,7 @@ TEST(AgenticCellTest, DivisionAttemptMultipleCycles) {
     };
     domain::InstabilityConfig instability{0.0001, 0.0002};
     domain::DivisionConfig division{0.2, 0.001, false};
-    domain::ThresholdConfig thresholds{2.0, 5.0, 0.002};
+    domain::ThresholdConfig thresholds{2.0, 5.0}; // d1_primer=2.0, d2_apoptosis=5.0
     domain::AgenticCell cell(std::make_unique<FakeNoise>(noise_sequence),
                              genome,
                              instability, division, thresholds);

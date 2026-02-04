@@ -12,7 +12,7 @@ namespace application {
      * El JSON debe estar estructurado en tres secciones:
      * - config: configuración básica (description, seed, verbose, use_random_noise)
      * - simulation_context: contexto de simulación (max_t, n_cells)
-     * - tissue_parameters: parámetros del tejido (neoplasm_k, division_rate, genes)
+     * - tissue_parameters: parámetros del tejido (division_rate, genes)
      */
     class JsonConfigLoader {
     public:
