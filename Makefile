@@ -2,7 +2,7 @@ rebuild:
 	cmake -S . -B build -DUSE_CXXOPTS=OFF -DBUILD_TESTS=ON
 	cmake --build build
 
-.PHONY: build test all all-test cellSim run_all_scenarios single_cell_evolution interactive unit_tests clean install uninstall
+.PHONY: build test all all-test cellSim run_all_scenarios single_cell_evolution interactive unit_tests clean install uninstall dist-package dist-deploy dist-run dist-run-seed clean-dist
 
 # Alias para rebuild
 build: rebuild
@@ -141,4 +141,54 @@ uninstall:
 	@rm -f $(BINDIR)/single_cell_evolution
 	@rm -f $(BINDIR)/interactive
 	@echo "✅ Desinstalación completada"
+
+# ============================================================
+# Targets para distribución en servidores sin internet
+# ============================================================
+
+DIST_DIR ?= cellSim-dist
+DIST_VERSION ?= 0.1.0
+REMOTE_USER ?= user
+REMOTE_HOST ?= server.com
+REMOTE_PATH ?= /opt/cellSim
+
+# Crear paquete distributable con todos los binarios y configs
+dist-package: rebuild
+	@echo "📦 Creando paquete distributable..."
+	@mkdir -p $(DIST_DIR)/bin
+	@mkdir -p $(DIST_DIR)/configs
+	@mkdir -p $(DIST_DIR)/lib
+	@cp build/cellSim $(DIST_DIR)/bin/
+	@cp build/cellSim_cli $(DIST_DIR)/bin/
+	@cp build/run_all_scenarios $(DIST_DIR)/bin/
+	@cp build/single_cell_evolution $(DIST_DIR)/bin/
+	@cp build/interactive $(DIST_DIR)/bin/
+	@chmod +x $(DIST_DIR)/bin/*
+	@cp -r configs/* $(DIST_DIR)/configs/
+	@cp README.md $(DIST_DIR)/ 2>/dev/null || true
+	@tar -czf cellSim-$(DIST_VERSION).tar.gz $(DIST_DIR)/
+	@echo "✅ Paquete creado: cellSim-$(DIST_VERSION).tar.gz"
+	@rm -rf $(DIST_DIR)
+
+# Copiar paquete al servidor (requiere ruta válida)
+dist-deploy: dist-package
+	@echo "📤 Desplegando en servidor remoto..."
+	@scp cellSim-$(DIST_VERSION).tar.gz $(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_PATH)/
+	@ssh $(REMOTE_USER)@$(REMOTE_HOST) "cd $(REMOTE_PATH) && tar -xzf cellSim-$(DIST_VERSION).tar.gz && mv cellSim-dist/* . && rmdir cellSim-dist && chmod +x bin/*"
+	@echo "✅ Deployment completado en $(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_PATH)"
+
+# Ejecutar cellSim_cli en el servidor remoto
+dist-run:
+	@echo "🚀 Ejecutando cellSim_cli en servidor remoto..."
+	@ssh $(REMOTE_USER)@$(REMOTE_HOST) "$(REMOTE_PATH)/bin/cellSim_cli --config $(REMOTE_PATH)/configs/default.json --verbose"
+
+# Ejecutar cellSim_cli en el servidor remoto con seed personalizado
+dist-run-seed:
+	@ssh $(REMOTE_USER)@$(REMOTE_HOST) "$(REMOTE_PATH)/bin/cellSim_cli --config $(REMOTE_PATH)/configs/default.json --seed $(SEED) --verbose"
+
+# Limpiar archivos de distribución locales
+clean-dist:
+	@rm -rf $(DIST_DIR)
+	@rm -f cellSim-*.tar.gz
+	@echo "🧹 Limpiados archivos de distribución"
 
