@@ -1,0 +1,61 @@
+Bootstrap: docker
+From: ubuntu:24.04
+
+%labels
+    Author Luis Palomero
+    Version 0.1.0
+    Description cellSim - Cellular Evolution Simulator for HPC
+
+%help
+    cellSim Simulator
+
+    Usage:
+        apptainer run cellSim.sif cellSim_cli --help
+        apptainer run cellSim.sif cellSim_cli --config config.json
+        apptainer run cellSim.sif interactive
+        apptainer run cellSim.sif run_all_scenarios
+
+%environment
+    export LC_ALL=C
+    export PATH=/app/bin:$PATH
+    export LD_LIBRARY_PATH=/app/lib:$LD_LIBRARY_PATH
+
+%post
+    # Instalar solo dependencias runtime (no compilación)
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        libstdc++6
+
+    # Crear directorios de aplicación
+    mkdir -p /app/bin /app/lib /app/configs
+
+    # Los binarios precompilados serán copiados por %files
+
+    # Verificar binarios
+    echo "Verificando binarios instalados..."
+    ls -la /app/bin/
+
+    # Limpiar
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+%files
+    build/cellSim /app/bin/cellSim
+    build/cellSim_cli /app/bin/cellSim_cli
+    build/interactive /app/bin/interactive
+    build/run_all_scenarios /app/bin/run_all_scenarios
+    build/single_cell_evolution /app/bin/single_cell_evolution
+    configs/ /app/configs/
+    README.md /app/README.md
+
+%runscript
+    #!/bin/bash
+    exec "$@"
+
+%startscript
+    #!/bin/bash
+    echo "cellSim - Cellular Evolution Simulator"
+    echo "Uso: apptainer run cellSim.sif [comando] [argumentos]"
+    exec "$@"
+

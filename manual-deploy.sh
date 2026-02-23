@@ -22,19 +22,6 @@ echo "  📦 DISTRIBUCIÓN MANUAL DE cellSim"
 echo "=========================================="
 echo ""
 
-# Paso 1: Crear paquete
-echo "📦 PASO 1: Creando paquete (cellSim-${VERSION}.tar.gz)..."
-make dist-package DIST_VERSION=$VERSION
-echo "✅ Paquete creado"
-echo ""
-
-# Paso 2: Copiar al servidor
-echo "📤 PASO 2: Copiando paquete a $USER@$SERVER..."
-echo "   Comando: scp cellSim-${VERSION}.tar.gz $USER@$SERVER:~/"
-scp cellSim-${VERSION}.tar.gz $USER@$SERVER:~/
-echo "✅ Paquete copiado"
-echo ""
-
 # Paso 3: Instrucciones para el servidor
 echo "📋 PASO 3: Instrucciones para ejecutar en el servidor"
 echo ""

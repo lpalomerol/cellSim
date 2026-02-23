@@ -33,7 +33,6 @@
         "is_unstable": false
       },
       "parameters": {
-        "neoplasm_k": 0.002,
         "division_rate": 0.001,
         "mutation_instability_k": 0.0001,
         "apoptosis_instability_threshold": 10.0

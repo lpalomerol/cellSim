@@ -40,7 +40,6 @@
         "other_genes": "Multiple mutations possible"
       },
       "parameters": {
-        "neoplasm_k": 0.002,
         "division_rate": 0.001,
         "neoplastic_division_rate": 0.01,
         "enable_big_bang_mode": true,
