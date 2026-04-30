@@ -117,6 +117,7 @@ struct ScenarioConfig {
     double d1_primer_threshold = 2.0;
     double d2_apoptosis_threshold = 5.0;
     double noise_cv = 0.0;
+    int n_cells = 0;  // 0 = use base_cfg.n_cells
 };
 
 void runScenario(const ScenarioConfig& scenario, const application::SimulationConfig& base_cfg) {
@@ -140,8 +141,10 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
     // Crear Tissue
     auto tissue = std::make_unique<domain::Tissue>(base_cfg.logger);
 
+    int n_cells = scenario.n_cells > 0 ? scenario.n_cells : base_cfg.n_cells;
+
     // Crear células
-    for (int i = 0; i < base_cfg.n_cells; ++i) {
+    for (int i = 0; i < n_cells; ++i) {
         domain::Genome genome = domain::genome_factory::makeDefaultGenome(
             {{"BRCA1", scenario.brca1_threshold}, {"TP53", scenario.tp53_threshold}},
             {{"BRCA1", 0.0}, {"TP53", 0.0}},  // instability_k = 0.0 (sin mutaciones base)
@@ -170,7 +173,7 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
 
     // Crear tracker
     application::PopulationTracker tracker;
-    int previous_alive = base_cfg.n_cells;
+    int previous_alive = n_cells;
     int cumulative_dead = 0;
     captureSnapshotFromTissue(tissue.get(), 0, tracker, &previous_alive, &cumulative_dead);
 
@@ -336,27 +339,40 @@ int main() {
         // → 100% penetrance, median onset ~50 years (BRCA1 carrier profile)
         {"13_calibrated_lognormal_cv03",
          "Calibrated BRCA1 carrier profile + lognormal noise (CV=0.3)",
-         0.05, 0.01,         // BRCA1=0.05 (5%), TP53=0.01 (1%)
-         0.0317, 0.0634,     // calibrated from sweep: δ_high = 2*δ_low
-         0.05,               // division_rate=5%
-         0.0,                // neoplastic_division_rate=0
-         false,              // enable_big_bang_mode=false
-         80,                 // max_t=80 años
-         4.0,                // d1_primer_threshold (calibrated)
-         10.0,               // d2_apoptosis_threshold (calibrated, 2.5*θ_D1)
-         0.3},               // noise_cv=0.3 (moderate stochasticity)
+         0.05, 0.01,
+         0.0317, 0.0634,
+         0.05,
+         0.0,
+         false,
+         80,
+         4.0,
+         10.0,
+         0.3},
 
         {"14_calibrated_lognormal_cv05",
          "Calibrated BRCA1 carrier profile + lognormal noise (CV=0.5)",
-         0.05, 0.01,         // BRCA1=0.05 (5%), TP53=0.01 (1%)
-         0.0317, 0.0634,     // calibrated from sweep: δ_high = 2*δ_low
-         0.05,               // division_rate=5%
-         0.0,                // neoplastic_division_rate=0
-         false,              // enable_big_bang_mode=false
-         80,                 // max_t=80 años
-         4.0,                // d1_primer_threshold (calibrated)
-         10.0,               // d2_apoptosis_threshold (calibrated, 2.5*θ_D1)
-         0.5}                // noise_cv=0.5 (high stochasticity)
+         0.05, 0.01,
+         0.0317, 0.0634,
+         0.05,
+         0.0,
+         false,
+         80,
+         4.0,
+         10.0,
+         0.5},
+
+        {"15_calibrated_lognormal_cv05_2x",
+         "Calibrated + CV=0.5, N=2000 (2x scenario 14)",
+         0.05, 0.01,
+         0.0317, 0.0634,
+         0.05,
+         0.0,
+         false,
+         80,
+         4.0,
+         10.0,
+         0.5,
+         2000}
     };
 
     auto total_start = std::chrono::system_clock::now();
