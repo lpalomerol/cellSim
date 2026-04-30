@@ -1,12 +1,29 @@
 #include "Tissue.h"
 #include "../cell/AgenticCell.h"
 #include "../exception/CellDeathException.h"
+#include "../signal/ApoptosisSignal.h"
 
 namespace domain {
 
 void Tissue::live() {
     std::vector<std::size_t> dead_indices;
     std::vector<std::unique_ptr<ICell>> new_daughters;
+
+    // Immune surveillance: deliver Apoptosis signal to all currently-PRIMER cells.
+    // Phase2_Endocytosis will resolve fate (D2 > threshold → neoplasm, else → death).
+    // Phase4 retains its own PRIMER check as a safety net for cells that cross the
+    // threshold during this same tick's D1/D2 update.
+    for (auto& cell : cells_) {
+        if (!cell) continue;
+        auto* agentic = dynamic_cast<AgenticCell*>(cell.get());
+        if (agentic && agentic->getCurrentCellLifeStage() == CellLifeStage::PRIMER) {
+            cell->receiveMessage(std::make_unique<ApoptosisSignal>(
+                static_cast<std::uint64_t>(-1),
+                "immune_surveillance",
+                std::vector<std::uint64_t>{cell->id()}
+            ));
+        }
+    }
 
     for (std::size_t i = 0; i < cells_.size(); ++i) {
         if (!cells_[i]) continue;
