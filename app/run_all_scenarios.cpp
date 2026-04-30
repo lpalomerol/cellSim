@@ -111,9 +111,12 @@ struct ScenarioConfig {
     double low_delta;
     double high_delta;
     double division_rate;
-    double neoplastic_division_rate = 0.001;  // Para Big Bang (default = normal)
-    bool enable_big_bang_mode = false;        // Para Big Bang (default = desactivado)
-    int max_t = 50;  // Duración en años (default 50)
+    double neoplastic_division_rate = 0.001;
+    bool enable_big_bang_mode = false;
+    int max_t = 50;
+    double d1_primer_threshold = 2.0;
+    double d2_apoptosis_threshold = 5.0;
+    double noise_cv = 0.0;
 };
 
 void runScenario(const ScenarioConfig& scenario, const application::SimulationConfig& base_cfg) {
@@ -124,7 +127,11 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
               << ", TP53=" << scenario.tp53_threshold << "\n";
     std::cout << "    low_delta=" << scenario.low_delta
               << ", high_delta=" << scenario.high_delta
-              << ", division=" << scenario.division_rate << "\n";
+              << ", division=" << scenario.division_rate;
+    if (scenario.noise_cv > 0.0) {
+        std::cout << ", noise_cv=" << scenario.noise_cv;
+    }
+    std::cout << "\n";
     std::cout << ", duration=" << scenario.max_t << " años\n";
     std::cout << "  Ejecutando..." << std::flush;
 
@@ -145,16 +152,17 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
         auto noise = std::make_unique<domain::adapters::RandomNoise>(unique_seed);
 
         auto cell = domain::CellFactory::createCustomCell(
-            std::move(noise),  // Pasar noise con seed única
+            std::move(noise),
             genome,
             scenario.low_delta,
             scenario.high_delta,
             scenario.division_rate,
             scenario.neoplastic_division_rate,
             scenario.enable_big_bang_mode,
-            2.0,  // d1_primer_threshold
-            5.0,  // d2_apoptosis_threshold
-            base_cfg.logger
+            scenario.d1_primer_threshold,
+            scenario.d2_apoptosis_threshold,
+            base_cfg.logger,
+            scenario.noise_cv
         );
 
         tissue->addCell(std::move(cell));
@@ -199,10 +207,11 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
 
 int main() {
     std::cout << "\n╔═══════════════════════════════════════════════════════════════╗\n";
-    std::cout << "║  VALIDACIÓN - 12 ESCENARIOS: 9 CONTROL + 3 BIG BANG       ║\n";
-    std::cout << "║  Parámetros: BRCA1, TP53, low_delta,                      ║\n";
-    std::cout << "║              high_delta, division_rate, neoplastic_div      ║\n";
-    std::cout << "║  Escenarios 10-12: Big Bang (TP53 -/- con división)         ║\n";
+    std::cout << "║  VALIDACIÓN - 14 ESCENARIOS: 9 CTRL + 3 BIG BANG + 2 CALIB  ║\n";
+    std::cout << "║  Parámetros: BRCA1, TP53, low_delta,                        ║\n";
+    std::cout << "║              high_delta, division_rate, neoplastic_div        ║\n";
+    std::cout << "║  Escenarios 10-12: Big Bang (TP53 -/- con división)           ║\n";
+    std::cout << "║  Escenarios 13-14: Calibrated + lognormal noise (CV 0.3/0.5) ║\n";
     std::cout << "╚═══════════════════════════════════════════════════════════════╝\n";
 
     auto cfg = application::SimulationConfig::loadScenario("default", false);
@@ -316,11 +325,38 @@ int main() {
         {"12_big_bang_tumoral_low_threshold",
          "Big Bang con Bajo Threshold TP53: TP53 -/- (10%) + Normal (5%)",
          0.05, 0.01,         // BRCA1=0.05 (5%), TP53=0.01 (1%)
-         0.2, 0.5,           // low_delta=0.2, high_delta=0.5 (↑ aumentado para evasión inmune)
-         0.05,               // division_rate=5% (células normales sí se dividen)
-         0.10,               // neoplastic_division_rate=10% (células TP53 -/- dividen)
+         0.2, 0.5,           // low_delta=0.2, high_delta=0.5
+         0.05,               // division_rate=5%
+         0.10,               // neoplastic_division_rate=10%
          true,               // enable_big_bang_mode=true
-         80}                 // max_t=80 años
+         80},                // max_t=80 años
+
+        // === CALIBRATED + LOGNORMAL NOISE ===
+        // Parameters from calibration_sweep: δ_low=0.0317, θ_D1=4.0, θ_D2=10.0
+        // → 100% penetrance, median onset ~50 years (BRCA1 carrier profile)
+        {"13_calibrated_lognormal_cv03",
+         "Calibrated BRCA1 carrier profile + lognormal noise (CV=0.3)",
+         0.05, 0.01,         // BRCA1=0.05 (5%), TP53=0.01 (1%)
+         0.0317, 0.0634,     // calibrated from sweep: δ_high = 2*δ_low
+         0.05,               // division_rate=5%
+         0.0,                // neoplastic_division_rate=0
+         false,              // enable_big_bang_mode=false
+         80,                 // max_t=80 años
+         4.0,                // d1_primer_threshold (calibrated)
+         10.0,               // d2_apoptosis_threshold (calibrated, 2.5*θ_D1)
+         0.3},               // noise_cv=0.3 (moderate stochasticity)
+
+        {"14_calibrated_lognormal_cv05",
+         "Calibrated BRCA1 carrier profile + lognormal noise (CV=0.5)",
+         0.05, 0.01,         // BRCA1=0.05 (5%), TP53=0.01 (1%)
+         0.0317, 0.0634,     // calibrated from sweep: δ_high = 2*δ_low
+         0.05,               // division_rate=5%
+         0.0,                // neoplastic_division_rate=0
+         false,              // enable_big_bang_mode=false
+         80,                 // max_t=80 años
+         4.0,                // d1_primer_threshold (calibrated)
+         10.0,               // d2_apoptosis_threshold (calibrated, 2.5*θ_D1)
+         0.5}                // noise_cv=0.5 (high stochasticity)
     };
 
     auto total_start = std::chrono::system_clock::now();
@@ -334,11 +370,12 @@ int main() {
     auto total_duration = std::chrono::duration_cast<std::chrono::seconds>(total_end - total_start);
 
     std::cout << "\n╔═══════════════════════════════════════════════════════════════╗\n";
-    std::cout << "║  ✓ VALIDACIÓN COMPLETADA - 12 ESCENARIOS                     ║\n";
-    std::cout << "║  • Escenarios 1-9: Validación de controles (no Big Bang)     ║\n";
-    std::cout << "║  • Escenario 10: Big Bang puro (neoplasm=20%, div=20%)       ║\n";
-    std::cout << "║  • Escenario 11: Big Bang + reproducción normal (div=10%)    ║\n";
-    std::cout << "║  • Escenario 12: Big Bang bajo threshold TP53 (div=10%)      ║\n";
+    std::cout << "║  ✓ VALIDACIÓN COMPLETADA - 14 ESCENARIOS                     ║\n";
+    std::cout << "║  • Escenarios 1-9:  Validación de controles (no Big Bang)    ║\n";
+    std::cout << "║  • Escenario 10:    Big Bang puro (neoplasm=20%, div=20%)    ║\n";
+    std::cout << "║  • Escenario 11:    Big Bang + reproducción normal           ║\n";
+    std::cout << "║  • Escenario 12:    Big Bang bajo threshold TP53             ║\n";
+    std::cout << "║  • Escenario 13-14: Calibrated + lognormal (CV 0.3/0.5)     ║\n";
     std::cout << "║  Tiempo total: " << std::setw(2) << total_duration.count() << "s\n";
     std::cout << "╚═══════════════════════════════════════════════════════════════╝\n\n";
 
