@@ -140,10 +140,10 @@ namespace domain {
         try {
             phase0_BaselineAssessment();
             phase1_G1IntegrityCheckpoint();
-            phase2_Endocytosis();
+            phase2_ExtrinsicApoptosisCheckpoint();
             phase3_NuclearDynamics();
             phase4_CytoplasmicRemodeling();
-            phase5_Exocytosis();
+            phase5_Cytokinesis();
         } catch (const CellDeathException& e) {
             logger_->logCell("[CellDeath] " + std::string(e.what()));
             throw;
@@ -203,7 +203,7 @@ namespace domain {
         }
     }
 
-    void AgenticCell::phase2_Endocytosis() {
+    void AgenticCell::phase2_ExtrinsicApoptosisCheckpoint() {
         while (!incoming_messages_.empty()) {
             auto signal = std::move(incoming_messages_.front());
             incoming_messages_.pop();
@@ -258,7 +258,7 @@ namespace domain {
         }
     }
 
-    void AgenticCell::phase5_Exocytosis() {
+    void AgenticCell::phase5_Cytokinesis() {
         pending_daughter_ = attemptDivision();
         increaseAge();
     }

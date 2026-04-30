@@ -8,7 +8,7 @@ namespace domain {
 
     /**
      * ApoptosisSignal: emitted by the tissue's immune surveillance system.
-     * Targeted at PRIMER-stage cells; the cell resolves fate in phase2_Endocytosis
+     * Targeted at PRIMER-stage cells; the cell resolves fate in phase2_ExtrinsicApoptosisCheckpoint
      * based on its D2 immunosuppression accumulator.
      */
     class ApoptosisSignal : public BaseSignal {

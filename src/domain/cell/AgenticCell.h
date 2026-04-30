@@ -21,7 +21,7 @@ namespace domain {
     ///
     /// Improvements over v1:
     /// - Separates genomic_instability into D1 and D2 (on-the-fly derivation of CellLifeStage)
-    /// - Phase 2 (Endocytosis): Apoptosis decision based on D2 (not genomic_instability)
+    /// - Phase 2 (ExtrinsicApoptosisCheckpoint): Apoptosis decision based on D2 (not genomic_instability)
     /// - Phase 4 (Cytoplasmic Remodeling): Updates D1 and D2 separately with different deltas
     class AgenticCell final : public ICell, public ports::ILoggeable {
     public:
@@ -144,10 +144,10 @@ namespace domain {
         // === Private lifecycle phases ===
         void phase0_BaselineAssessment() const;
         void phase1_G1IntegrityCheckpoint() const;
-        void phase2_Endocytosis();         // ADJUSTED: apoptosis uses D2
+        void phase2_ExtrinsicApoptosisCheckpoint(); // Apoptosis decision based on D2
         void phase3_NuclearDynamics();
         void phase4_CytoplasmicRemodeling(); // ADJUSTED: updates D1 and D2
-        void phase5_Exocytosis();
+        void phase5_Cytokinesis();
 
         // === Private helper methods ===
         void develop_neoplasm();
