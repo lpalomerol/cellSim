@@ -33,6 +33,8 @@ set(COMMON_SOURCES
         src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.cpp
         src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.h
         src/domain/cell/strategies/IInstabilityDeltaStrategy.h
+        src/domain/cell/strategies/LognormalNoiseInstabilityStrategy.h
+        src/domain/cell/strategies/LognormalNoiseInstabilityStrategy.cpp
         src/domain/cell/strategies/GenomicViabilityStrategy.cpp
         src/domain/cell/strategies/GenomicViabilityStrategy.h
         src/domain/cell/strategies/IViabilityStrategy.h

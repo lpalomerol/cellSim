@@ -29,6 +29,8 @@ add_executable(unit_tests
         ../src/domain/cell/strategies/IInstabilityDeltaStrategy.h
         ../src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.h
         ../src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.cpp
+        ../src/domain/cell/strategies/LognormalNoiseInstabilityStrategy.h
+        ../src/domain/cell/strategies/LognormalNoiseInstabilityStrategy.cpp
         ../src/domain/cell/strategies/IViabilityStrategy.h
         ../src/domain/cell/strategies/GenomicViabilityStrategy.h
         ../src/domain/cell/strategies/GenomicViabilityStrategy.cpp

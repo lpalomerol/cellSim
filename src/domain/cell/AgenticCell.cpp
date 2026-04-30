@@ -8,9 +8,9 @@
 #include "../gene/GeneConstants.h"
 #include "strategies/GenomicInstabilityDeltaStrategy.h"
 #include "strategies/GenomicViabilityStrategy.h"
+#include "strategies/LognormalNoiseInstabilityStrategy.h"
 #include <cmath>
-#include <numbers>
-#include <limits>
+#include <algorithm>
 
 namespace domain {
 
@@ -37,8 +37,15 @@ namespace domain {
           max_d1_(instability.max_d1),
           max_d2_(instability.max_d2),
           delta_noise_cv_(instability.noise_cv),
-          delta_strategy_(std::make_unique<GenomicInstabilityDeltaStrategy>(
-              instability.low_delta, instability.high_delta)),
+          delta_strategy_([&]() -> std::unique_ptr<IInstabilityDeltaStrategy> {
+              auto base = std::make_unique<GenomicInstabilityDeltaStrategy>(
+                  instability.low_delta, instability.high_delta);
+              if (instability.noise_cv > 0.0) {
+                  return std::make_unique<LognormalNoiseInstabilityStrategy>(
+                      std::move(base), instability.noise_cv);
+              }
+              return base;
+          }()),
           viability_strategy_(std::make_unique<GenomicViabilityStrategy>()) {
 
         genome_.setNoiseSourceForAll(noise_.get());
@@ -237,26 +244,8 @@ namespace domain {
     }
 
     void AgenticCell::phase4_CytoplasmicRemodeling() {
-        // Calculate deterministic instability deltas based on current genetic state
         InstabilityDeltas deltas = calculateInstabilityDeltas();
 
-        // Apply lognormal noise when configured (noise_cv > 0).
-        // Each delta is sampled independently: lognormal(mean=det_delta, cv=noise_cv_).
-        // Box-Muller transform from two uniform draws; guards against log(0).
-        if (delta_noise_cv_ > 0.0 && noise_) {
-            const double sigma_log = std::sqrt(std::log(1.0 + delta_noise_cv_ * delta_noise_cv_));
-            auto lognormal_sample = [&](double mean) -> double {
-                if (mean <= 0.0) return mean;
-                double u1 = std::max(noise_->next().u01, std::numeric_limits<double>::min());
-                double u2 = noise_->next().u01;
-                double z = std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * std::numbers::pi_v<double> * u2);
-                return mean * std::exp(sigma_log * z - 0.5 * sigma_log * sigma_log);
-            };
-            deltas = InstabilityDeltas::create(lognormal_sample(deltas.d1()),
-                                               lognormal_sample(deltas.d2()));
-        }
-
-        // Apply deltas with configured saturation limits
         d1_dna_damage_ = std::min(deltas.applyToD1(d1_dna_damage_), max_d1_);
         d2_immunosuppression_ = std::min(deltas.applyToD2(d2_immunosuppression_), max_d2_);
 
@@ -295,7 +284,7 @@ namespace domain {
 
     /// Calculate instability deltas using the injected strategy
     InstabilityDeltas AgenticCell::calculateInstabilityDeltas() const {
-        return delta_strategy_->calculateDeltas(*this);
+        return delta_strategy_->calculateDeltas(*this, noise_.get());
     }
 
     std::unique_ptr<AgenticCell> AgenticCell::attemptDivision() {

@@ -3,7 +3,7 @@
 namespace domain {
 
     InstabilityDeltas GenomicInstabilityDeltaStrategy::calculateDeltas(
-        const ICell& cell) const {
+        const ICell& cell, INoiseSource* /*noise*/) const {
 
         const std::string tp53  = cell.getTP53Status();
         const std::string brca1 = cell.getBRCA1Status();

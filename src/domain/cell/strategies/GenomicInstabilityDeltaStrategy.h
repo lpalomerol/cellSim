@@ -27,7 +27,7 @@ namespace domain {
         GenomicInstabilityDeltaStrategy(double low_delta, double high_delta)
             : low_delta_(low_delta), high_delta_(high_delta) {}
 
-        [[nodiscard]] InstabilityDeltas calculateDeltas(const ICell& cell) const override;
+        [[nodiscard]] InstabilityDeltas calculateDeltas(const ICell& cell, INoiseSource* noise) const override;
 
     private:
         double low_delta_;
