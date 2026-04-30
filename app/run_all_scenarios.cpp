@@ -414,6 +414,35 @@ int main() {
          10.0,
          0.5,
          2000, // n_cells
+         10},  // n_runs
+
+        // === CALIBRATED + CONSTANT INCREMENT (baseline comparison) ===
+        {"16_calibrated_constant_n1000",
+         "Calibrated params, constant increment (no noise), N=1000",
+         0.05, 0.01,
+         0.0317, 0.0634,
+         0.05,
+         0.0,
+         false,
+         80,
+         4.0,
+         10.0,
+         0.0,  // noise_cv=0 → constant increment
+         0,    // n_cells = default (1000)
+         10},  // n_runs
+
+        {"17_calibrated_constant_n2000",
+         "Calibrated params, constant increment (no noise), N=2000",
+         0.05, 0.01,
+         0.0317, 0.0634,
+         0.05,
+         0.0,
+         false,
+         80,
+         4.0,
+         10.0,
+         0.0,  // noise_cv=0 → constant increment
+         2000, // n_cells
          10}   // n_runs
     };
 
