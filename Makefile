@@ -2,7 +2,7 @@ rebuild:
 	cmake -S . -B build -DUSE_CXXOPTS=OFF -DBUILD_TESTS=ON
 	cmake --build build
 
-.PHONY: build test all all-test cellSim run_all_scenarios single_cell_evolution interactive unit_tests clean install uninstall dist-package dist-deploy dist-run dist-run-seed clean-dist
+.PHONY: build test all all-test cellSim run_all_scenarios single_cell_evolution interactive unit_tests calibration_sweep clean install uninstall dist-package dist-deploy dist-run dist-run-seed clean-dist
 
 # Alias para rebuild
 build: rebuild
@@ -40,6 +40,49 @@ single_cell_evolution: build
 interactive: build
 	@echo "✅ interactive compilado"
 	@./build/interactive
+
+# ============================================================
+# Calibración empírica de parámetros D1/D2
+#
+# Observación empírica clave (sweep 3x3, 20 runs, 200 células):
+#   La transformación neoplásica requiere que D2 supere su umbral
+#   ANTES que D1 supere el suyo. Si D1 cruza primero, la célula
+#   muere por vigilancia inmune en estado PRIMER.
+#
+#   Régimen funcional encontrado: δ_low ≥ 0.1 con θ_D1 ≥ 2.6
+#   Objetivo clínico: onset mediano ~40-50 años (portadores BRCA1)
+#
+# Variables de sweep:
+#   CALIB_DMIN / CALIB_DMAX   → rango δ_low  (log scale)
+#   CALIB_T1MIN / CALIB_T1MAX → rango θ_D1   (linear)
+#   CALIB_STEPS               → puntos por eje
+#   CALIB_RUNS                → repeticiones por punto
+#   CALIB_OUT                 → fichero CSV de salida
+# ============================================================
+CALIB_DMIN   ?= 0.02
+CALIB_DMAX   ?= 0.5
+CALIB_T1MIN  ?= 1.5
+CALIB_T1MAX  ?= 4.0
+CALIB_STEPS  ?= 8
+CALIB_RUNS   ?= 100
+CALIB_CELLS  ?= 200
+CALIB_MAXT   ?= 100
+CALIB_OUT    ?= calibration_results.csv
+
+calibration_sweep: build
+	@echo "🔬 Lanzando calibration sweep → $(CALIB_OUT)"
+	@./build/calibration_sweep \
+		--low-delta-min $(CALIB_DMIN) \
+		--low-delta-max $(CALIB_DMAX) \
+		--low-delta-steps $(CALIB_STEPS) \
+		--d1-min $(CALIB_T1MIN) \
+		--d1-max $(CALIB_T1MAX) \
+		--d1-steps $(CALIB_STEPS) \
+		--runs $(CALIB_RUNS) \
+		--cells $(CALIB_CELLS) \
+		--max-t $(CALIB_MAXT) \
+		--output $(CALIB_OUT)
+	@echo "✅ Resultados en $(CALIB_OUT)"
 
 # Compilar y ejecutar cellSim_cli con configuración por defecto
 cellSim_cli: build
