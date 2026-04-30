@@ -36,7 +36,7 @@ namespace {
 
 /// Build and run one simulation; return firstTimeNeoplastic() or -1.
 int runOnce(double low_delta, double d1_threshold, double d2_threshold,
-            int n_cells, int max_t, unsigned base_seed) {
+            int n_cells, int max_t, unsigned base_seed, double delta_cv) {
     auto logger = std::make_shared<domain::adapters::NullLogger>();
     application::Simulation sim(max_t);
 
@@ -60,7 +60,8 @@ int runOnce(double low_delta, double d1_threshold, double d2_threshold,
             false,             // big_bang_mode
             d1_threshold,
             d2_threshold,
-            logger
+            logger,
+            delta_cv
         );
 
         sim.addCell(std::move(cell));
@@ -88,6 +89,7 @@ double percentile(std::vector<int>& sorted_v, double p) {
 /// Generate N log-spaced values between lo and hi.
 std::vector<double> logspace(double lo, double hi, int n) {
     std::vector<double> v(n);
+    if (n == 1) { v[0] = lo; return v; }
     double log_lo = std::log10(lo), log_hi = std::log10(hi);
     for (int i = 0; i < n; ++i) {
         v[i] = std::pow(10.0, log_lo + i * (log_hi - log_lo) / (n - 1));
@@ -98,6 +100,7 @@ std::vector<double> logspace(double lo, double hi, int n) {
 /// Generate N linear-spaced values between lo and hi.
 std::vector<double> linspace(double lo, double hi, int n) {
     std::vector<double> v(n);
+    if (n == 1) { v[0] = lo; return v; }
     for (int i = 0; i < n; ++i) {
         v[i] = lo + i * (hi - lo) / (n - 1);
     }
@@ -118,6 +121,8 @@ int main(int argc, char* argv[]) {
         ("d1-max",          "Max θ_D1",               cxxopts::value<double>()->default_value("4.0"))
         ("d1-steps",        "Steps for θ_D1 (linear)", cxxopts::value<int>()->default_value("8"))
         ("d2-ratio",        "θ_D2 = ratio * θ_D1",    cxxopts::value<double>()->default_value("2.5"))
+        ("high-delta-ratio","δ_high = ratio * δ_low",  cxxopts::value<double>()->default_value("2.0"))
+        ("delta-cv",        "Lognormal noise CV for D1/D2 deltas (0=deterministic)", cxxopts::value<double>()->default_value("0.0"))
         ("runs",            "Repetitions per grid point", cxxopts::value<int>()->default_value("100"))
         ("cells",           "Initial cells per run",   cxxopts::value<int>()->default_value("100"))
         ("max-t",           "Simulation years",        cxxopts::value<int>()->default_value("100"))
@@ -137,6 +142,7 @@ int main(int argc, char* argv[]) {
     double d1_max          = result["d1-max"].as<double>();
     int    d1_steps        = result["d1-steps"].as<int>();
     double d2_ratio        = result["d2-ratio"].as<double>();
+    double delta_cv        = result["delta-cv"].as<double>();
     int    runs            = result["runs"].as<int>();
     int    n_cells         = result["cells"].as<int>();
     int    max_t           = result["max-t"].as<int>();
@@ -182,7 +188,7 @@ int main(int argc, char* argv[]) {
             for (int r = 0; r < runs; ++r) {
                 unsigned seed = static_cast<unsigned>(r * 9973 + 1);
                 int onset = runOnce(low_delta, d1_threshold, d2_threshold,
-                                    n_cells, max_t, seed);
+                                    n_cells, max_t, seed, delta_cv);
                 onsets.push_back(onset);
                 if (onset != -1) ++transformed;
             }

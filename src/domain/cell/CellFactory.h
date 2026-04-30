@@ -27,7 +27,8 @@ public:
         bool enable_big_bang_mode,
         double d1_primer_threshold,
         double d2_apoptosis_threshold,
-        const ports::ILoggerPtr& logger = nullptr);
+        const ports::ILoggerPtr& logger = nullptr,
+        double delta_noise_cv = 0.0);
 
     /// Default parameters (package them for clarity)
     struct Defaults {

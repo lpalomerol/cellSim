@@ -132,6 +132,10 @@ namespace domain {
         double max_d1_ = 999.0;
         double max_d2_ = 999.0;
 
+        /// Coefficient of variation for lognormal noise on D1/D2 deltas.
+        /// 0.0 = deterministic. Noise is applied per-tick in phase4.
+        double delta_noise_cv_ = 0.0;
+
         // === Instability delta calculation strategy ===
         std::unique_ptr<IInstabilityDeltaStrategy> delta_strategy_;
 

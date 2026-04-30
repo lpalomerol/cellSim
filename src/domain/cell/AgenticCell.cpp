@@ -8,6 +8,9 @@
 #include "../gene/GeneConstants.h"
 #include "strategies/GenomicInstabilityDeltaStrategy.h"
 #include "strategies/GenomicViabilityStrategy.h"
+#include <cmath>
+#include <numbers>
+#include <limits>
 
 namespace domain {
 
@@ -33,6 +36,7 @@ namespace domain {
           d2_apoptosis_threshold_(thresholds.d2_apoptosis),
           max_d1_(instability.max_d1),
           max_d2_(instability.max_d2),
+          delta_noise_cv_(instability.noise_cv),
           delta_strategy_(std::make_unique<GenomicInstabilityDeltaStrategy>(
               instability.low_delta, instability.high_delta)),
           viability_strategy_(std::make_unique<GenomicViabilityStrategy>()) {
@@ -233,11 +237,24 @@ namespace domain {
     }
 
     void AgenticCell::phase4_CytoplasmicRemodeling() {
-        // Calculate instability deltas based on current genetic state
+        // Calculate deterministic instability deltas based on current genetic state
         InstabilityDeltas deltas = calculateInstabilityDeltas();
 
-        double prev_d1 = d1_dna_damage_;
-        double prev_d2 = d2_immunosuppression_;
+        // Apply lognormal noise when configured (noise_cv > 0).
+        // Each delta is sampled independently: lognormal(mean=det_delta, cv=noise_cv_).
+        // Box-Muller transform from two uniform draws; guards against log(0).
+        if (delta_noise_cv_ > 0.0 && noise_) {
+            const double sigma_log = std::sqrt(std::log(1.0 + delta_noise_cv_ * delta_noise_cv_));
+            auto lognormal_sample = [&](double mean) -> double {
+                if (mean <= 0.0) return mean;
+                double u1 = std::max(noise_->next().u01, std::numeric_limits<double>::min());
+                double u2 = noise_->next().u01;
+                double z = std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * std::numbers::pi_v<double> * u2);
+                return mean * std::exp(sigma_log * z - 0.5 * sigma_log * sigma_log);
+            };
+            deltas = InstabilityDeltas::create(lognormal_sample(deltas.d1()),
+                                               lognormal_sample(deltas.d2()));
+        }
 
         // Apply deltas with configured saturation limits
         d1_dna_damage_ = std::min(deltas.applyToD1(d1_dna_damage_), max_d1_);
@@ -306,7 +323,7 @@ namespace domain {
         unsigned daughter_seed = static_cast<unsigned>(seed_ + age_ + cell_id_);
 
         // Build configuration objects from current cell state
-        InstabilityConfig instability{low_delta_instability_, high_delta_instability_, max_d1_, max_d2_};
+        InstabilityConfig instability{low_delta_instability_, high_delta_instability_, max_d1_, max_d2_, delta_noise_cv_};
         DivisionConfig division{division_rate_, neoplastic_division_rate_, enable_big_bang_mode_};
         ThresholdConfig thresholds{d1_primer_threshold_, d2_apoptosis_threshold_};
 

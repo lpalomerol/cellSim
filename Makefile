@@ -67,6 +67,7 @@ CALIB_STEPS  ?= 8
 CALIB_RUNS   ?= 100
 CALIB_CELLS  ?= 200
 CALIB_MAXT   ?= 100
+CALIB_CV     ?= 0.0
 CALIB_OUT    ?= calibration_results.csv
 
 calibration_sweep: build
@@ -81,6 +82,7 @@ calibration_sweep: build
 		--runs $(CALIB_RUNS) \
 		--cells $(CALIB_CELLS) \
 		--max-t $(CALIB_MAXT) \
+		--delta-cv $(CALIB_CV) \
 		--output $(CALIB_OUT)
 	@echo "✅ Resultados en $(CALIB_OUT)"
 

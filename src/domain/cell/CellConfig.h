@@ -18,6 +18,11 @@ namespace domain {
         /// Maximum value for D2 (immunosuppression) - prevents overflow
         /// Default 999.0 acts as saturation limit
         double max_d2 = 999.0;
+
+        /// Coefficient of variation for lognormal noise applied to D1/D2 deltas.
+        /// 0.0 = deterministic (default). Values ~0.3–0.8 add biologically
+        /// plausible cell-to-cell variability and prevent population synchrony.
+        double noise_cv = 0.0;
     };
 
     /// Configuration for cell division rates
