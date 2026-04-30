@@ -66,6 +66,13 @@ namespace domain {
         // === ICell: Cell stage (derived on-the-fly from genetics + D1 + D2) ===
         [[nodiscard]] CellLifeStage getCurrentCellLifeStage() const override;
 
+        // === ICell: Genomic queries ===
+        [[nodiscard]] bool hasBRCA1Mutation() const override { return genome_.hasBRCA1Mutation(); }
+        [[nodiscard]] bool hasTP53Function() const override { return genome_.hasTP53Function(); }
+
+        // === ICell: Age ===
+        [[nodiscard]] std::uint64_t getAge() const override { return age_; }
+
         // === ICell: Apoptosis evasion ===
         [[nodiscard]] bool hasEvadedApoptosis() const override { return has_evaded_apoptosis_; }
 
@@ -76,7 +83,6 @@ namespace domain {
         // === Other public methods ===
         bool isNeoplasticProtected() const;
         std::uint64_t getSeed() const { return seed_; }
-        std::uint64_t getAge() const { return age_; }
         std::unique_ptr<AgenticCell> clone() const;
 
         [[nodiscard]] const Genome& getGenome() const { return genome_; }

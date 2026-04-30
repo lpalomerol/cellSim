@@ -30,6 +30,13 @@ namespace domain {
         // === Cell Stage ===
         [[nodiscard]] virtual CellLifeStage getCurrentCellLifeStage() const = 0;
 
+        // === Genomic queries ===
+        [[nodiscard]] virtual bool hasBRCA1Mutation() const = 0;
+        [[nodiscard]] virtual bool hasTP53Function() const = 0;
+
+        // === Age ===
+        [[nodiscard]] virtual std::uint64_t getAge() const = 0;
+
         // === Apoptosis Evasion ===
         [[nodiscard]] virtual bool hasEvadedApoptosis() const = 0;
 
