@@ -5,6 +5,9 @@
 #include <cstdio>
 #include <iomanip>
 #include <filesystem>
+#include <numeric>
+#include <algorithm>
+#include <cmath>
 #include "../src/application/simulation/PopulationTracker.h"
 #include "../src/application/config/SimulationConfig.h"
 #include "../src/domain/cell/CellFactory.h"
@@ -42,26 +45,19 @@ void captureSnapshotFromTissue(domain::Tissue* tissue, int year,
             else if (tp53_status == "+/-") tp53_pm++;
             else if (tp53_status == "-/-") tp53_mm++;
 
-            // Capturar D1 y D2 de TODAS las células vivas (no solo neoplásticas)
-            auto* agentic_v2 = dynamic_cast<domain::AgenticCell*>(cell);
-            if (agentic_v2) {
-                double d1 = agentic_v2->getD1();
-                double d2 = agentic_v2->getD2();
-
-                min_d1 = std::min(min_d1, d1);
-                max_d1 = std::max(max_d1, d1);
-                min_d2 = std::min(min_d2, d2);
-                max_d2 = std::max(max_d2, d2);
-            }
+            double d1 = cell->getD1();
+            double d2 = cell->getD2();
+            min_d1 = std::min(min_d1, d1);
+            max_d1 = std::max(max_d1, d1);
+            min_d2 = std::min(min_d2, d2);
+            max_d2 = std::max(max_d2, d2);
 
             if (cell->isNeoplastic()) {
                 neoplastic_alive++;
-                if (agentic_v2) {
-                    if (agentic_v2->getD2() >= 5.0) {  // D2 >= 5.0 = resistente a apoptosis
-                        neoplastic_resistant++;
-                    } else {
-                        neoplastic_susceptible++;
-                    }
+                if (cell->hasEvadedApoptosis()) {
+                    neoplastic_resistant++;
+                } else {
+                    neoplastic_susceptible++;
                 }
             } else {
                 protected_alive++;
@@ -118,12 +114,74 @@ struct ScenarioConfig {
     double low_delta;
     double high_delta;
     double division_rate;
-    double neoplastic_division_rate = 0.001;  // Para Big Bang (default = normal)
-    bool enable_big_bang_mode = false;        // Para Big Bang (default = desactivado)
-    int max_t = 50;  // Duración en años (default 50)
+    double neoplastic_division_rate = 0.001;
+    bool enable_big_bang_mode = false;
+    int max_t = 50;
+    double d1_primer_threshold = 2.0;
+    double d2_apoptosis_threshold = 5.0;
+    double noise_cv = 0.0;
+    int n_cells = 0;   // 0 = use base_cfg.n_cells
+    int n_runs = 1;
 };
 
+// Run a single simulation pass; returns {onset_year (-1 if none), final_penetrance_pct}
+static std::pair<int,double> runOnce(const ScenarioConfig& scenario,
+                                     const application::SimulationConfig& base_cfg,
+                                     int run_idx) {
+    int n_cells = scenario.n_cells > 0 ? scenario.n_cells : base_cfg.n_cells;
+    auto tissue = std::make_unique<domain::Tissue>(base_cfg.logger);
+
+    for (int i = 0; i < n_cells; ++i) {
+        domain::Genome genome = domain::genome_factory::makeDefaultGenome(
+            {{"BRCA1", scenario.brca1_threshold}, {"TP53", scenario.tp53_threshold}},
+            {{"BRCA1", 0.0}, {"TP53", 0.0}},
+            base_cfg.logger
+        );
+        unsigned seed = static_cast<unsigned>(run_idx * 10000 + 100 + i);
+        auto cell = domain::CellFactory::createCustomCell(
+            std::make_unique<domain::adapters::RandomNoise>(seed),
+            genome,
+            scenario.low_delta, scenario.high_delta,
+            scenario.division_rate, scenario.neoplastic_division_rate,
+            scenario.enable_big_bang_mode,
+            scenario.d1_primer_threshold, scenario.d2_apoptosis_threshold,
+            base_cfg.logger, scenario.noise_cv
+        );
+        tissue->addCell(std::move(cell));
+    }
+
+    application::PopulationTracker tracker;
+    int previous_alive = n_cells, cumulative_dead = 0;
+    captureSnapshotFromTissue(tissue.get(), 0, tracker, &previous_alive, &cumulative_dead);
+
+    int onset = -1;
+    for (int year = 1; year <= scenario.max_t; ++year) {
+        tissue->live();
+        captureSnapshotFromTissue(tissue.get(), year, tracker, &previous_alive, &cumulative_dead);
+        if (onset < 0 && tracker.snapshots().back().neoplastic_alive > 0) {
+            onset = year;
+        }
+    }
+
+    const auto& last = tracker.snapshots().back();
+    double penetrance = last.alive_cells > 0
+        ? 100.0 * last.neoplastic_alive / last.alive_cells : 0.0;
+
+    // Save trace for first run only
+    if (run_idx == 0) {
+        std::string output_dir = "traces/" + scenario.name;
+        fs::create_directories(output_dir);
+        std::string config_desc = "BRCA1=" + std::to_string(scenario.brca1_threshold) +
+                                  ", TP53=" + std::to_string(scenario.tp53_threshold) +
+                                  ", div=" + std::to_string(scenario.division_rate);
+        tracker.saveToFiles(output_dir, scenario.name, 1, config_desc);
+    }
+
+    return {onset, penetrance};
+}
+
 void runScenario(const ScenarioConfig& scenario, const application::SimulationConfig& base_cfg) {
+    std::cout << std::defaultfloat << std::setprecision(6);
     std::cout << "\n▶ Escenario: " << std::setw(35) << std::left << scenario.name;
     std::cout << " | " << scenario.description << "\n";
     std::cout << "  Parámetros:\n";
@@ -131,85 +189,69 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
               << ", TP53=" << scenario.tp53_threshold << "\n";
     std::cout << "    low_delta=" << scenario.low_delta
               << ", high_delta=" << scenario.high_delta
-              << ", division=" << scenario.division_rate << "\n";
-    std::cout << ", duration=" << scenario.max_t << " años\n";
+              << ", division=" << scenario.division_rate;
+    if (scenario.noise_cv > 0.0) std::cout << ", noise_cv=" << scenario.noise_cv;
+    std::cout << "\n";
+    std::cout << ", duration=" << scenario.max_t << " años"
+              << ", n_runs=" << scenario.n_runs << "\n";
     std::cout << "  Ejecutando..." << std::flush;
 
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    // Crear Tissue
-    auto tissue = std::make_unique<domain::Tissue>(base_cfg.logger);
+    std::vector<int> onsets;
+    std::vector<double> penetrances;
 
-    // Crear células
-    for (int i = 0; i < base_cfg.n_cells; ++i) {
-        domain::Genome genome = domain::genome_factory::makeDefaultGenome(
-            {{"BRCA1", scenario.brca1_threshold}, {"TP53", scenario.tp53_threshold}},
-            {{"BRCA1", 0.0}, {"TP53", 0.0}},  // instability_k = 0.0 (sin mutaciones base)
-            base_cfg.logger
-        );
-
-        unsigned unique_seed = 100 + i;
-        auto noise = std::make_unique<domain::adapters::RandomNoise>(unique_seed);
-
-        auto cell = domain::CellFactory::createCustomCell(
-            std::move(noise),  // Pasar noise con seed única
-            genome,
-            scenario.low_delta,
-            scenario.high_delta,
-            scenario.division_rate,
-            scenario.neoplastic_division_rate,
-            scenario.enable_big_bang_mode,
-            2.0,  // d1_primer_threshold
-            5.0,  // d2_apoptosis_threshold
-            base_cfg.logger
-        );
-
-        tissue->addCell(std::move(cell));
-    }
-
-    // Crear tracker
-    application::PopulationTracker tracker;
-    int previous_alive = base_cfg.n_cells;
-    int cumulative_dead = 0;
-    captureSnapshotFromTissue(tissue.get(), 0, tracker, &previous_alive, &cumulative_dead);
-
-    // Ejecutar (usar scenario.max_t para duración específica por escenario)
-    for (int year = 1; year <= scenario.max_t; ++year) {
-        tissue->live();
-        captureSnapshotFromTissue(tissue.get(), year, tracker, &previous_alive, &cumulative_dead);
+    for (int r = 0; r < scenario.n_runs; ++r) {
+        auto [onset, pct] = runOnce(scenario, base_cfg, r);
+        onsets.push_back(onset);
+        penetrances.push_back(pct);
     }
 
     auto end_time = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
-    // Guardar
-    std::string config_desc = "BRCA1=" + std::to_string(scenario.brca1_threshold) +
-                             ", TP53=" + std::to_string(scenario.tp53_threshold) +
-                             ", div=" + std::to_string(scenario.division_rate);
+    // Compute stats
+    auto stats = [](const std::vector<double>& v) -> std::pair<double,double> {
+        double mean = std::accumulate(v.begin(), v.end(), 0.0) / v.size();
+        double var = 0.0;
+        for (double x : v) var += (x - mean) * (x - mean);
+        return {mean, std::sqrt(var / v.size())};
+    };
 
-    std::string output_dir = "traces/" + scenario.name;
-    fs::create_directories(output_dir);
-    tracker.saveToFiles(output_dir, scenario.name, 1, config_desc);
+    std::vector<double> onset_d;
+    int no_event = 0;
+    for (int o : onsets) {
+        if (o >= 0) onset_d.push_back(static_cast<double>(o));
+        else ++no_event;
+    }
 
-    // Resumen
-    const auto& snaps = tracker.snapshots();
-    int final_alive = snaps.back().alive_cells;
-    int final_neoplastic = snaps.back().neoplastic_alive;
-    int final_resistant = snaps.back().neoplastic_apoptosis_resistant;
+    auto [mean_pen, sd_pen] = stats(penetrances);
 
     std::cout << " ✓\n";
-    std::cout << "  Resultados: Vivas=" << final_alive
-              << ", Neoplásticas=" << final_neoplastic
-              << " (Resistentes=" << final_resistant << ")"
-              << " | Tiempo=" << duration.count() << "ms\n";
+    std::cout << "  Penetrancia final: " << std::fixed << std::setprecision(1)
+              << mean_pen << "% ± " << sd_pen << "%";
+    if (scenario.n_runs > 1) {
+        std::cout << "  (n_runs=" << scenario.n_runs << ", sin_evento=" << no_event << ")";
+    }
+    std::cout << "\n";
+
+    if (!onset_d.empty()) {
+        auto [mean_on, sd_on] = stats(onset_d);
+        std::cout << "  Onset (año):       " << mean_on << " ± " << sd_on
+                  << "  [min=" << *std::min_element(onset_d.begin(), onset_d.end())
+                  << ", max=" << *std::max_element(onset_d.begin(), onset_d.end()) << "]\n";
+    }
+
+    std::cout << "  Tiempo: " << duration.count() << "ms\n";
 }
 
 int main() {
     std::cout << "\n╔═══════════════════════════════════════════════════════════════╗\n";
-    std::cout << "║  VALIDACIÓN - 12 ESCENARIOS: 9 CONTROL + 3 BIG BANG       ║\n";
-    std::cout << "║  Parámetros: BRCA1, TP53, low_delta,                      ║\n";
-    std::cout << "║              high_delta, division_rate, neoplastic_div      ║\n";
-    std::cout << "║  Escenarios 10-12: Big Bang (TP53 -/- con división)         ║\n";
+    std::cout << "║  VALIDACIÓN - 14 ESCENARIOS: 9 CTRL + 3 BIG BANG + 2 CALIB  ║\n";
+    std::cout << "║  Parámetros: BRCA1, TP53, low_delta,                        ║\n";
+    std::cout << "║              high_delta, division_rate, neoplastic_div        ║\n";
+    std::cout << "║  Escenarios 10-12: Big Bang (TP53 -/- con división)           ║\n";
+    std::cout << "║  Escenarios 13-14: Calibrated + lognormal noise (CV 0.3/0.5) ║\n";
     std::cout << "╚═══════════════════════════════════════════════════════════════╝\n";
 
     auto cfg = application::SimulationConfig::loadScenario("default", false);
@@ -323,11 +365,85 @@ int main() {
         {"12_big_bang_tumoral_low_threshold",
          "Big Bang con Bajo Threshold TP53: TP53 -/- (10%) + Normal (5%)",
          0.05, 0.01,         // BRCA1=0.05 (5%), TP53=0.01 (1%)
-         0.2, 0.5,           // low_delta=0.2, high_delta=0.5 (↑ aumentado para evasión inmune)
-         0.05,               // division_rate=5% (células normales sí se dividen)
-         0.10,               // neoplastic_division_rate=10% (células TP53 -/- dividen)
+         0.2, 0.5,           // low_delta=0.2, high_delta=0.5
+         0.05,               // division_rate=5%
+         0.10,               // neoplastic_division_rate=10%
          true,               // enable_big_bang_mode=true
-         80}                 // max_t=80 años
+         80},                // max_t=80 años
+
+        // === CALIBRATED + LOGNORMAL NOISE ===
+        // Parameters from calibration_sweep: δ_low=0.0317, θ_D1=4.0, θ_D2=10.0
+        // → 100% penetrance, median onset ~50 years (BRCA1 carrier profile)
+        {"13_calibrated_lognormal_cv03",
+         "Calibrated BRCA1 carrier profile + lognormal noise (CV=0.3)",
+         0.05, 0.01,
+         0.0317, 0.0634,
+         0.05,
+         0.0,
+         false,
+         80,
+         4.0,
+         10.0,
+         0.3,
+         0,    // n_cells = default
+         10},  // n_runs
+
+        {"14_calibrated_lognormal_cv05",
+         "Calibrated BRCA1 carrier profile + lognormal noise (CV=0.5)",
+         0.05, 0.01,
+         0.0317, 0.0634,
+         0.05,
+         0.0,
+         false,
+         80,
+         4.0,
+         10.0,
+         0.5,
+         0,    // n_cells = default
+         10},  // n_runs
+
+        {"15_calibrated_lognormal_cv05_2x",
+         "Calibrated + CV=0.5, N=2000 (2x scenario 14)",
+         0.05, 0.01,
+         0.0317, 0.0634,
+         0.05,
+         0.0,
+         false,
+         80,
+         4.0,
+         10.0,
+         0.5,
+         2000, // n_cells
+         10},  // n_runs
+
+        // === CALIBRATED + CONSTANT INCREMENT (baseline comparison) ===
+        {"16_calibrated_constant_n1000",
+         "Calibrated params, constant increment (no noise), N=1000",
+         0.05, 0.01,
+         0.0317, 0.0634,
+         0.05,
+         0.0,
+         false,
+         80,
+         4.0,
+         10.0,
+         0.0,  // noise_cv=0 → constant increment
+         0,    // n_cells = default (1000)
+         10},  // n_runs
+
+        {"17_calibrated_constant_n2000",
+         "Calibrated params, constant increment (no noise), N=2000",
+         0.05, 0.01,
+         0.0317, 0.0634,
+         0.05,
+         0.0,
+         false,
+         80,
+         4.0,
+         10.0,
+         0.0,  // noise_cv=0 → constant increment
+         2000, // n_cells
+         10}   // n_runs
     };
 
     auto total_start = std::chrono::system_clock::now();
@@ -341,11 +457,12 @@ int main() {
     auto total_duration = std::chrono::duration_cast<std::chrono::seconds>(total_end - total_start);
 
     std::cout << "\n╔═══════════════════════════════════════════════════════════════╗\n";
-    std::cout << "║  ✓ VALIDACIÓN COMPLETADA - 12 ESCENARIOS                     ║\n";
-    std::cout << "║  • Escenarios 1-9: Validación de controles (no Big Bang)     ║\n";
-    std::cout << "║  • Escenario 10: Big Bang puro (neoplasm=20%, div=20%)       ║\n";
-    std::cout << "║  • Escenario 11: Big Bang + reproducción normal (div=10%)    ║\n";
-    std::cout << "║  • Escenario 12: Big Bang bajo threshold TP53 (div=10%)      ║\n";
+    std::cout << "║  ✓ VALIDACIÓN COMPLETADA - 14 ESCENARIOS                     ║\n";
+    std::cout << "║  • Escenarios 1-9:  Validación de controles (no Big Bang)    ║\n";
+    std::cout << "║  • Escenario 10:    Big Bang puro (neoplasm=20%, div=20%)    ║\n";
+    std::cout << "║  • Escenario 11:    Big Bang + reproducción normal           ║\n";
+    std::cout << "║  • Escenario 12:    Big Bang bajo threshold TP53             ║\n";
+    std::cout << "║  • Escenario 13-14: Calibrated + lognormal (CV 0.3/0.5)     ║\n";
     std::cout << "║  Tiempo total: " << std::setw(2) << total_duration.count() << "s\n";
     std::cout << "╚═══════════════════════════════════════════════════════════════╝\n\n";
 

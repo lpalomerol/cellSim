@@ -20,12 +20,10 @@ namespace domain {
     public:
         GenomicViabilityStrategy() = default;
 
-        [[nodiscard]] bool isAlive(const AgenticCell& cell) const override;
+        [[nodiscard]] bool isAlive(const ICell& cell) const override;
 
     private:
-        /// Evaluates viability based on genomic configuration
-        /// Integrates BRCA1/TP53 state with future signals (D1, D2, age)
-        [[nodiscard]] bool evaluateGenomicViability(const AgenticCell& cell) const;
+        [[nodiscard]] bool evaluateGenomicViability(const ICell& cell) const;
     };
 
 } // namespace domain

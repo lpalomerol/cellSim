@@ -8,37 +8,34 @@ namespace application {
                                              const std::string& config_json) const {
         std::ostringstream oss;
 
-        oss << "# Población Celular - Escenario: " << scenario_name << " (Run #" << run_number << ")\n\n";
+        oss << "# Cell Population - Scenario: " << scenario_name << " (Run #" << run_number << ")\n\n";
 
-        oss << "## Resumen Ejecutivo\n";
-        oss << "- **Escenario:** " << scenario_name << "\n";
+        oss << "## Executive Summary\n";
+        oss << "- **Scenario:** " << scenario_name << "\n";
         oss << "- **Run:** #" << run_number << "\n";
-        oss << "- **Configuración:** " << config_desc << "\n";
-        oss << "- **Años simulados:** " << snapshots_.size() - 1 << "\n";
+        oss << "- **Configuration:** " << config_desc << "\n";
+        oss << "- **Simulated years:** " << snapshots_.size() - 1 << "\n";
         if (!snapshots_.empty()) {
-            oss << "- **Población inicial:** " << snapshots_[0].total_cells << " células\n";
-            oss << "- **Población final:** " << snapshots_.back().total_cells << " células\n";
+            oss << "- **Initial population:** " << snapshots_[0].total_cells << " cells\n";
+            oss << "- **Final population:** " << snapshots_.back().total_cells << " cells\n";
         }
         oss << "\n";
 
         oss << "---\n\n";
 
-        // Sección de configuración si está disponible
         if (!config_json.empty()) {
-            oss << "## Configuración JSON\n\n";
+            oss << "## JSON Configuration\n\n";
             oss << "```json\n";
             oss << config_json << "\n";
             oss << "```\n\n";
             oss << "---\n\n";
         }
 
-        oss << "## Evolución Anual de Población\n\n";
+        oss << "## Annual Population Evolution\n\n";
 
-        // Encabezado de tabla con D1/D2
-        oss << "| Año | Total (V+M) | Vivas (P+N) | Muertas (Apoptosis) | Neoplásticas (Vivas) | Protegidas (Vivas) | Min D1 | Max D1 | Min D2 | Max D2 | TP53++ (%) | TP53+- (%) | TP53-- (%) |\n";
-        oss << "|-----|-------------|-------------|---------------------|----------------------|-------------------|--------|--------|--------|--------|-----------|-----------|----------|\n";
+        oss << "| Year | Total (A+D) | Alive (P+N) | Dead (Apoptosis) | Neoplastic (Alive) | Protected (Alive) | Min D1 | Max D1 | Min D2 | Max D2 | TP53++ (%) | TP53+- (%) | TP53-- (%) |\n";
+        oss << "|------|-------------|-------------|------------------|--------------------|-------------------|--------|--------|--------|--------|-----------|-----------|----------|\n";
 
-        // Filas de datos
         for (const auto& snap : snapshots_) {
             oss << "| " << snap.year << " | ";
             oss << snap.total_cells << " | ";
@@ -57,45 +54,43 @@ namespace application {
 
         oss << "---\n\n";
 
-        oss << "## Apoptosis en Células Neoplásticas\n\n";
+        oss << "## Apoptosis in Neoplastic Cells\n\n";
 
-        // Segunda tabla: Apoptosis
-        oss << "| Año | Neoplásticas (Vivas) | Susceptibles a Apoptosis | Resistentes a Apoptosis | % Inmortales |\n";
-        oss << "|-----|----------------------|--------------------------|--------------------------|---------------|\n";
+        oss << "| Year | Neoplastic (Alive) | Apoptosis-Susceptible | Apoptosis-Resistant | % Immortal |\n";
+        oss << "|------|--------------------|-----------------------|---------------------|-------------|\n";
 
         for (const auto& snap : snapshots_) {
             int total_neo = snap.neoplastic_apoptosis_susceptible + snap.neoplastic_apoptosis_resistant;
-            double pct_inmortales = (total_neo > 0) ? (100.0 * snap.neoplastic_apoptosis_resistant / total_neo) : 0.0;
+            double pct_immortal = (total_neo > 0) ? (100.0 * snap.neoplastic_apoptosis_resistant / total_neo) : 0.0;
 
             oss << "| " << snap.year << " | ";
             oss << snap.neoplastic_alive << " | ";
             oss << snap.neoplastic_apoptosis_susceptible << " | ";
             oss << snap.neoplastic_apoptosis_resistant << " | ";
-            oss << std::fixed << std::setprecision(1) << pct_inmortales << "% |\n";
+            oss << std::fixed << std::setprecision(1) << pct_immortal << "% |\n";
         }
 
         oss << "\n";
 
-        // Definiciones
         oss << "---\n\n";
-        oss << "## Definiciones\n\n";
-        oss << "- **Total (V+M):** Todas las células (vivas + muertas acumuladas)\n";
-        oss << "- **Vivas (P+N):** Células vivas actuales (protegidas + neoplásticas vivas)\n";
-        oss << "- **Muertas (Apoptosis):** Total acumulado de células muertas\n";
-        oss << "- **Neoplásticas (Vivas):** Células transformadas que siguen vivas\n";
-        oss << "- **Protegidas (Vivas):** Células normales/sanas que siguen vivas\n";
-        oss << "- **Min D1:** Mínimo D1 (DNA damage counter) en población viva\n";
-        oss << "- **Max D1:** Máximo D1 (DNA damage counter) en población viva\n";
-        oss << "- **Min D2:** Mínimo D2 (Immunosuppression counter) en población viva\n";
-        oss << "- **Max D2:** Máximo D2 (Immunosuppression counter) en población viva\n";
-        oss << "- **TP53++:** Porcentaje de células con TP53 wild-type (+/+)\n";
-        oss << "- **TP53+-:** Porcentaje de células con TP53 heterocigoto (+/-)\n";
-        oss << "- **TP53--:** Porcentaje de células con TP53 homocigoto (-/-)\n";
+        oss << "## Definitions\n\n";
+        oss << "- **Total (A+D):** All cells (alive + cumulative dead)\n";
+        oss << "- **Alive (P+N):** Current live cells (protected + neoplastic alive)\n";
+        oss << "- **Dead (Apoptosis):** Cumulative dead cell count\n";
+        oss << "- **Neoplastic (Alive):** Transformed cells still alive\n";
+        oss << "- **Protected (Alive):** Normal/healthy cells still alive\n";
+        oss << "- **Min D1:** Min D1 (DNA damage counter) in live population\n";
+        oss << "- **Max D1:** Max D1 (DNA damage counter) in live population\n";
+        oss << "- **Min D2:** Min D2 (Immunosuppression counter) in live population\n";
+        oss << "- **Max D2:** Max D2 (Immunosuppression counter) in live population\n";
+        oss << "- **TP53++:** Percentage of cells with TP53 wild-type (+/+)\n";
+        oss << "- **TP53+-:** Percentage of cells with TP53 heterozygous (+/-)\n";
+        oss << "- **TP53--:** Percentage of cells with TP53 homozygous (-/-)\n";
         oss << "\n";
-        oss << "### Apoptosis en Neoplásticas\n";
-        oss << "- **Susceptibles a Apoptosis:** Neoplásticas que pueden ser eliminadas por señal de apoptosis\n";
-        oss << "- **Resistentes a Apoptosis:** Neoplásticas inmortales que evaden apoptosis\n";
-        oss << "- **% Inmortales:** Porcentaje de neoplásticas que son resistentes a apoptosis\n";
+        oss << "### Neoplastic Apoptosis\n";
+        oss << "- **Apoptosis-Susceptible:** Neoplastic cells that can be eliminated by apoptosis signal\n";
+        oss << "- **Apoptosis-Resistant:** Immortal neoplastic cells that evade apoptosis\n";
+        oss << "- **% Immortal:** Percentage of neoplastic cells resistant to apoptosis\n";
 
         return oss.str();
     }
@@ -156,7 +151,7 @@ namespace application {
                 }
             }
         }
-        return -1;  // Nunca se supera el threshold
+        return -1;  // threshold never exceeded
     }
 
     std::string PopulationTracker::toSummaryCsv(const std::string& scenario_name, int run_number,
@@ -225,7 +220,6 @@ namespace application {
                                        const std::string& config_json) const {
         namespace fs = std::filesystem;
 
-        // Crear directorio si no existe
         fs::create_directories(output_dir);
 
         // Guardar Markdown

@@ -67,11 +67,6 @@ public:
     /// TP53 +/- or -/- suggests compromised genome integrity
     [[nodiscard]] bool hasTP53Instability() const;
 
-    /// Returns whether genome indicates neoplastic protection
-    /// TP53 functional (enabled or partially_enabled) can eliminate damaged cells
-    /// DEPRECATED: Prefer hasTP53Function() for clarity
-    [[nodiscard]] bool hasNeoplasticProtection() const;
-
 private:
     std::unordered_map<std::string, Gene> genes_;
     ports::ILoggerPtr logger_;

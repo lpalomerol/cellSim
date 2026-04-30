@@ -12,21 +12,21 @@ namespace application {
      * Evita duplicación de parámetros entre main.cpp, interactive, etc.
      */
     struct SimulationConfig {
-        // Parámetros de simulación
-        int max_t = 100;                    // Años de simulación
-        int n_cells = 1000;                 // Número de células
-        long seed = -1;                     // Semilla (-1 = variar)
-        bool verbose = false;               // Trazas verbose
+        // Simulation parameters
+        int max_t = 100;                    // Simulation years
+        int n_cells = 1000;                 // Initial cell count
+        long seed = -1;                     // RNG seed (-1 = vary per run)
+        bool verbose = false;               // Verbose logging
         bool use_random_noise = true;       // true = RandomNoise, false = FixedNoise
-        double division_rate = 0.001;       // Tasa de división normal
-        double neoplastic_division_rate = 0.001;  // Tasa de división neoplástica (Big Bang)
-        bool enable_big_bang_mode = false;  // Activar Big Bang (división acelerada neoplástica)
+        double division_rate = 0.001;       // Normal division rate
+        double neoplastic_division_rate = 0.001;  // Neoplastic division rate (Big Bang)
+        bool enable_big_bang_mode = false;  // Enable Big Bang (accelerated neoplastic division)
 
-        // Parámetros de thresholds y deltas
+        // Threshold and delta parameters
         double d1_threshold = 2.0;          // D1 (DNA damage) primer/progression threshold
         double d2_threshold = 5.0;          // D2 (Immunosuppression) apoptosis resistance threshold
-        double low_delta = 0.0001;          // Delta bajo para instabilidad genómica
-        double high_delta = 0.0002;         // Delta alto para instabilidad genómica
+        double low_delta = 0.0001;          // Low genomic instability delta
+        double high_delta = 0.0002;         // High genomic instability delta
 
         // Parámetros de genes
         std::unordered_map<std::string, double> gene_thresholds;

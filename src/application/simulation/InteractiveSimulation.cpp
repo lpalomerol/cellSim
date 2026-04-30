@@ -9,53 +9,48 @@ InteractiveSimulation::InteractiveSimulation(int max_t_years)
 
 void InteractiveSimulation::addCell(std::unique_ptr<domain::ICell> cell) {
     std::cout << "------------------------" << std::endl;
-    std::cout << "Creando nueva célula:" << std::endl;
+    std::cout << "New cell:" << std::endl;
     cell->details();
-    std::cout << "Célula añadida a la simulación." << std::endl;
+    std::cout << "Cell added to simulation." << std::endl;
     std::cout << "------------------------" << std::endl;
 
-    cells_.emplace_back(std::move(cell));
+    total_cells_ever_++;
+    tissue_.addCell(std::move(cell));
 }
 
-// Realiza un año de simulación aplicando la opción proporcionada
 bool InteractiveSimulation::step(MenuOption option) {
     if (current_year_ >= max_t_) return false;
 
-    // Si el usuario pidió salir, detener la simulación sin avanzar el año
     if (option == MenuOption::Quit) {
-        std::cout << "Simulación finalizada por usuario (opción 'q')." << std::endl;
+        std::cout << "Simulation ended by user." << std::endl;
         return false;
     }
 
     ++current_year_;
     std::cout << "--- Year " << current_year_ << " ---" << std::endl;
 
-    // Aplicar opciones del usuario (mutaciones)
-    for (auto& c : cells_) {
+    for (auto* c : tissue_.getLiveCells()) {
         switch (option) {
-            case MenuOption::MutarBRCA:
+            case MenuOption::MutateBRCA1:
                 c->mutateGene("BRCA1");
-                std::cout << "Mutación BRCA1 aplicada a la célula." << std::endl;
+                std::cout << "BRCA1 mutation applied." << std::endl;
                 break;
-            case MenuOption::MutarTP53:
+            case MenuOption::MutateTP53:
                 c->mutateGene("TP53");
-                std::cout << "Mutación TP53 aplicada a la célula." << std::endl;
+                std::cout << "TP53 mutation applied." << std::endl;
                 break;
-            case MenuOption::Nada:
+            case MenuOption::None:
             case MenuOption::Quit:
-                // No hacer nada
                 break;
         }
     }
 
-    // Ejecutar ciclo celular y obtener conteo neoplástico
     current_neoplastic_count_ = executeCellCycle();
 
     if (current_neoplastic_count_ > 0 && first_time_neoplastic_ == -1) {
         first_time_neoplastic_ = current_year_;
     }
 
-    // Devuelve true si aún quedan años por ejecutar después de este step
     return current_year_ < max_t_;
 }
 

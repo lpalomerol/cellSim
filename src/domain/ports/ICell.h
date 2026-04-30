@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include "../shared/CellLifeStage.h"
 
 namespace domain {
     struct ISignal; // forward
@@ -22,8 +23,28 @@ namespace domain {
         // === Neoplasia State ===
         [[nodiscard]] virtual bool isNeoplastic() const = 0;
 
+        // === Damage Accumulators ===
+        [[nodiscard]] virtual double getD1() const = 0;
+        [[nodiscard]] virtual double getD2() const = 0;
+
+        // === Cell Stage ===
+        [[nodiscard]] virtual CellLifeStage getCurrentCellLifeStage() const = 0;
+
+        // === Genomic queries ===
+        [[nodiscard]] virtual bool hasBRCA1Mutation() const = 0;
+        [[nodiscard]] virtual bool hasTP53Function() const = 0;
+
+        // === Age ===
+        [[nodiscard]] virtual std::uint64_t getAge() const = 0;
+
+        // === Apoptosis Evasion ===
+        [[nodiscard]] virtual bool hasEvadedApoptosis() const = 0;
+
+        // === Division ===
+        /// Returns owned daughter cell after a division tick, or nullptr if no division occurred.
+        virtual std::unique_ptr<ICell> takePendingDaughter() = 0;
+
         // === Information ===
-        // Imprime detalles de la célula (por defecto no hace nada)
         virtual void details() const {}
 
         // === Mutation ===

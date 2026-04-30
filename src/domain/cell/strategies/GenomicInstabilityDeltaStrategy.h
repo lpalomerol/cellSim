@@ -27,14 +27,14 @@ namespace domain {
         GenomicInstabilityDeltaStrategy(double low_delta, double high_delta)
             : low_delta_(low_delta), high_delta_(high_delta) {}
 
-        [[nodiscard]] InstabilityDeltas calculateDeltas(const AgenticCell& cell) const override;
+        [[nodiscard]] InstabilityDeltas calculateDeltas(const ICell& cell, INoiseSource* noise) const override;
 
     private:
         double low_delta_;
         double high_delta_;
 
-        /// Helper: calculate delta for a single gene based on its status
-        [[nodiscard]] double calculateGeneDelta(const GeneStatus& gene_status) const;
+        /// Helper: calculate delta for a gene given its string status ("+/+", "+/-", "-/-")
+        [[nodiscard]] double deltaForStatus(const std::string& status) const;
     };
 
 } // namespace domain

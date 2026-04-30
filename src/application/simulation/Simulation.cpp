@@ -2,164 +2,98 @@
 #include <array>
 #include <algorithm>
 #include <limits>
-#include "../../domain/cell/AgenticCell.h"
 
 namespace application {
 
     Simulation::Simulation(int max_t_years) {
         max_t_ = max_t_years;
-        cell_state_counter_ = std::vector(max_t_, std::array<int, 3>{0, 0});
-    }
-
-    // PASO 6: Habilitar/deshabilitar TissueV2 como Population Orchestrator
-    void Simulation::enableTissueV2(bool enable) {
-        use_tissue_v2_ = enable;
-        if (enable && !tissue_adapter_) {
-            tissue_adapter_ = std::make_unique<TissueV2Adapter>();
-            // Si ya hay células en cells_, transferirlas al adaptador
-            for (auto& cell : cells_) {
-                if (cell) {
-                    tissue_adapter_->addCell(std::move(cell));
-                }
-            }
-            cells_.clear();  // Vaciar vector original, ahora gestiona TissueV2
-        } else if (!enable && tissue_adapter_) {
-            // Transferir células de vuelta al vector original
-            for (std::size_t i = 0; i < tissue_adapter_->size(); ++i) {
-                auto* cell = tissue_adapter_->getCell(i);
-                if (cell) {
-                    // Necesitamos clonar aquí; por ahora, documentar limitación
-                    // TODO: Implementar método de transferencia en ICell
-                }
-            }
-            tissue_adapter_.reset();
-        }
+        cell_state_counter_ = std::vector(max_t_, std::array<int, 3>{0, 0, 0});
     }
 
     void Simulation::addCell(std::unique_ptr<domain::ICell> cell) {
-        // ...existing code...
+        if (cell) {
+            total_cells_ever_++;
+            tissue_.addCell(std::move(cell));
+        }
     }
 
-    // Helper: ejecuta un ciclo celular y devuelve el conteo de células neoplásticas
     int Simulation::executeCellCycle() {
-        // PASO 6: Usar TissueV2Adapter si está habilitado, sino usar lógica original
-        if (use_tissue_v2_ && tissue_adapter_) {
-            tissue_adapter_->live();
-            // Contar neoplásticas en el adaptador
-            int neoplastic_count = 0;
-            for (std::size_t i = 0; i < tissue_adapter_->size(); ++i) {
-                auto* cell = tissue_adapter_->getCell(i);
-                if (cell && cell->isNeoplastic()) {
-                    neoplastic_count++;
-                }
-            }
-            return neoplastic_count;
-        }
+        tissue_.live();
+        cumulative_dead_ += tissue_.lastDeathCount();
+        total_cells_ever_ += tissue_.lastBirthCount();
 
-        // Código original: usa cells_ directamente
         int neoplastic_count = 0;
-        for (auto& c : cells_) {
-            c->live();
-            if (c->isNeoplastic()) {
-                neoplastic_count += 1;
-            }
+        for (auto* cell : tissue_.getLiveCells()) {
+            if (cell->isNeoplastic()) neoplastic_count++;
         }
         return neoplastic_count;
     }
 
     void Simulation::captureAnnualSnapshot(int year) {
-        // Contar células por categoría
-        int alive_count = 0;
+        auto live_cells = tissue_.getLiveCells();
+        int alive_count = static_cast<int>(live_cells.size());
         int neoplastic_alive = 0;
         int protected_alive = 0;
-        double neoplastic_apoptosis_susceptible = 0;
-        double neoplastic_apoptosis_resistant = 0;
+        int neoplastic_apoptosis_susceptible = 0;
+        int neoplastic_apoptosis_resistant = 0;
 
         double min_instability = std::numeric_limits<double>::max();
         double max_instability = std::numeric_limits<double>::lowest();
+        double min_d2 = std::numeric_limits<double>::max();
+        double max_d2 = std::numeric_limits<double>::lowest();
 
         int tp53_plus_plus = 0;
         int tp53_plus_minus = 0;
         int tp53_minus_minus = 0;
 
-        for (auto& cell : cells_) {
-            if (cell->alive()) {
-                alive_count++;
+        for (auto* cell : live_cells) {
+            std::string tp53_status = cell->getTP53Status();
+            if (tp53_status == "+/+") tp53_plus_plus++;
+            else if (tp53_status == "+/-") tp53_plus_minus++;
+            else if (tp53_status == "-/-") tp53_minus_minus++;
 
-                // Obtener estado TP53
-                std::string tp53_status = cell->getTP53Status();
-                if (tp53_status == "+/+") {
-                    tp53_plus_plus++;
-                } else if (tp53_status == "+/-") {
-                    tp53_plus_minus++;
-                } else if (tp53_status == "-/-") {
-                    tp53_minus_minus++;
-                }
-
-                // Contar neoplásticas vs protegidas
-                if (cell->isNeoplastic()) {
-                    neoplastic_alive++;
-
-                    // Verificar si la neoplástica ha evasado apoptosis (es inmortal)
-                    // Intentar hacer dynamic_cast a AgenticCell para acceder al método
-                    auto* agentic_cell = dynamic_cast<domain::AgenticCell*>(cell.get());
-                    if (agentic_cell && agentic_cell->hasEvadedApoptosis()) {
-                        neoplastic_apoptosis_resistant++;
-                    } else {
-                        neoplastic_apoptosis_susceptible++;
-                    }
+            if (cell->isNeoplastic()) {
+                neoplastic_alive++;
+                if (cell->hasEvadedApoptosis()) {
+                    neoplastic_apoptosis_resistant++;
                 } else {
-                    protected_alive++;
+                    neoplastic_apoptosis_susceptible++;
                 }
+            } else {
+                protected_alive++;
             }
+
+            double d1 = cell->getD1();
+            double d2 = cell->getD2();
+            min_instability = std::min(min_instability, d1);
+            max_instability = std::max(max_instability, d1);
+            min_d2 = std::min(min_d2, d2);
+            max_d2 = std::max(max_d2, d2);
         }
 
-        // Calcular inestabilidad genómica (incluye todas las células vivas)
-        if (alive_count > 0) {
-            min_instability = std::numeric_limits<double>::max();
-            max_instability = std::numeric_limits<double>::lowest();
-
-            for (auto& cell : cells_) {
-                if (cell->alive()) {
-                    // Obtener inestabilidad real de la célula usando dynamic_cast
-                    auto* agentic_cell = dynamic_cast<domain::AgenticCell*>(cell.get());
-                    if (agentic_cell) {
-                        double instability = agentic_cell->getD1();
-                        min_instability = std::min(min_instability, instability);
-                        max_instability = std::max(max_instability, instability);
-                    }
-                }
-            }
-
-            // Si no se pudo obtener, usar defaults
-            if (min_instability == std::numeric_limits<double>::max()) {
-                min_instability = 0.0;
-                max_instability = 0.0;
-            }
-        } else {
+        if (alive_count == 0) {
             min_instability = 0.0;
             max_instability = 0.0;
+            min_d2 = 0.0;
+            max_d2 = 0.0;
         }
 
-        int total_cells = cells_.size();
-        int dead_cells = total_cells - alive_count;
+        int tp53_total = tp53_plus_plus + tp53_plus_minus + tp53_minus_minus;
+        double tp53_pp_pct = (tp53_total > 0) ? static_cast<double>(tp53_plus_plus) / tp53_total : 0.0;
+        double tp53_pm_pct = (tp53_total > 0) ? static_cast<double>(tp53_plus_minus) / tp53_total : 0.0;
+        double tp53_mm_pct = (tp53_total > 0) ? static_cast<double>(tp53_minus_minus) / tp53_total : 0.0;
 
-        // Calcular porcentajes de TP53 (solo de células vivas)
-        int total_alive_for_pct = tp53_plus_plus + tp53_plus_minus + tp53_minus_minus;
-        double tp53_pp_pct = (total_alive_for_pct > 0) ? static_cast<double>(tp53_plus_plus) / total_alive_for_pct : 0.0;
-        double tp53_pm_pct = (total_alive_for_pct > 0) ? static_cast<double>(tp53_plus_minus) / total_alive_for_pct : 0.0;
-        double tp53_mm_pct = (total_alive_for_pct > 0) ? static_cast<double>(tp53_minus_minus) / total_alive_for_pct : 0.0;
-
-        // Crear snapshot
         YearlySnapshot snapshot{
             year,
-            total_cells,
+            total_cells_ever_,
             alive_count,
-            dead_cells,
+            cumulative_dead_,
             neoplastic_alive,
             protected_alive,
             min_instability,
             max_instability,
+            min_d2,
+            max_d2,
             tp53_pp_pct,
             tp53_pm_pct,
             tp53_mm_pct,
@@ -171,14 +105,11 @@ namespace application {
     }
 
     void Simulation::run() {
-        // Capturar estado inicial (año 0)
         captureAnnualSnapshot(0);
 
         for (int t = 0; t < max_t_; ++t) {
             int neoplastic_count = executeCellCycle();
             cell_state_counter_[t][2] = neoplastic_count;
-
-            // Capturar snapshot después de cada año
             captureAnnualSnapshot(t + 1);
         }
     }
@@ -191,6 +122,5 @@ namespace application {
         }
         return -1;
     }
-
 
 }

@@ -4,7 +4,6 @@
 #include <memory>
 #include <cstddef>
 #include <atomic>
-#include <mutex>
 #include <set>
 #include <functional>
 #include <string>
@@ -28,10 +27,14 @@ namespace domain {
             : logger_(logger ? logger : std::make_shared<adapters::NullLogger>()) {}
 
         // ILoggeable implementation
-        [[nodiscard]] std::string getLogCategory() const override { return "TISSUE_V2"; }
+        [[nodiscard]] std::string getLogCategory() const override { return "TISSUE"; }
 
         // Run a lifecycle tick for every contained cell
         void live();
+
+        // Stats from last live() call
+        [[nodiscard]] int lastDeathCount() const { return last_death_count_; }
+        [[nodiscard]] int lastBirthCount() const { return last_birth_count_; }
 
         // Add a cell to the tissue (takes ownership). Assigns a stable id to the cell.
         void addCell(std::unique_ptr<ICell> cell);
@@ -61,6 +64,8 @@ namespace domain {
         std::vector<std::unique_ptr<ICell>> cells_;
         std::uint64_t tissue_id_ = 0;
         std::atomic<std::uint64_t> next_cell_id_{1};
+        int last_death_count_ = 0;
+        int last_birth_count_ = 0;
     };
 
 } // namespace domain

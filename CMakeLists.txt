@@ -33,6 +33,8 @@ set(COMMON_SOURCES
         src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.cpp
         src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.h
         src/domain/cell/strategies/IInstabilityDeltaStrategy.h
+        src/domain/cell/strategies/LognormalNoiseInstabilityStrategy.h
+        src/domain/cell/strategies/LognormalNoiseInstabilityStrategy.cpp
         src/domain/cell/strategies/GenomicViabilityStrategy.cpp
         src/domain/cell/strategies/GenomicViabilityStrategy.h
         src/domain/cell/strategies/IViabilityStrategy.h
@@ -49,7 +51,6 @@ set(COMMON_SOURCES
 add_executable(cellSim app/main.cpp
         src/application/simulation/Simulation.cpp
         src/application/simulation/Simulation.h
-        src/application/simulation/TissueV2Adapter.h
         src/application/simulation/Simulations.cpp
         src/application/simulation/Simulations.h
         ${COMMON_SOURCES}
@@ -62,7 +63,6 @@ add_executable(cellSim app/main.cpp
 add_executable(interactive app/main_interactive.cpp
         src/application/simulation/Simulation.cpp
         src/application/simulation/Simulation.h
-        src/application/simulation/TissueV2Adapter.h
         src/application/simulation/InteractiveSimulation.cpp
         src/application/simulation/InteractiveSimulation.h
         ${COMMON_SOURCES}
@@ -76,7 +76,6 @@ add_executable(interactive app/main_interactive.cpp
 add_executable(single_cell_evolution app/single_cell_evolution.cpp
         src/application/simulation/Simulation.cpp
         src/application/simulation/Simulation.h
-        src/application/simulation/TissueV2Adapter.h
         src/application/simulation/InteractiveSimulation.cpp
         src/application/simulation/InteractiveSimulation.h
         ${COMMON_SOURCES}
@@ -117,6 +116,22 @@ add_executable(cellSim_cli app/main_cli.cpp
         src/domain/tissue/Tissue.cpp
         src/domain/tissue/Tissue.h)
 target_link_libraries(cellSim_cli PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts)
+
+
+# Calibration sweep: parameter grid search for D1/D2 threshold calibration
+add_executable(calibration_sweep app/calibration_sweep.cpp
+        src/application/simulation/Simulation.cpp
+        src/application/simulation/Simulation.h
+        src/application/simulation/PopulationTracker.cpp
+        src/application/simulation/PopulationTracker.h
+        ${COMMON_SOURCES}
+        src/domain/tissue/Tissue.cpp
+        src/domain/tissue/Tissue.h
+        src/domain/cell/CellFactory.cpp
+        src/domain/cell/CellFactory.h
+        src/domain/cell/AgenticCell.cpp
+        src/domain/cell/AgenticCell.h)
+target_link_libraries(calibration_sweep PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts)
 
 
 # Añadir tests solo si BUILD_TESTS=ON (tests pueden descargar googletest)

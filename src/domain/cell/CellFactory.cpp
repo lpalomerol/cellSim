@@ -33,10 +33,11 @@ std::unique_ptr<AgenticCell> CellFactory::createCustomCell(
     bool enable_big_bang_mode,
     double d1_primer_threshold,
     double d2_apoptosis_threshold,
-    const ports::ILoggerPtr& logger) {
+    const ports::ILoggerPtr& logger,
+    double delta_noise_cv) {
 
-    // Use new constructor with Parameter Objects
-    InstabilityConfig instability{low_delta_instability, high_delta_instability};
+    InstabilityConfig instability{low_delta_instability, high_delta_instability,
+                                  999.0, 999.0, delta_noise_cv};
     DivisionConfig division{division_rate, neoplastic_division_rate, enable_big_bang_mode};
     ThresholdConfig thresholds{d1_primer_threshold, d2_apoptosis_threshold};
 

@@ -11,9 +11,9 @@
 namespace application {
 
     enum class MenuOption {
-        MutarBRCA,
-        MutarTP53,
-        Nada,
+        MutateBRCA1,
+        MutateTP53,
+        None,
         Quit
     };
 
@@ -21,23 +21,20 @@ class InteractiveSimulation : public Simulation {
 public:
     explicit InteractiveSimulation(int max_t_years = 80);
 
-    // Override addCell para imprimir información (reutiliza la clase base)
+    // Prints cell info when added
     void addCell(std::unique_ptr<domain::ICell> cell);
 
-    // Ejecuta un solo año (tick). option indica la acción del usuario (mutar o nada).
-    // Devuelve true si después de ejecutar el año la simulación puede seguir (no alcanzó max_t),
-    // false si ya no quedan años o el usuario pidió salir.
-    bool step(MenuOption option = MenuOption::Nada);
+    // Executes one year tick. Returns true while years remain, false when max_t reached or Quit.
+    bool step(MenuOption option = MenuOption::None);
 
     [[nodiscard]] int currentYear() const { return current_year_; }
     [[nodiscard]] int maxYears() const { return max_t_; }
     [[nodiscard]] int neoplasticCount() const { return current_neoplastic_count_; }
     [[nodiscard]] int currentNeoplasticCount() const { return current_neoplastic_count_; }
 
-    // Número de células en la simulación
-    [[nodiscard]] int numCells() const { return static_cast<int>(cells_.size()); }
+    [[nodiscard]] int numCells() const { return static_cast<int>(tissue_.size()); }
 
-    // Devuelve el primer año en el que apareció neoplasia (1-based), o -1 si nunca
+    // Returns the first year neoplasia appeared (1-based), or -1 if never
     [[nodiscard]] int firstTimeNeoplastic() const { return first_time_neoplastic_; }
 
 private:

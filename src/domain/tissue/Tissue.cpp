@@ -1,6 +1,6 @@
 #include "Tissue.h"
-#include "../cell/AgenticCell.h"
 #include "../exception/CellDeathException.h"
+#include "../signal/ApoptosisSignal.h"
 
 namespace domain {
 
@@ -8,26 +8,34 @@ void Tissue::live() {
     std::vector<std::size_t> dead_indices;
     std::vector<std::unique_ptr<ICell>> new_daughters;
 
+    // Immune surveillance: deliver Apoptosis signal to all currently-PRIMER cells.
+    for (auto& cell : cells_) {
+        if (!cell) continue;
+        if (cell->getCurrentCellLifeStage() == CellLifeStage::PRIMER) {
+            cell->receiveMessage(std::make_unique<ApoptosisSignal>(
+                static_cast<std::uint64_t>(-1),
+                "immune_surveillance",
+                std::vector<std::uint64_t>{cell->id()}
+            ));
+        }
+    }
+
     for (std::size_t i = 0; i < cells_.size(); ++i) {
         if (!cells_[i]) continue;
 
         try {
             cells_[i]->live();
 
-            // Check if cell divided (only AgenticCell supports this)
-            auto* agentic_cell = dynamic_cast<AgenticCell*>(cells_[i].get());
-            if (agentic_cell) {
-                auto daughter = agentic_cell->takePendingDaughter();
-                if (daughter) {
-                    logger_->logCell("[TissueV2] Cell " + std::to_string(agentic_cell->id()) + " divided, daughter will be added");
-                    new_daughters.push_back(std::move(daughter));
-                }
+            auto daughter = cells_[i]->takePendingDaughter();
+            if (daughter) {
+                logger_->logTissue("[Tissue] Cell " + std::to_string(cells_[i]->id()) + " divided");
+                new_daughters.push_back(std::move(daughter));
             }
         } catch (const CellDeathException& e) {
-            logger_->logCell("[TissueV2] Cell died: " + std::string(e.what()));
+            logger_->logTissue("[Tissue] Cell died: " + std::string(e.what()));
             dead_indices.push_back(i);
         } catch (const std::exception& e) {
-            logger_->logCell("[TissueV2] Cell exception: " + std::string(e.what()));
+            logger_->logTissue("[Tissue] Cell exception: " + std::string(e.what()));
             dead_indices.push_back(i);
         }
     }
@@ -37,6 +45,9 @@ void Tissue::live() {
         cells_.erase(cells_.begin() + *it);
     }
 
+    last_death_count_ = static_cast<int>(dead_indices.size());
+    last_birth_count_ = static_cast<int>(new_daughters.size());
+
     // Add new daughter cells
     for (auto& daughter : new_daughters) {
         addCell(std::move(daughter));
@@ -45,14 +56,14 @@ void Tissue::live() {
 
 void Tissue::addCell(std::unique_ptr<ICell> cell) {
     if (!cell) {
-        logger_->logCell("[TissueV2] Attempted to add nullptr cell");
+        logger_->logTissue("[Tissue] Attempted to add nullptr cell");
         return;
     }
 
     std::uint64_t cell_id = next_cell_id_.fetch_add(1, std::memory_order_relaxed);
     cell->setId(cell_id);
 
-    logger_->logCell("[TissueV2] Added cell with id=" + std::to_string(cell_id));
+    logger_->logTissue("[Tissue] Added cell id=" + std::to_string(cell_id));
     cells_.push_back(std::move(cell));
 }
 
@@ -72,7 +83,7 @@ const ICell* Tissue::getCell(std::size_t idx) const {
 
 void Tissue::clear() {
     cells_.clear();
-    logger_->logCell("[TissueV2] Cleared all cells");
+    logger_->logTissue("[Tissue] Cleared all cells");
 }
 
 void Tissue::setId(std::uint64_t id) {
@@ -96,11 +107,7 @@ std::vector<ICell*> Tissue::getLiveCells() {
 std::vector<ICell*> Tissue::getCellsByStage(CellLifeStage stage) {
     std::vector<ICell*> result;
     for (auto& cell : cells_) {
-        if (!cell) continue;
-
-        // Try to cast to AgenticCell to access getCellLifeStage()
-        auto* agg_cell = dynamic_cast<AgenticCell*>(cell.get());
-        if (agg_cell && agg_cell->getCurrentCellLifeStage() == stage) {
+        if (cell && cell->getCurrentCellLifeStage() == stage) {
             result.push_back(cell.get());
         }
     }

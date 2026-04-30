@@ -14,50 +14,48 @@ namespace application {
      */
     struct YearlySnapshot {
         int year;
-        int total_cells;              // Vivas + Muertas
-        int alive_cells;              // Protegidas + Neoplásticas vivas
-        int dead_cells_cumulative;    // Apoptosis acumulada
-        int neoplastic_alive;         // Células neoplásticas vivas
-        int protected_alive;          // Células sanas vivas
+        int total_cells;              // Alive + dead ever
+        int alive_cells;             // Protected + neoplastic alive
+        int dead_cells_cumulative;   // Cumulative apoptosis count
+        int neoplastic_alive;        // Live neoplastic cells
+        int protected_alive;         // Live healthy cells
 
         // D1/D2 Model: DNA damage and Immunosuppression counters
-        double min_d1;                // Mínimo D1 (DNA damage) en población viva
-        double max_d1;                // Máximo D1 (DNA damage) en población viva
-        double min_d2;                // Mínimo D2 (Immunosuppression) en población viva
-        double max_d2;                // Máximo D2 (Immunosuppression) en población viva
+        double min_d1;               // Min D1 (DNA damage) in live population
+        double max_d1;               // Max D1 (DNA damage) in live population
+        double min_d2;               // Min D2 (Immunosuppression) in live population
+        double max_d2;               // Max D2 (Immunosuppression) in live population
 
         double tp53_plus_plus_pct;    // TP53 +/+ (%)
         double tp53_plus_minus_pct;   // TP53 +/- (%)
         double tp53_minus_minus_pct;  // TP53 -/- (%)
 
-        // Nuevos campos: Apoptosis en neoplásticas
-        int neoplastic_apoptosis_susceptible;    // Neoplásticas que aceptan apoptosis
-        int neoplastic_apoptosis_resistant;      // Neoplásticas que rechazan apoptosis (inmortales)
+        int neoplastic_apoptosis_susceptible;  // Neoplastic cells that accept apoptosis
+        int neoplastic_apoptosis_resistant;    // Neoplastic cells that evade apoptosis (immortal)
     };
 
     /**
-     * PopulationTracker: Gestiona captura y exportación de datos poblacionales anuales
+     * PopulationTracker: captures and exports yearly population snapshots
      */
     class PopulationTracker {
     public:
         explicit PopulationTracker(double tumor_threshold = 0.1)
             : tumor_threshold_(tumor_threshold) {}
 
-        // Agregar snapshot de un año
         void addSnapshot(const YearlySnapshot& snapshot) {
             snapshots_.push_back(snapshot);
         }
 
-        // Exportar a Markdown con parámetros completos
+        // Export to Markdown
         std::string toMarkdown(const std::string& scenario_name, int run_number,
                               const std::string& config_desc,
                               const std::string& config_json = "") const;
 
-        // Exportar a CSV con parámetros completos como comentarios
+        // Export to CSV
         std::string toCSV(const std::string& scenario_name, int run_number,
                          const std::string& config_json = "") const;
 
-        // Exportar resumen CSV con configuración y umbral tumoral
+        // Export summary CSV
         std::string toSummaryCsv(const std::string& scenario_name, int run_number,
                                 const std::string& config_desc,
                                 long execution_time_ms,
@@ -76,12 +74,12 @@ namespace application {
             return snapshots_;
         }
 
-        // Obtener año en que se supera el threshold tumoral (-1 si nunca)
+        // Returns the first year the tumor threshold is exceeded (-1 if never)
         [[nodiscard]] int getTumorThresholdYear() const;
 
     private:
         std::vector<YearlySnapshot> snapshots_;
-        double tumor_threshold_;  // Threshold de neoplásticas para considerar tumor (default 10%)
+        double tumor_threshold_;  // Neoplastic fraction above which a tumor is declared (default 10%)
 
         // Helper para formatear porcentajes
         static std::string formatPercent(double value) {

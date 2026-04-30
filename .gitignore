@@ -10,3 +10,12 @@ ci_build/
 /build_test/
 /traces/
 /cmake-build-debug/
+
+# Binaries and container images
+*.sif
+*.sif.tar.gz
+*.tar.gz
+
+# Paper drafts and bibliography references
+docs/paper/
+docs/paper2/

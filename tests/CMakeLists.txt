@@ -29,6 +29,8 @@ add_executable(unit_tests
         ../src/domain/cell/strategies/IInstabilityDeltaStrategy.h
         ../src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.h
         ../src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.cpp
+        ../src/domain/cell/strategies/LognormalNoiseInstabilityStrategy.h
+        ../src/domain/cell/strategies/LognormalNoiseInstabilityStrategy.cpp
         ../src/domain/cell/strategies/IViabilityStrategy.h
         ../src/domain/cell/strategies/GenomicViabilityStrategy.h
         ../src/domain/cell/strategies/GenomicViabilityStrategy.cpp
@@ -55,7 +57,6 @@ add_executable(unit_tests
         ../src/application/config/SimulationConfig.cpp
         ../src/application/simulation/Simulation.h
         ../src/application/simulation/Simulation.cpp
-        ../src/application/simulation/TissueV2Adapter.h
         ../src/application/presenter/GeneticSummaryPresenter.h
         ../src/application/presenter/GeneticSummaryPresenter.cpp
 
@@ -69,6 +70,7 @@ add_executable(unit_tests
         CellDivisionInstabilityPropagationTest.cpp
         NeoplasticImmortalityTest.cpp
         SimulationTissueV2IntegrationTest.cpp
+        LognormalNoiseInstabilityStrategyTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales

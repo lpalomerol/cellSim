@@ -2,15 +2,13 @@
 
 namespace domain {
 
-    /// Constantes para nombres de genes
-    /// Evita magic strings y errores de tipeo en el código
+    /// Gene name constants — avoids magic strings and typos
     namespace GeneNames {
         constexpr const char* TP53 = "TP53";
         constexpr const char* BRCA1 = "BRCA1";
     }
 
-    /// Constantes para representación de estados genéticos
-    /// Representa zigosidad: +/+ (homocigoto dominante), +/- (heterocigoto), -/- (homocigoto recesivo)
+    /// String constants for gene state representation (zygosity notation)
     namespace GeneticStatusStrings {
         constexpr const char* WILD_TYPE = "+/+";
         constexpr const char* HETEROZYGOUS = "+/-";
