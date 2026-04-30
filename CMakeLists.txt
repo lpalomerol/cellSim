@@ -49,7 +49,6 @@ set(COMMON_SOURCES
 add_executable(cellSim app/main.cpp
         src/application/simulation/Simulation.cpp
         src/application/simulation/Simulation.h
-        src/application/simulation/TissueV2Adapter.h
         src/application/simulation/Simulations.cpp
         src/application/simulation/Simulations.h
         ${COMMON_SOURCES}
@@ -62,7 +61,6 @@ add_executable(cellSim app/main.cpp
 add_executable(interactive app/main_interactive.cpp
         src/application/simulation/Simulation.cpp
         src/application/simulation/Simulation.h
-        src/application/simulation/TissueV2Adapter.h
         src/application/simulation/InteractiveSimulation.cpp
         src/application/simulation/InteractiveSimulation.h
         ${COMMON_SOURCES}
@@ -76,7 +74,6 @@ add_executable(interactive app/main_interactive.cpp
 add_executable(single_cell_evolution app/single_cell_evolution.cpp
         src/application/simulation/Simulation.cpp
         src/application/simulation/Simulation.h
-        src/application/simulation/TissueV2Adapter.h
         src/application/simulation/InteractiveSimulation.cpp
         src/application/simulation/InteractiveSimulation.h
         ${COMMON_SOURCES}

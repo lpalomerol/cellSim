@@ -61,15 +61,15 @@ int main() {
             break;
         }
 
-        application::MenuOption option = application::MenuOption::Nada;
+        application::MenuOption option = application::MenuOption::None;
         if (line.empty()) {
-            option = application::MenuOption::Nada;
+            option = application::MenuOption::None;
         } else {
             char c = line[0];
-            if (c == '1') option = application::MenuOption::MutarBRCA;
-            else if (c == '2') option = application::MenuOption::MutarTP53;
+            if (c == '1') option = application::MenuOption::MutateBRCA1;
+            else if (c == '2') option = application::MenuOption::MutateTP53;
             else if (c == 'q' || c == 'Q') option = application::MenuOption::Quit;
-            else option = application::MenuOption::Nada;
+            else option = application::MenuOption::None;
         }
 
         bool can_continue = sim.step(option);

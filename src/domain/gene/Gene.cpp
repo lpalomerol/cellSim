@@ -12,7 +12,7 @@ namespace domain {
         double mutation_threshold,
         double mutation_instability_k,
         ports::ILoggerPtr logger)
-        : name_(std::move(name)), state_(initial),
+        : name_(std::move(name)), status_(stateToStatus(initial)),
     mutation_threshold_(mutation_threshold),
     mutation_instability_k_(mutation_instability_k),
     noise_(nullptr),
@@ -22,42 +22,33 @@ namespace domain {
         assert(mutation_instability_k >= 0.0);
     }
 
+    GeneStatus Gene::stateToStatus(State s) {
+        switch (s) {
+            case State::PlusPlus:   return GeneStatus::enabled();
+            case State::PlusMinus:  return GeneStatus::partiallyEnabled();
+            case State::MinusMinus: return GeneStatus::disabled();
+            default:                return GeneStatus::unknown();
+        }
+    }
+
     const std::string& Gene::name() const {
         return name_;
     }
 
     GeneStatus Gene::getStatus() const {
-        switch (state_) {
-            case State::PlusPlus:
-                return GeneStatus::enabled();
-            case State::PlusMinus:
-                return GeneStatus::partiallyEnabled();
-            case State::MinusMinus:
-                return GeneStatus::disabled();
-            default:
-                return GeneStatus::unknown();
-        }
+        return status_;
     }
 
     void Gene::mutate() {
-        if (state_ == State::PlusPlus) {
-            state_ = State::PlusMinus;
-        } else if (state_ == State::PlusMinus) {
-            state_ = State::MinusMinus;
-        }
+        status_ = status_.mutated();
     }
 
     bool Gene::enabled() const {
-        return state_ != State::MinusMinus;
+        return !status_.isDisabled();
     }
 
     std::string Gene::status() const {
-        static const char* statuses[] = {
-            GeneticStatusStrings::WILD_TYPE,
-            GeneticStatusStrings::HETEROZYGOUS,
-            GeneticStatusStrings::HOMOZYGOUS_RECESSIVE
-        };
-        return statuses[static_cast<int>(state_)];
+        return status_.toString();
     }
 
     std::string Gene::details(bool apply_instability) const {
@@ -95,7 +86,7 @@ namespace domain {
     }
 
     void Gene::setState(State s) {
-        state_ = s;
+        status_ = stateToStatus(s);
     }
 
 }

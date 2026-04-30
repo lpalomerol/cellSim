@@ -115,9 +115,4 @@ bool Genome::hasTP53Instability() const {
     return !tp53->getStatus().isEnabled();
 }
 
-bool Genome::hasNeoplasticProtection() const {
-    // Neoplastic protection = TP53 function
-    return hasTP53Function();
-}
-
 } // namespace domain

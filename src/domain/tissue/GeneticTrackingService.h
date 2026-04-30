@@ -27,7 +27,7 @@ namespace domain {
             for (const auto& cell : cells) {
                 if (!cell) continue;
 
-                // ICell hereda de IGeneticProfile, así que podemos usar los métodos directamente
+                // ICell inherits from IGeneticProfile — genetic query methods are available directly
                 const std::string brca = cell->getBRCA1Status();
                 const std::string tp53 = cell->getTP53Status();
                 const bool isNeo = cell->isNeoplastic();
@@ -35,26 +35,26 @@ namespace domain {
 
                 if (brca == "+/-") {
                     if (tp53 == "+/+") {
-                        ++tracking.brca_het_tp53_hom_plus;
+                        ++tracking.cells[static_cast<int>(GeneticTrackingData::Category::BRCA_HET_TP53_HOM_PLUS)];
                         if (isNeo) {
-                            ++tracking.neo_brca_het_tp53_hom_plus;
-                            if (isAlive) ++tracking.active_neo_brca_het_tp53_hom_plus;
+                            ++tracking.neoplasms[static_cast<int>(GeneticTrackingData::Category::BRCA_HET_TP53_HOM_PLUS)];
+                            if (isAlive) ++tracking.active_neoplasms[static_cast<int>(GeneticTrackingData::Category::BRCA_HET_TP53_HOM_PLUS)];
                         }
                     } else if (tp53 == "+/-") {
-                        ++tracking.brca_het_tp53_het;
+                        ++tracking.cells[static_cast<int>(GeneticTrackingData::Category::BRCA_HET_TP53_HET)];
                         if (isNeo) {
-                            ++tracking.neo_brca_het_tp53_het;
-                            if (isAlive) ++tracking.active_neo_brca_het_tp53_het;
+                            ++tracking.neoplasms[static_cast<int>(GeneticTrackingData::Category::BRCA_HET_TP53_HET)];
+                            if (isAlive) ++tracking.active_neoplasms[static_cast<int>(GeneticTrackingData::Category::BRCA_HET_TP53_HET)];
                         }
                     } else if (tp53 == "-/-") {
-                        ++tracking.brca_het_tp53_hom_minus;
+                        ++tracking.cells[static_cast<int>(GeneticTrackingData::Category::BRCA_HET_TP53_HOM_MINUS)];
                         if (isNeo) {
-                            ++tracking.neo_brca_het_tp53_hom_minus;
-                            if (isAlive) ++tracking.active_neo_brca_het_tp53_hom_minus;
+                            ++tracking.neoplasms[static_cast<int>(GeneticTrackingData::Category::BRCA_HET_TP53_HOM_MINUS)];
+                            if (isAlive) ++tracking.active_neoplasms[static_cast<int>(GeneticTrackingData::Category::BRCA_HET_TP53_HOM_MINUS)];
                         }
                     }
                 } else if (brca == "-/-") {
-                    ++tracking.brca_hom_minus;
+                    ++tracking.cells[static_cast<int>(GeneticTrackingData::Category::BRCA_HOM_MINUS)];
                 }
             }
 

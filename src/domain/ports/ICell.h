@@ -23,7 +23,6 @@ namespace domain {
         [[nodiscard]] virtual bool isNeoplastic() const = 0;
 
         // === Information ===
-        // Imprime detalles de la célula (por defecto no hace nada)
         virtual void details() const {}
 
         // === Mutation ===

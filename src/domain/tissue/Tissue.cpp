@@ -19,15 +19,15 @@ void Tissue::live() {
             if (agentic_cell) {
                 auto daughter = agentic_cell->takePendingDaughter();
                 if (daughter) {
-                    logger_->logCell("[TissueV2] Cell " + std::to_string(agentic_cell->id()) + " divided, daughter will be added");
+                    logger_->logTissue("[Tissue] Cell " + std::to_string(agentic_cell->id()) + " divided");
                     new_daughters.push_back(std::move(daughter));
                 }
             }
         } catch (const CellDeathException& e) {
-            logger_->logCell("[TissueV2] Cell died: " + std::string(e.what()));
+            logger_->logTissue("[Tissue] Cell died: " + std::string(e.what()));
             dead_indices.push_back(i);
         } catch (const std::exception& e) {
-            logger_->logCell("[TissueV2] Cell exception: " + std::string(e.what()));
+            logger_->logTissue("[Tissue] Cell exception: " + std::string(e.what()));
             dead_indices.push_back(i);
         }
     }
@@ -37,6 +37,9 @@ void Tissue::live() {
         cells_.erase(cells_.begin() + *it);
     }
 
+    last_death_count_ = static_cast<int>(dead_indices.size());
+    last_birth_count_ = static_cast<int>(new_daughters.size());
+
     // Add new daughter cells
     for (auto& daughter : new_daughters) {
         addCell(std::move(daughter));
@@ -45,14 +48,14 @@ void Tissue::live() {
 
 void Tissue::addCell(std::unique_ptr<ICell> cell) {
     if (!cell) {
-        logger_->logCell("[TissueV2] Attempted to add nullptr cell");
+        logger_->logTissue("[Tissue] Attempted to add nullptr cell");
         return;
     }
 
     std::uint64_t cell_id = next_cell_id_.fetch_add(1, std::memory_order_relaxed);
     cell->setId(cell_id);
 
-    logger_->logCell("[TissueV2] Added cell with id=" + std::to_string(cell_id));
+    logger_->logTissue("[Tissue] Added cell id=" + std::to_string(cell_id));
     cells_.push_back(std::move(cell));
 }
 
@@ -72,7 +75,7 @@ const ICell* Tissue::getCell(std::size_t idx) const {
 
 void Tissue::clear() {
     cells_.clear();
-    logger_->logCell("[TissueV2] Cleared all cells");
+    logger_->logTissue("[Tissue] Cleared all cells");
 }
 
 void Tissue::setId(std::uint64_t id) {

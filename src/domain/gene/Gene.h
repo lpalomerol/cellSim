@@ -56,11 +56,14 @@ namespace domain{
 
     private:
         std::string name_;
-        State state_;
+        GeneStatus status_;
         domain::shared::Threshold mutation_threshold_;
         double mutation_instability_k_;
         INoiseSource* noise_;
         ports::ILoggerPtr logger_;
+
+        // Convert legacy State enum to GeneStatus
+        [[nodiscard]] static GeneStatus stateToStatus(State s);
 
         // Calculate the effective mutation threshold based on instability and genomic factors
         [[nodiscard]] double calculateMutationThreshold(bool apply_instability, double genomic_instability) const;

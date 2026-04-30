@@ -6,16 +6,16 @@ namespace application {
 
 std::string GeneticSummaryPresenter::formatGeneticSummary(const domain::GeneticTrackingData& tracking) {
     // Formato boxes: total(neo/activo)
-    std::string b1 = formatBox(tracking.brca_het_tp53_hom_plus,
-                                tracking.neo_brca_het_tp53_hom_plus,
-                                tracking.active_neo_brca_het_tp53_hom_plus);
-    std::string b2 = formatBox(tracking.brca_het_tp53_het,
-                                tracking.neo_brca_het_tp53_het,
-                                tracking.active_neo_brca_het_tp53_het);
-    std::string b3 = formatBox(tracking.brca_het_tp53_hom_minus,
-                                tracking.neo_brca_het_tp53_hom_minus,
-                                tracking.active_neo_brca_het_tp53_hom_minus);
-    std::string b4 = formatBox(tracking.brca_hom_minus, -1, -1);
+    std::string b1 = formatBox(tracking.getBrcaHetTp53HomPlus(),
+                                tracking.getNeoBrcaHetTp53HomPlus(),
+                                tracking.getActiveNeoBrcaHetTp53HomPlus());
+    std::string b2 = formatBox(tracking.getBrcaHetTp53Het(),
+                                tracking.getNeoBrcaHetTp53Het(),
+                                tracking.getActiveNeoBrcaHetTp53Het());
+    std::string b3 = formatBox(tracking.getBrcaHetTp53HomMinus(),
+                                tracking.getNeoBrcaHetTp53HomMinus(),
+                                tracking.getActiveNeoBrcaHetTp53HomMinus());
+    std::string b4 = formatBox(tracking.getBrcaHomMinus(), -1, -1);
 
     // Armar resumen
     std::ostringstream summary;

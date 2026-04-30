@@ -25,10 +25,10 @@ namespace application {
 
         SimulationConfig cfg;
 
-        // ========== Sección "config" (configuración básica) ==========
+        // ========== Section "config" ==========
         try {
             if (!j.contains("config")) {
-                throw std::runtime_error("Error: falta la sección 'config' en el JSON");
+                throw std::runtime_error("Missing section 'config' in JSON");
             }
             auto& config_section = j["config"];
 
@@ -36,19 +36,16 @@ namespace application {
             cfg.verbose = config_section.at("verbose").get<bool>();
             cfg.use_random_noise = config_section.at("use_random_noise").get<bool>();
 
-            // description es opcional, se usa solo para logging si existe
-            // No se almacena en SimulationConfig actualmente
-
         } catch (const json::type_error& e) {
-            throw std::runtime_error("Error: tipo incorrecto en sección 'config': " + std::string(e.what()));
+            throw std::runtime_error(std::string("Type error in section 'config': ") + e.what());
         } catch (const json::out_of_range& e) {
-            throw std::runtime_error("Error: campo faltante en sección 'config': " + std::string(e.what()));
+            throw std::runtime_error(std::string("Missing field in section 'config': ") + e.what());
         }
 
-        // ========== Sección "simulation_context" ==========
+        // ========== Section "simulation_context" ==========
         try {
             if (!j.contains("simulation_context")) {
-                throw std::runtime_error("Error: falta la sección 'simulation_context' en el JSON");
+                throw std::runtime_error("Missing section 'simulation_context' in JSON");
             }
             auto& sim_section = j["simulation_context"];
 
@@ -56,15 +53,15 @@ namespace application {
             cfg.n_cells = sim_section.at("n_cells").get<int>();
 
         } catch (const json::type_error& e) {
-            throw std::runtime_error("Error: tipo incorrecto en sección 'simulation_context': " + std::string(e.what()));
+            throw std::runtime_error(std::string("Type error in section 'simulation_context': ") + e.what());
         } catch (const json::out_of_range& e) {
-            throw std::runtime_error("Error: campo faltante en sección 'simulation_context': " + std::string(e.what()));
+            throw std::runtime_error(std::string("Missing field in section 'simulation_context': ") + e.what());
         }
 
-        // ========== Sección "tissue_parameters" ==========
+        // ========== Section "tissue_parameters" ==========
         try {
             if (!j.contains("tissue_parameters")) {
-                throw std::runtime_error("Error: falta la sección 'tissue_parameters' en el JSON");
+                throw std::runtime_error("Missing section 'tissue_parameters' in JSON");
             }
             auto& tissue_section = j["tissue_parameters"];
 
@@ -72,7 +69,7 @@ namespace application {
             cfg.neoplastic_division_rate = tissue_section.at("neoplastic_division_rate").get<double>();
             cfg.enable_big_bang_mode = tissue_section.at("enable_big_bang_mode").get<bool>();
 
-            // Parámetros de thresholds y deltas (opcionales con valores por defecto)
+            // Threshold and delta parameters (optional, fall back to defaults)
             if (tissue_section.contains("d1_threshold")) {
                 cfg.d1_threshold = tissue_section.at("d1_threshold").get<double>();
             }
@@ -86,31 +83,26 @@ namespace application {
                 cfg.high_delta = tissue_section.at("high_delta").get<double>();
             }
 
-            // Genes: TP53 y BRCA1
             if (!tissue_section.contains("genes")) {
-                throw std::runtime_error("Error: falta el objeto 'genes' en 'tissue_parameters'");
+                throw std::runtime_error("Missing object 'genes' in 'tissue_parameters'");
             }
             auto& genes = tissue_section["genes"];
 
-            // Validar que existan TP53 y BRCA1
             if (!genes.contains("TP53")) {
-                throw std::runtime_error("Error: falta gen 'TP53' en 'genes'");
+                throw std::runtime_error("Missing gene 'TP53' in 'genes'");
             }
             if (!genes.contains("BRCA1")) {
-                throw std::runtime_error("Error: falta gen 'BRCA1' en 'genes'");
+                throw std::runtime_error("Missing gene 'BRCA1' in 'genes'");
             }
 
-            // Extraer TP53
             auto& tp53 = genes["TP53"];
             double tp53_mutation = tp53.at("mutation_rate").get<double>();
             double tp53_instability = tp53.at("instability_rate").get<double>();
 
-            // Extraer BRCA1
             auto& brca1 = genes["BRCA1"];
             double brca1_mutation = brca1.at("mutation_rate").get<double>();
             double brca1_instability = brca1.at("instability_rate").get<double>();
 
-            // Mapear a SimulationConfig
             cfg.gene_thresholds = {
                 {"TP53", tp53_mutation},
                 {"BRCA1", brca1_mutation}
@@ -121,9 +113,9 @@ namespace application {
             };
 
         } catch (const json::type_error& e) {
-            throw std::runtime_error("Error: tipo incorrecto en sección 'tissue_parameters': " + std::string(e.what()));
+            throw std::runtime_error(std::string("Type error in section 'tissue_parameters': ") + e.what());
         } catch (const json::out_of_range& e) {
-            throw std::runtime_error("Error: campo faltante en sección 'tissue_parameters': " + std::string(e.what()));
+            throw std::runtime_error(std::string("Missing field in section 'tissue_parameters': ") + e.what());
         }
 
         // Crear logger

@@ -9,17 +9,16 @@
 namespace domain {
 
     /**
-     * BaseSignal: clase base que encapsula la lógica común de todas las signals.
-     * Soporta un payload genérico (std::any) para extensibilidad.
+     * BaseSignal: base class encapsulating common signal logic.
+     * Supports a generic payload (std::any) for extensibility.
      */
     class BaseSignal : public ISignal {
     public:
         /**
-         * Constructor base para todas las signals
-         * @param source_id ID del origen (célula o tejido)
-         * @param message Mensaje descriptivo (default vacío)
-         * @param targets IDs de destino (vacío = broadcast)
-         * @param payload Payload genérico (default vacío)
+         * @param source_id  ID of the originating cell or tissue
+         * @param message    Descriptive message (default empty)
+         * @param targets    Target IDs (empty = broadcast)
+         * @param payload    Generic payload (default empty)
          */
         BaseSignal(std::uint64_t source_id,
                   std::string message = "",
@@ -33,11 +32,10 @@ namespace domain {
         const std::string& message() const noexcept override { return message_; }
         const std::vector<std::uint64_t>& targetIds() const noexcept override { return targets_; }
 
-        // Acceso al payload genérico
         [[nodiscard]] const std::any& payload() const noexcept { return payload_; }
         [[nodiscard]] std::any& payload() noexcept { return payload_; }
 
-        // Helper: obtener payload tipado (con verificación)
+        // Typed payload access (safe cast — returns nullptr on type mismatch)
         template <typename T>
         [[nodiscard]] T* getPayloadAs() noexcept {
             try {

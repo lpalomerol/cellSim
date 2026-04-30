@@ -55,7 +55,6 @@ add_executable(unit_tests
         ../src/application/config/SimulationConfig.cpp
         ../src/application/simulation/Simulation.h
         ../src/application/simulation/Simulation.cpp
-        ../src/application/simulation/TissueV2Adapter.h
         ../src/application/presenter/GeneticSummaryPresenter.h
         ../src/application/presenter/GeneticSummaryPresenter.cpp
 

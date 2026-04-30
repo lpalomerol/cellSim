@@ -44,11 +44,6 @@ namespace domain {
             seed_ = 0;
         }
 
-        logger_->logCell("[Trace] AgenticCell constructed: seed=" + std::to_string(seed_)
-                      + " | d1=" + std::to_string(d1_dna_damage_)
-                      + " | d2=" + std::to_string(d2_immunosuppression_)
-                      + " | d1_threshold=" + std::to_string(d1_primer_threshold_)
-                      + " | d2_threshold=" + std::to_string(d2_apoptosis_threshold_));
     }
 
 
@@ -64,7 +59,7 @@ namespace domain {
     }
 
     bool AgenticCell::isNeoplasticProtected() const {
-        return genome_.hasNeoplasticProtection();
+        return genome_.hasTP53Function();
     }
 
     std::string AgenticCell::getTP53() const {
@@ -129,7 +124,6 @@ namespace domain {
 
         if (should_accept) {
             incoming_messages_.push(std::move(signal));
-            logger_->logCell("[Trace] Cell [" + std::to_string(cell_id_) + "] received message");
         }
     }
 
@@ -172,7 +166,7 @@ namespace domain {
         auto brca1 = genome_.getGene(GeneNames::BRCA1);
 
         if (!tp53 || !brca1) {
-            logger_->logCell("[Trace] Unexpected genotype: TP53=" + tp53_status +
+            logger_->logCell("[Warn] Unexpected genotype: TP53=" + tp53_status +
                           ", BRCA1=" + brca1_status + ". Defaulting to DEAD.");
             return CellLifeStage::DEAD;
         }
@@ -193,7 +187,7 @@ namespace domain {
             return CellLifeStage::UNPROTECTED;
         }
 
-        logger_->logCell("[Trace] Unexpected genotype: TP53=" + tp53_status +
+        logger_->logCell("[Warn] Unexpected genotype: TP53=" + tp53_status +
                       ", BRCA1=" + brca1_status + ". Defaulting to DEAD.");
         return CellLifeStage::DEAD;
     }
@@ -201,24 +195,11 @@ namespace domain {
     // ===== PHASES =====
 
     void AgenticCell::phase0_BaselineAssessment() const {
-        CellLifeStage stage = getCurrentCellLifeStage();
-        logger_->logCell("[Phase0] Cycle start: stage=" + toString(stage) +
-                       ", age=" + std::to_string(age_) +
-                       ", d1=" + std::to_string(d1_dna_damage_) +
-                       ", d2=" + std::to_string(d2_immunosuppression_));
-
-        if (is_neoplastic_) {
-            logger_->logCell("[Phase0] Cell is NEOPLASTIC (is_neoplastic_=true)");
-        }
-        if (has_evaded_apoptosis_) {
-            logger_->logCell("[Phase0] Cell has EVADED apoptosis (immortal)");
-        }
     }
 
     void AgenticCell::phase1_G1IntegrityCheckpoint() const {
         if (!alive()) {
-            logger_->logCell("[Phase1] Cell is DEAD (intrinsic apoptosis: BRCA1 -/-)");
-            throw CellDeathException("intrinsic_apoptosis@phase1");
+            throw CellDeathException("intrinsic_apoptosis");
         }
     }
 
@@ -229,44 +210,26 @@ namespace domain {
 
             if (!signal) continue;
 
-            logger_->logCell("[Phase2] Processing signal type=" + std::to_string(static_cast<int>(signal->type())));
-
             if (signal->type() == ISignal::Type::Apoptosis) {
-                // PART 1: Apoptosis (universal)
                 if (d2_immunosuppression_ > d2_apoptosis_threshold_) {
-                    logger_->logCell("[Apoptosis] Extrinsic BLOCKED: D2=" +
-                                   std::to_string(d2_immunosuppression_) + " > " +
-                                   std::to_string(d2_apoptosis_threshold_) + " (immune evasion)");
-
-                    // PART 2: Neoplasm (conditional, only if PRIMER)
+                    logger_->logCell("[Apoptosis] Extrinsic blocked (immune evasion): D2=" +
+                                   std::to_string(d2_immunosuppression_));
                     CellLifeStage current_stage = getCurrentCellLifeStage();
                     if (current_stage == CellLifeStage::PRIMER && !is_neoplastic_) {
-                        logger_->logCell("[Phase2] Cell in PRIMER state - developing neoplasm");
                         develop_neoplasm();
-                        logger_->logCell("[Phase2] Cell TRANSFORMED to TUMORAL (is_neoplastic_ = true)");
                     }
                 } else {
-                    logger_->logCell("[Apoptosis] Extrinsic ACCEPTED: D2=" +
-                                   std::to_string(d2_immunosuppression_) + " <= " +
-                                   std::to_string(d2_apoptosis_threshold_) + " (immune clearance)");
-                    throw CellDeathException("extrinsic_apoptosis@phase2");
+                    logger_->logCell("[Apoptosis] Extrinsic accepted (immune clearance): D2=" +
+                                   std::to_string(d2_immunosuppression_));
+                    throw CellDeathException("extrinsic_apoptosis");
                 }
             }
         }
     }
 
     void AgenticCell::phase3_NuclearDynamics() {
-        logger_->logCell("[Phase3] Nuclear dynamics: genome evolution");
-        logger_->logCell("[Phase3] Genome status BEFORE: TP53=" + getTP53() +
-                       ", BRCA1=" + getBRCA1());
-
-        // Make all genes live and potentially mutate
-        // Use D1 (DNA damage) as genomic instability factor
+        // Drive genome evolution using D1 (DNA damage) as genomic instability factor
         genome_.liveAllGenes(d1_dna_damage_);
-
-        logger_->logCell("[Phase3] Genome status AFTER: TP53=" + getTP53() +
-                       ", BRCA1=" + getBRCA1() +
-                       ", D1=" + std::to_string(d1_dna_damage_));
     }
 
     void AgenticCell::phase4_CytoplasmicRemodeling() {
@@ -280,50 +243,30 @@ namespace domain {
         d1_dna_damage_ = std::min(deltas.applyToD1(d1_dna_damage_), max_d1_);
         d2_immunosuppression_ = std::min(deltas.applyToD2(d2_immunosuppression_), max_d2_);
 
-        logger_->logCell("[Phase4] d1_update: " + std::to_string(prev_d1) + " → " +
-                       std::to_string(d1_dna_damage_) + " (delta=" + std::to_string(deltas.d1()) + ")");
-        logger_->logCell("[Phase4] d2_update: " + std::to_string(prev_d2) + " → " +
-                       std::to_string(d2_immunosuppression_) + " (delta=" + std::to_string(deltas.d2()) + ")");
-
         CellLifeStage current_stage = getCurrentCellLifeStage();
         if (current_stage == CellLifeStage::PRIMER && !is_neoplastic_) {
-            std::string tp53_status = getTP53();
-            logger_->logCell("[Phase4] Cell DETECTED in PRIMER state");
-            logger_->logCell("[Phase4]   Reason: TP53=" + tp53_status + ", D1=" +
-                           std::to_string(d1_dna_damage_) + " > " + std::to_string(d1_primer_threshold_));
+            logger_->logCell("[Phase4] PRIMER detected: TP53=" + getTP53() +
+                           " D1=" + std::to_string(d1_dna_damage_) +
+                           " D2=" + std::to_string(d2_immunosuppression_));
 
-            // Check if cell can evade immune surveillance
-            // Cell transforms to neoplastic if D2 exceeds the apoptosis threshold
             if (d2_immunosuppression_ > d2_apoptosis_threshold_) {
-                logger_->logCell("[Phase4]   D2=" + std::to_string(d2_immunosuppression_) +
-                               " > " + std::to_string(d2_apoptosis_threshold_) +
-                               " → IMMUNE EVASION");
-                logger_->logCell("[Phase4]   Cell TRANSFORMING to NEOPLASTIC (autonomous transformation)");
                 develop_neoplasm();
             } else {
-                logger_->logCell("[Phase4]   D2=" + std::to_string(d2_immunosuppression_) +
-                               " <= " + std::to_string(d2_apoptosis_threshold_) +
-                               " → IMMUNE SYSTEM DETECTS pretumoral cell");
-                logger_->logCell("[Phase4]   Cell ELIMINATED by extrinsic apoptosis (immune surveillance)");
-                throw CellDeathException("extrinsic_apoptosis@phase4_immune_surveillance");
+                logger_->logCell("[Phase4] Cell eliminated by immune surveillance");
+                throw CellDeathException("extrinsic_apoptosis_immune_surveillance");
             }
         }
     }
 
     void AgenticCell::phase5_Exocytosis() {
-        logger_->logCell("[Phase5] Exocytosis: attempting cell division");
         pending_daughter_ = attemptDivision();
-        logger_->logCell("[Phase5] Exocytosis complete");
         increaseAge();
     }
 
     // ===== HELPERS =====
 
     void AgenticCell::increaseAge() {
-        if (alive()) {
-            age_++;
-            logger_->logCell("[Misc] Age increased to " + std::to_string(age_));
-        }
+        if (alive()) age_++;
     }
 
     void AgenticCell::develop_neoplasm() {
@@ -347,11 +290,8 @@ namespace domain {
         }
 
         if (rnd < rate) {
-            logger_->logCell("[Division] Cell division triggered (random=" + std::to_string(rnd) + " < rate=" + std::to_string(rate) + ")");
-
-            // Create and return daughter cell (clone)
             auto daughter = clone();
-            logger_->logCell("[Division] Daughter cell created from cell " + std::to_string(cell_id_));
+            logger_->logCell("[Division] Daughter created from cell " + std::to_string(cell_id_));
             return daughter;
         }
 
@@ -386,10 +326,6 @@ namespace domain {
             daughter->is_neoplastic_ = true;
             daughter->has_evaded_apoptosis_ = true;
         }
-
-        logger_->logCell("[Misc] Cell cloned (daughter inherits d1=" + std::to_string(d1_dna_damage_) +
-                       ", d2=" + std::to_string(d2_immunosuppression_) +
-                       ", daughter_seed=" + std::to_string(daughter_seed) + ")");
 
         return daughter;
     }

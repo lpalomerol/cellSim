@@ -29,7 +29,7 @@ namespace domain {
         // Active neoplastic cells by category (currently alive and neoplastic)
         std::array<int, 3> active_neoplasms = {};
 
-        // Named getters for backward compatibility and clarity
+        // Named getters for reading
         [[nodiscard]] int getBrcaHetTp53HomPlus() const { return cells[static_cast<int>(Category::BRCA_HET_TP53_HOM_PLUS)]; }
         [[nodiscard]] int getBrcaHetTp53Het() const { return cells[static_cast<int>(Category::BRCA_HET_TP53_HET)]; }
         [[nodiscard]] int getBrcaHetTp53HomMinus() const { return cells[static_cast<int>(Category::BRCA_HET_TP53_HOM_MINUS)]; }
@@ -42,21 +42,6 @@ namespace domain {
         [[nodiscard]] int getActiveNeoBrcaHetTp53HomPlus() const { return active_neoplasms[static_cast<int>(Category::BRCA_HET_TP53_HOM_PLUS)]; }
         [[nodiscard]] int getActiveNeoBrcaHetTp53Het() const { return active_neoplasms[static_cast<int>(Category::BRCA_HET_TP53_HET)]; }
         [[nodiscard]] int getActiveNeoBrcaHetTp53HomMinus() const { return active_neoplasms[static_cast<int>(Category::BRCA_HET_TP53_HOM_MINUS)]; }
-
-        // Direct member access for original code (public for backward compatibility)
-        // These map to the array-based storage
-        int& brca_het_tp53_hom_plus = cells[static_cast<int>(Category::BRCA_HET_TP53_HOM_PLUS)];
-        int& brca_het_tp53_het = cells[static_cast<int>(Category::BRCA_HET_TP53_HET)];
-        int& brca_het_tp53_hom_minus = cells[static_cast<int>(Category::BRCA_HET_TP53_HOM_MINUS)];
-        int& brca_hom_minus = cells[static_cast<int>(Category::BRCA_HOM_MINUS)];
-
-        int& neo_brca_het_tp53_hom_plus = neoplasms[static_cast<int>(Category::BRCA_HET_TP53_HOM_PLUS)];
-        int& neo_brca_het_tp53_het = neoplasms[static_cast<int>(Category::BRCA_HET_TP53_HET)];
-        int& neo_brca_het_tp53_hom_minus = neoplasms[static_cast<int>(Category::BRCA_HET_TP53_HOM_MINUS)];
-
-        int& active_neo_brca_het_tp53_hom_plus = active_neoplasms[static_cast<int>(Category::BRCA_HET_TP53_HOM_PLUS)];
-        int& active_neo_brca_het_tp53_het = active_neoplasms[static_cast<int>(Category::BRCA_HET_TP53_HET)];
-        int& active_neo_brca_het_tp53_hom_minus = active_neoplasms[static_cast<int>(Category::BRCA_HET_TP53_HOM_MINUS)];
 
         // Reset all counters to zero
         void reset() {
