@@ -2,7 +2,6 @@
 #include <array>
 #include <algorithm>
 #include <limits>
-#include "../../domain/cell/AgenticCell.h"
 
 namespace application {
 
@@ -40,6 +39,8 @@ namespace application {
 
         double min_instability = std::numeric_limits<double>::max();
         double max_instability = std::numeric_limits<double>::lowest();
+        double min_d2 = std::numeric_limits<double>::max();
+        double max_d2 = std::numeric_limits<double>::lowest();
 
         int tp53_plus_plus = 0;
         int tp53_plus_minus = 0;
@@ -53,8 +54,7 @@ namespace application {
 
             if (cell->isNeoplastic()) {
                 neoplastic_alive++;
-                auto* agentic_cell = dynamic_cast<domain::AgenticCell*>(cell);
-                if (agentic_cell && agentic_cell->hasEvadedApoptosis()) {
+                if (cell->hasEvadedApoptosis()) {
                     neoplastic_apoptosis_resistant++;
                 } else {
                     neoplastic_apoptosis_susceptible++;
@@ -63,17 +63,19 @@ namespace application {
                 protected_alive++;
             }
 
-            auto* agentic_cell = dynamic_cast<domain::AgenticCell*>(cell);
-            if (agentic_cell) {
-                double d1 = agentic_cell->getD1();
-                min_instability = std::min(min_instability, d1);
-                max_instability = std::max(max_instability, d1);
-            }
+            double d1 = cell->getD1();
+            double d2 = cell->getD2();
+            min_instability = std::min(min_instability, d1);
+            max_instability = std::max(max_instability, d1);
+            min_d2 = std::min(min_d2, d2);
+            max_d2 = std::max(max_d2, d2);
         }
 
         if (alive_count == 0) {
             min_instability = 0.0;
             max_instability = 0.0;
+            min_d2 = 0.0;
+            max_d2 = 0.0;
         }
 
         int tp53_total = tp53_plus_plus + tp53_plus_minus + tp53_minus_minus;
@@ -90,7 +92,8 @@ namespace application {
             protected_alive,
             min_instability,
             max_instability,
-            0.0, 0.0,  // min_d2, max_d2 (not tracked via ICell yet)
+            min_d2,
+            max_d2,
             tp53_pp_pct,
             tp53_pm_pct,
             tp53_mm_pct,

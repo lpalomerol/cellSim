@@ -59,30 +59,27 @@ namespace domain {
         void setSignalEmitter(std::function<void(std::unique_ptr<domain::ISignal>)> emitter) override;
         void receiveMessage(std::unique_ptr<domain::ISignal> signal) override;
 
-        // === New methods for D1 + D2 ===
+        // === ICell: Damage accumulators ===
+        [[nodiscard]] double getD1() const override { return d1_dna_damage_; }
+        [[nodiscard]] double getD2() const override { return d2_immunosuppression_; }
 
-        /// Get D1 (DNA damage counter)
-        [[nodiscard]] double getD1() const { return d1_dna_damage_; }
+        // === ICell: Cell stage (derived on-the-fly from genetics + D1 + D2) ===
+        [[nodiscard]] CellLifeStage getCurrentCellLifeStage() const override;
 
-        /// Get D2 (Immunosuppression counter)
-        [[nodiscard]] double getD2() const { return d2_immunosuppression_; }
+        // === ICell: Apoptosis evasion ===
+        [[nodiscard]] bool hasEvadedApoptosis() const override { return has_evaded_apoptosis_; }
 
-        /// Get current cell life stage (derived on-the-fly from genetics + D1 + D2)
-        [[nodiscard]] CellLifeStage getCurrentCellLifeStage() const;
+        // === ICell: Division ===
+        /// Returns owned daughter cell after live() cycle, or nullptr if no division.
+        std::unique_ptr<ICell> takePendingDaughter() override { return std::move(pending_daughter_); }
 
-        // === Existing public methods ===
+        // === Other public methods ===
         bool isNeoplasticProtected() const;
         std::uint64_t getSeed() const { return seed_; }
         std::uint64_t getAge() const { return age_; }
-        bool hasEvadedApoptosis() const { return has_evaded_apoptosis_; }
         std::unique_ptr<AgenticCell> clone() const;
 
-        /// Get const reference to genome (used by strategies and other components)
         [[nodiscard]] const Genome& getGenome() const { return genome_; }
-
-        /// Take ownership of pending daughter cell (if any) after live() cycle
-        /// Returns nullptr if no division occurred this cycle
-        std::unique_ptr<AgenticCell> takePendingDaughter() { return std::move(pending_daughter_); }
 
     private:
         // === Dependencies ===

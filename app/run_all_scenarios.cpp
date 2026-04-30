@@ -42,26 +42,19 @@ void captureSnapshotFromTissue(domain::Tissue* tissue, int year,
             else if (tp53_status == "+/-") tp53_pm++;
             else if (tp53_status == "-/-") tp53_mm++;
 
-            // Capturar D1 y D2 de TODAS las células vivas (no solo neoplásticas)
-            auto* agentic_v2 = dynamic_cast<domain::AgenticCell*>(cell);
-            if (agentic_v2) {
-                double d1 = agentic_v2->getD1();
-                double d2 = agentic_v2->getD2();
-
-                min_d1 = std::min(min_d1, d1);
-                max_d1 = std::max(max_d1, d1);
-                min_d2 = std::min(min_d2, d2);
-                max_d2 = std::max(max_d2, d2);
-            }
+            double d1 = cell->getD1();
+            double d2 = cell->getD2();
+            min_d1 = std::min(min_d1, d1);
+            max_d1 = std::max(max_d1, d1);
+            min_d2 = std::min(min_d2, d2);
+            max_d2 = std::max(max_d2, d2);
 
             if (cell->isNeoplastic()) {
                 neoplastic_alive++;
-                if (agentic_v2) {
-                    if (agentic_v2->getD2() >= 5.0) {  // D2 >= 5.0 = resistente a apoptosis
-                        neoplastic_resistant++;
-                    } else {
-                        neoplastic_susceptible++;
-                    }
+                if (cell->hasEvadedApoptosis()) {
+                    neoplastic_resistant++;
+                } else {
+                    neoplastic_susceptible++;
                 }
             } else {
                 protected_alive++;

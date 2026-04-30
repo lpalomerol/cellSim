@@ -1,5 +1,4 @@
 #include "Tissue.h"
-#include "../cell/AgenticCell.h"
 #include "../exception/CellDeathException.h"
 #include "../signal/ApoptosisSignal.h"
 
@@ -10,13 +9,9 @@ void Tissue::live() {
     std::vector<std::unique_ptr<ICell>> new_daughters;
 
     // Immune surveillance: deliver Apoptosis signal to all currently-PRIMER cells.
-    // Phase2_Endocytosis will resolve fate (D2 > threshold → neoplasm, else → death).
-    // Phase4 retains its own PRIMER check as a safety net for cells that cross the
-    // threshold during this same tick's D1/D2 update.
     for (auto& cell : cells_) {
         if (!cell) continue;
-        auto* agentic = dynamic_cast<AgenticCell*>(cell.get());
-        if (agentic && agentic->getCurrentCellLifeStage() == CellLifeStage::PRIMER) {
+        if (cell->getCurrentCellLifeStage() == CellLifeStage::PRIMER) {
             cell->receiveMessage(std::make_unique<ApoptosisSignal>(
                 static_cast<std::uint64_t>(-1),
                 "immune_surveillance",
@@ -31,14 +26,10 @@ void Tissue::live() {
         try {
             cells_[i]->live();
 
-            // Check if cell divided (only AgenticCell supports this)
-            auto* agentic_cell = dynamic_cast<AgenticCell*>(cells_[i].get());
-            if (agentic_cell) {
-                auto daughter = agentic_cell->takePendingDaughter();
-                if (daughter) {
-                    logger_->logTissue("[Tissue] Cell " + std::to_string(agentic_cell->id()) + " divided");
-                    new_daughters.push_back(std::move(daughter));
-                }
+            auto daughter = cells_[i]->takePendingDaughter();
+            if (daughter) {
+                logger_->logTissue("[Tissue] Cell " + std::to_string(cells_[i]->id()) + " divided");
+                new_daughters.push_back(std::move(daughter));
             }
         } catch (const CellDeathException& e) {
             logger_->logTissue("[Tissue] Cell died: " + std::string(e.what()));
@@ -116,11 +107,7 @@ std::vector<ICell*> Tissue::getLiveCells() {
 std::vector<ICell*> Tissue::getCellsByStage(CellLifeStage stage) {
     std::vector<ICell*> result;
     for (auto& cell : cells_) {
-        if (!cell) continue;
-
-        // Try to cast to AgenticCell to access getCellLifeStage()
-        auto* agg_cell = dynamic_cast<AgenticCell*>(cell.get());
-        if (agg_cell && agg_cell->getCurrentCellLifeStage() == stage) {
+        if (cell && cell->getCurrentCellLifeStage() == stage) {
             result.push_back(cell.get());
         }
     }
