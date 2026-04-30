@@ -70,6 +70,7 @@ add_executable(unit_tests
         CellDivisionInstabilityPropagationTest.cpp
         NeoplasticImmortalityTest.cpp
         SimulationTissueV2IntegrationTest.cpp
+        LognormalNoiseInstabilityStrategyTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales
