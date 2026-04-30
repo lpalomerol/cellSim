@@ -116,6 +116,22 @@ add_executable(cellSim_cli app/main_cli.cpp
 target_link_libraries(cellSim_cli PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts)
 
 
+# Calibration sweep: parameter grid search for D1/D2 threshold calibration
+add_executable(calibration_sweep app/calibration_sweep.cpp
+        src/application/simulation/Simulation.cpp
+        src/application/simulation/Simulation.h
+        src/application/simulation/PopulationTracker.cpp
+        src/application/simulation/PopulationTracker.h
+        ${COMMON_SOURCES}
+        src/domain/tissue/Tissue.cpp
+        src/domain/tissue/Tissue.h
+        src/domain/cell/CellFactory.cpp
+        src/domain/cell/CellFactory.h
+        src/domain/cell/AgenticCell.cpp
+        src/domain/cell/AgenticCell.h)
+target_link_libraries(calibration_sweep PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts)
+
+
 # Añadir tests solo si BUILD_TESTS=ON (tests pueden descargar googletest)
 if (BUILD_TESTS)
     enable_testing()
