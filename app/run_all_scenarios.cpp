@@ -247,11 +247,11 @@ void runScenario(const ScenarioConfig& scenario, const application::SimulationCo
 
 int main() {
     std::cout << "\n╔═══════════════════════════════════════════════════════════════╗\n";
-    std::cout << "║  VALIDACIÓN - 14 ESCENARIOS: 9 CTRL + 3 BIG BANG + 2 CALIB  ║\n";
+    std::cout << "║  VALIDACIÓN - 17 ESCENARIOS: 9 CTRL + 3 BIG BANG + 5 CALIB  ║\n";
     std::cout << "║  Parámetros: BRCA1, TP53, low_delta,                        ║\n";
     std::cout << "║              high_delta, division_rate, neoplastic_div        ║\n";
     std::cout << "║  Escenarios 10-12: Big Bang (TP53 -/- con división)           ║\n";
-    std::cout << "║  Escenarios 13-14: Calibrated + lognormal noise (CV 0.3/0.5) ║\n";
+    std::cout << "║  Escenarios 13-17: Calibrated (lognormal noise + constant)    ║\n";
     std::cout << "╚═══════════════════════════════════════════════════════════════╝\n";
 
     auto cfg = application::SimulationConfig::loadScenario("default", false);
