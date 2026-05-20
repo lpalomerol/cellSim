@@ -59,6 +59,8 @@ add_executable(unit_tests
         ../src/application/simulation/Simulation.cpp
         ../src/application/presenter/GeneticSummaryPresenter.h
         ../src/application/presenter/GeneticSummaryPresenter.cpp
+        ../src/application/bootstrapping/BootstrappingMetrics.h
+        ../src/application/bootstrapping/BootstrappingMetrics.cpp
 
         mocks/MockLogger.h
         GeneTest.cpp
@@ -71,6 +73,7 @@ add_executable(unit_tests
         NeoplasticImmortalityTest.cpp
         SimulationTissueV2IntegrationTest.cpp
         LognormalNoiseInstabilityStrategyTest.cpp
+        RunBootstrappingTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales

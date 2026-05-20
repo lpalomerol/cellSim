@@ -237,3 +237,89 @@ clean-dist:
 	@rm -f cellSim-*.tar.gz
 	@echo "🧹 Limpiados archivos de distribución"
 
+# ============================================================
+# QA & Testing Pipeline
+# ============================================================
+
+.PHONY: qa qa-quick qa-full qa-report qa-clean qa-show
+
+# Quick QA check (N=100 for speed, ~2 min)
+qa-quick: rebuild
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════════╗"
+	@echo "║          🧪 QUICK QA CHECK (N=100)                         ║"
+	@echo "╚════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@./build/run_bootstrapping \
+		--n-runs 100 \
+		--brca1-rate 0.045 \
+		--low-delta 0.120 \
+		--high-delta 0.240 \
+		--big-bang \
+		--output /tmp/qa_quick.csv
+	@python3 scripts/generate_figures.py 2>/dev/null || echo "⚠️  Figures skipped (missing CSVs)"
+	@python3 scripts/qa_report.py docs/paper3/validation_report.json docs/paper3/qa_report.html
+	@echo ""
+	@echo "✅ Quick QA complete. Report: docs/paper3/qa_report.html"
+
+# Full experimental pipeline + validation + figures (~30 min)
+qa-full: rebuild
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════════╗"
+	@echo "║          🔬 FULL QA PIPELINE                               ║"
+	@echo "╚════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "Running all experiments (baseline + sweeps + final)..."
+	@bash scripts/run_experiments.sh
+	@echo ""
+	@echo "Generating figures..."
+	@python3 scripts/generate_figures.py
+	@echo ""
+	@echo "Generating HTML report..."
+	@python3 scripts/qa_report.py docs/paper3/validation_report.json docs/paper3/qa_report.html
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════════╗"
+	@echo "║          ✅ FULL QA COMPLETE                               ║"
+	@echo "╚════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📊 Outputs:"
+	@echo "   - Figures: docs/paper3/fig*.{png,pdf}"
+	@echo "   - Validation: docs/paper3/validation_report.json"
+	@echo "   - HTML Report: docs/paper3/qa_report.html"
+	@echo ""
+	@echo "Open report: file://$(shell pwd)/docs/paper3/qa_report.html"
+
+# Alias: run full pipeline + open report
+qa: qa-full qa-show
+
+# Generate HTML report from existing validation JSON
+qa-report:
+	@if [ ! -f docs/paper3/validation_report.json ]; then \
+		echo "❌ validation_report.json not found. Run 'make qa-full' first."; \
+		exit 1; \
+	fi
+	@python3 scripts/qa_report.py docs/paper3/validation_report.json docs/paper3/qa_report.html
+	@echo "✅ HTML report: docs/paper3/qa_report.html"
+
+# Open HTML report in browser (Linux/Mac)
+qa-show:
+	@if [ -f docs/paper3/qa_report.html ]; then \
+		if command -v xdg-open > /dev/null 2>&1; then \
+			xdg-open docs/paper3/qa_report.html; \
+		elif command -v open > /dev/null 2>&1; then \
+			open docs/paper3/qa_report.html; \
+		else \
+			echo "Open manually: file://$(shell pwd)/docs/paper3/qa_report.html"; \
+		fi; \
+	else \
+		echo "❌ Report not found. Run 'make qa-full' first."; \
+	fi
+
+# Clean QA artifacts
+qa-clean:
+	@rm -f /tmp/qa_*.csv
+	@rm -f docs/paper3/validation_report.json
+	@rm -f docs/paper3/qa_report.html
+	@rm -f results_*.csv sweep_results*.csv
+	@echo "✅ QA artifacts cleaned"
+

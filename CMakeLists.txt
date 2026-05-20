@@ -133,6 +133,30 @@ add_executable(calibration_sweep app/calibration_sweep.cpp
         src/domain/cell/AgenticCell.h)
 target_link_libraries(calibration_sweep PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts)
 
+# Bootstrap calibration: cumulative risk curve vs. Kuchenbaecker 2017 BRCA1 data
+add_executable(run_bootstrapping app/run_bootstrapping.cpp
+        src/application/bootstrapping/BootstrappingMetrics.h
+        src/application/bootstrapping/BootstrappingMetrics.cpp
+        src/application/simulation/Simulation.cpp
+        src/application/simulation/Simulation.h
+        src/application/simulation/PopulationTracker.cpp
+        src/application/simulation/PopulationTracker.h
+        ${COMMON_SOURCES}
+        src/domain/tissue/Tissue.cpp
+        src/domain/tissue/Tissue.h
+        src/domain/cell/CellFactory.cpp
+        src/domain/cell/CellFactory.h
+        src/domain/cell/AgenticCell.cpp
+        src/domain/cell/AgenticCell.h)
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(run_bootstrapping PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts OpenMP::OpenMP_CXX)
+    target_compile_definitions(run_bootstrapping PRIVATE BOOTSTRAPPING_USE_OMP)
+else()
+    target_link_libraries(run_bootstrapping PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts)
+    message(WARNING "OpenMP not found — run_bootstrapping will run single-threaded")
+endif()
+
 
 # Añadir tests solo si BUILD_TESTS=ON (tests pueden descargar googletest)
 if (BUILD_TESTS)
