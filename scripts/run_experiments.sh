@@ -126,3 +126,47 @@ $BIN \
 echo ""
 
 echo "=== All experiments done. Run scripts/generate_figures.py to generate figures. ==="
+
+# =============================================================================
+# Paper 4 — Weighted SSE calibration (χ²-based, weights from Kuchenbaecker CIs)
+# =============================================================================
+
+echo ""
+echo "=== Paper 4: Weighted SSE Calibration ==="
+echo ""
+
+# Phase P4-1 — Coarse sweep, weighted SSE, big bang ON
+echo "[P4-1] Coarse sweep — weighted SSE, big bang ON, N=200/combo"
+$BIN \
+  --sweep --n-runs 200 \
+  --big-bang \
+  --weighted-sse \
+  --output "$RESULTS/results_p4_sweep_coarse.csv" \
+  --sweep-output "$RESULTS/sweep_results_p4_coarse.csv" \
+  2>&1 | tail -10
+echo ""
+
+# Phase P4-2 — Fine sweep, weighted SSE, big bang ON
+echo "[P4-2] Fine sweep — weighted SSE, big bang ON, N=500/combo"
+$BIN \
+  --fine-sweep --n-runs 500 \
+  --big-bang \
+  --weighted-sse \
+  --output "$RESULTS/results_p4_sweep_fine.csv" \
+  --sweep-output "$RESULTS/sweep_results_p4_fine.csv" \
+  2>&1 | tail -10
+echo ""
+
+# Phase P4-3 — Final run, N=1000, best combo (from fine sweep), weighted SSE
+echo "[P4-3] Final — N=1000, best combo from weighted fine sweep, big bang ON"
+echo "       (inspect sweep_results_p4_fine.csv for best params, then update here)"
+$BIN \
+  --n-runs 1000 \
+  --brca1-rate 0.045 --low-delta 0.120 --high-delta 0.240 \
+  --big-bang \
+  --weighted-sse \
+  --output "$RESULTS/results_p4_final_n1000.csv" \
+  2>&1 | grep -E "^\s+(30|40|50|60|70|80|SSE|weighted)"
+echo ""
+
+echo "=== Paper 4 done. Inspect sweep_results_p4_fine.csv for optimal params. ==="

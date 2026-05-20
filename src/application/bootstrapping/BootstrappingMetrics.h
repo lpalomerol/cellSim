@@ -45,6 +45,17 @@ double cumulativeRisk(const std::vector<RunResult>& results, int age);
 double computeSSE(const std::vector<RunResult>& results);
 
 // ---------------------------------------------------------------------------
+// Weighted SSE: Σᵢ (sim(ageᵢ) − target(ageᵢ))² / σᵢ²
+// where σᵢ = (ci_hi − ci_lo) / 3.92  (95% CI → σ, assuming normality).
+//
+// This is proportional to −2·log L under a Gaussian likelihood with
+// heteroscedastic variance derived from Kuchenbaecker's published CIs.
+// Under the null (perfect fit), SSE_w ~ χ²(6).
+// Returns 0.0 for empty results.
+// ---------------------------------------------------------------------------
+double computeWeightedSSE(const std::vector<RunResult>& results);
+
+// ---------------------------------------------------------------------------
 // Unique seed per (run, cell) to ensure independence between runs.
 // Formula: run_seed * 10000 + cell_index
 // Precondition: cell_index < 10000

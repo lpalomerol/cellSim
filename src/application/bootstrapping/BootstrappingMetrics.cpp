@@ -33,6 +33,20 @@ double computeSSE(const std::vector<RunResult>& results) {
     return sse;
 }
 
+double computeWeightedSSE(const std::vector<RunResult>& results) {
+    if (results.empty()) return 0.0;
+
+    // σᵢ = (ci_hi − ci_lo) / 3.92  (95% CI width → 1 standard deviation)
+    // weight = 1 / σᵢ²
+    double sse_w = 0.0;
+    for (const auto& kp : KUCHENBAECKER_BRCA1) {
+        double sigma = (kp.ci_hi - kp.ci_lo) / 3.92;
+        double diff  = cumulativeRisk(results, kp.age) - kp.risk;
+        sse_w += (diff * diff) / (sigma * sigma);
+    }
+    return sse_w;
+}
+
 unsigned makeCellSeed(int run_seed, int cell_index) {
     return static_cast<unsigned>(run_seed) * 10000u
          + static_cast<unsigned>(cell_index);
