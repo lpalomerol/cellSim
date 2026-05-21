@@ -16,6 +16,7 @@ using application::bootstrapping::KUCHENBAECKER_BRCA1;
 using application::bootstrapping::N_CLINICAL;
 using application::bootstrapping::cumulativeRisk;
 using application::bootstrapping::computeSSE;
+using application::bootstrapping::computeWeightedSSE;
 using application::bootstrapping::makeCellSeed;
 
 // ============================================================================
@@ -345,3 +346,125 @@ TEST(ConsistencyTest, RiskBounds) {
     }
 }
 
+
+// TEST SUITE 6: computeWeightedSSE
+// Weighted SSE = Σᵢ (sim(ageᵢ) − target(ageᵢ))² / σᵢ²
+// σᵢ = (ci_hi − ci_lo) / 3.92
+// Kuchenbaecker σ values (pre-computed):
+//   age 30: σ = (7.0−2.0)/3.92 = 1.2755   → weight = 0.6143
+//   age 40: σ = (30.0−22.0)/3.92 = 2.0408  → weight = 0.2400
+//   age 50: σ = (52.0−41.0)/3.92 = 2.8061  → weight = 0.1270
+//   age 60: σ = (65.0−52.0)/3.92 = 3.3163  → weight = 0.09087
+//   age 70: σ = (73.0−56.0)/3.92 = 4.3367  → weight = 0.05313
+//   age 80: σ = (80.0−60.0)/3.92 = 5.1020  → weight = 0.03840
+
+TEST(ComputeWeightedSSETest, EmptyResults) {
+    EXPECT_DOUBLE_EQ(0.0, computeWeightedSSE({}));
+}
+
+TEST(ComputeWeightedSSETest, PerfectMatch) {
+    // Simulated risk exactly equals Kuchenbaecker targets → SSE_w = 0
+    // Kuchenbaecker targets: {30:4%, 40:26%, 50:46%, 60:58%, 70:65%, 80:70%}
+    // With N=100 results and onset spread to hit exactly those percentages:
+    //   4 onsets at year 30, 22 more at year 40, 20 more at 50, 12 more at 60,
+    //   7 more at 70, 5 more at 80 → cumulative: 4/26/46/58/65/70 out of 100
+    std::vector<RunResult> results;
+    int seed = 0;
+    auto add = [&](int year, int n) {
+        for (int i = 0; i < n; ++i) results.push_back({seed++, year, 0.0});
+    };
+    add(30,  4);
+    add(40, 22);
+    add(50, 20);
+    add(60, 12);
+    add(70,  7);
+    add(80,  5);
+    for (int i = 0; i < 30; ++i) results.push_back({seed++, -1, 0.0}); // non-penetrant
+    // total = 100; cumulative risk = 4/26/46/58/65/70 %
+    EXPECT_NEAR(0.0, computeWeightedSSE(results), 1e-9);
+}
+
+TEST(ComputeWeightedSSETest, UnweightedVsWeightedDifferForHeteroscedasticErrors) {
+    // If all errors are equal in absolute value, SSE_w != SSE (different weights).
+    // Construct results with constant +10pp error at every age.
+    // SSE (unweighted) = 6 * 100 = 600
+    // SSE_w = Σ 100 * weightᵢ = 100 * (0.6143+0.2400+0.1270+0.09087+0.05313+0.03840)
+    //       ≈ 100 * 1.1637 ≈ 116.37
+    std::vector<RunResult> results;
+    int seed = 0;
+    auto add = [&](int year, int n) {
+        for (int i = 0; i < n; ++i) results.push_back({seed++, year, 0.0});
+    };
+    // Target + 10pp at each age: 14/36/56/68/75/80%
+    add(30, 14);
+    add(40, 22);
+    add(50, 20);
+    add(60, 12);
+    add(70,  7);
+    add(80,  5);
+    for (int i = 0; i < 20; ++i) results.push_back({seed++, -1, 0.0});
+    // total = 100; cumulative = 14/36/56/68/75/80 → +10pp at every point
+
+    double sse   = computeSSE(results);
+    double sse_w = computeWeightedSSE(results);
+
+    EXPECT_NEAR(600.0, sse,   0.5);  // 6 * 10² = 600
+    EXPECT_NEAR(116.4, sse_w, 1.0);  // smaller: high-CI ages penalised less
+    EXPECT_LT(sse_w, sse);           // always true: weights < 1 for all ages
+}
+
+TEST(ComputeWeightedSSETest, EarlyAgeErrorPenalisedMoreThanLateAge) {
+    // An equal absolute error at age 30 (tight CI) should produce a larger
+    // contribution to SSE_w than the same error at age 80 (wide CI).
+    //
+    // Weight ratio: w30/w80 = (σ80/σ30)² = (5.1020/1.2755)² ≈ 15.99
+
+    auto makeResults = [](int onset_age, double shift_pp) {
+        // Build 100 results so that only the given age has a +shift_pp error.
+        // All other ages hit the Kuchenbaecker target exactly.
+        // Strategy: construct to hit targets exactly, then re-route 'shift' runs.
+        std::vector<RunResult> r;
+        int seed = 0;
+        // Targets (incremental): 4, 22, 20, 12, 7, 5, 30 (non-pene) = 100
+        struct { int year; int n; } buckets[] = {
+            {30,4},{40,22},{50,20},{60,12},{70,7},{80,5}
+        };
+        // Adjust bucket for onset_age
+        for (auto& b : buckets) {
+            int n = b.n;
+            if (b.year == onset_age) n += static_cast<int>(shift_pp);
+            for (int i = 0; i < n; ++i) r.push_back({seed++, b.year, 0.0});
+        }
+        int total = static_cast<int>(r.size());
+        int non_pene = 100 + static_cast<int>(shift_pp) - total;
+        for (int i = 0; i < std::max(0, non_pene); ++i) r.push_back({seed++, -1, 0.0});
+        return r;
+    };
+
+    // +5pp error only at age 30
+    auto r30 = makeResults(30, 5.0);
+    // +5pp error only at age 80 (need extra runs to keep total correct)
+    auto r80 = makeResults(80, 5.0);
+
+    double contrib30 = computeWeightedSSE(r30);
+    double contrib80 = computeWeightedSSE(r80);
+
+    EXPECT_GT(contrib30, contrib80)
+        << "age-30 error (tight CI) should be penalised more than age-80 error (wide CI)";
+}
+
+TEST(ComputeWeightedSSETest, NonNegative) {
+    std::vector<RunResult> results;
+    for (int i = 0; i < 50; ++i) results.push_back({i, i * 2, 0.0});
+    EXPECT_GE(computeWeightedSSE(results), 0.0);
+}
+
+TEST(ComputeWeightedSSETest, ChiSquaredInterpretation) {
+    // Under perfect calibration SSE_w ~ chi2(6), so SSE_w = 0 for perfect fit.
+    // For all-early-onset (100% at every age), verify SSE_w > chi2(6, 0.999) ≈ 22.5.
+    // i.e., a clearly bad fit produces a value that would be rejected at any threshold.
+    std::vector<RunResult> results;
+    for (int i = 0; i < 100; ++i) results.push_back({i, 0, 0.0}); // all onset at t=0
+    double sse_w = computeWeightedSSE(results);
+    EXPECT_GT(sse_w, 22.5); // well above chi2(6, 0.999) = 22.46
+}

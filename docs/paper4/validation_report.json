@@ -1,0 +1,73 @@
+{
+  "timestamp": "2026-05-20 19:56:21",
+  "csv_file": "results_p4_final_n1000.csv",
+  "n_runs": 1000,
+  "sse": 81.38,
+  "sse_weighted": 12.11,
+  "chi2_threshold": 12.59,
+  "non_penetrance_pct": 34.2,
+  "ci_pass_count": 5,
+  "status": "PASS",
+  "risks": {
+    "30": {
+      "simulated": 5.4,
+      "target": 4.0,
+      "diff": 1.4,
+      "ci": [
+        2.0,
+        7.0
+      ],
+      "in_ci": true
+    },
+    "40": {
+      "simulated": 30.8,
+      "target": 26.0,
+      "diff": 4.8,
+      "ci": [
+        22.0,
+        30.0
+      ],
+      "in_ci": false
+    },
+    "50": {
+      "simulated": 51.7,
+      "target": 46.0,
+      "diff": 5.7,
+      "ci": [
+        41.0,
+        52.0
+      ],
+      "in_ci": true
+    },
+    "60": {
+      "simulated": 60.5,
+      "target": 58.0,
+      "diff": 2.5,
+      "ci": [
+        52.0,
+        65.0
+      ],
+      "in_ci": true
+    },
+    "70": {
+      "simulated": 65.0,
+      "target": 65.0,
+      "diff": 0.0,
+      "ci": [
+        56.0,
+        73.0
+      ],
+      "in_ci": true
+    },
+    "80": {
+      "simulated": 65.8,
+      "target": 70.0,
+      "diff": -4.2,
+      "ci": [
+        60.0,
+        80.0
+      ],
+      "in_ci": true
+    }
+  }
+}

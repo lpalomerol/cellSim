@@ -56,6 +56,7 @@ using application::bootstrapping::KUCHENBAECKER_BRCA1;
 using application::bootstrapping::N_CLINICAL;
 using application::bootstrapping::cumulativeRisk;
 using application::bootstrapping::computeSSE;
+using application::bootstrapping::computeWeightedSSE;
 using application::bootstrapping::makeCellSeed;
 
 // ---------------------------------------------------------------------------
@@ -169,7 +170,8 @@ void runSweep(int sweep_n_runs, int n_cells, int max_t,
               double tumor_threshold, double high_delta_ratio,
               bool big_bang, double neoplastic_div_rate,
               const std::string& sweep_output,
-              bool fine_grid = false)
+              bool fine_grid = false,
+              bool weighted_sse = false)
 {
     // Coarse grid (Phase 3)
     static const double BRCA1_COARSE[] = {0.010, 0.020, 0.040, 0.060, 0.080, 0.100};
@@ -193,7 +195,8 @@ void runSweep(int sweep_n_runs, int n_cells, int max_t,
               << "  high_delta = " << high_delta_ratio << " * low_delta"
               << "  big_bang=" << (big_bang ? "true" : "false")
               << "  neoplastic_div_rate=" << neoplastic_div_rate
-              << (fine_grid ? "  [FINE GRID]" : "  [COARSE GRID]") << "\n\n";
+              << (fine_grid ? "  [FINE GRID]" : "  [COARSE GRID]")
+              << (weighted_sse ? "  [WEIGHTED SSE]" : "  [UNWEIGHTED SSE]") << "\n\n";
 
     std::vector<SweepResult> sweep_results;
     sweep_results.reserve(total_combos);
@@ -220,7 +223,7 @@ void runSweep(int sweep_n_runs, int n_cells, int max_t,
             sr.brca1_rate = br;
             sr.low_delta  = ld;
             sr.high_delta = hd;
-            sr.sse        = computeSSE(results);
+            sr.sse        = weighted_sse ? computeWeightedSSE(results) : computeSSE(results);
             for (int i = 0; i < 7; ++i)
                 sr.risk[i] = cumulativeRisk(results, AGES[i]);
 
@@ -236,7 +239,7 @@ void runSweep(int sweep_n_runs, int n_cells, int max_t,
     // Write CSV
     {
         std::ofstream csv(sweep_output);
-        csv << "brca1_rate,low_delta,high_delta,sse";
+        csv << "brca1_rate,low_delta,high_delta," << (weighted_sse ? "sse_weighted" : "sse");
         for (int a : AGES) csv << ",risk_" << a;
         csv << "\n";
         for (const auto& sr : sweep_results) {
@@ -322,6 +325,7 @@ int main(int argc, char* argv[]) {
             cxxopts::value<int>()->default_value("200"))
         ("high-delta-ratio","high_delta = ratio * low_delta (sweep mode)",
             cxxopts::value<double>()->default_value("2.0"))
+        ("weighted-sse",     "Use weighted SSE (1/σᵢ²) for calibration — σᵢ from Kuchenbaecker 95% CI")
         ("big-bang",        "Enable big bang mode (neoplastic cells divide faster)")
         ("neoplastic-div-rate", "Neoplastic division rate when big bang is on",
             cxxopts::value<double>()->default_value("0.1"))
@@ -349,6 +353,7 @@ int main(int argc, char* argv[]) {
     const int  sweep_n_runs      = args["sweep-n-runs"].as<int>();
     const double high_delta_ratio= args["high-delta-ratio"].as<double>();
     const bool   big_bang        = args.count("big-bang") > 0;
+    const bool   weighted_sse    = args.count("weighted-sse") > 0;
     const double neoplastic_div_rate = args["neoplastic-div-rate"].as<double>();
 
     // --- Header ---
@@ -367,7 +372,7 @@ int main(int argc, char* argv[]) {
                  tp53_rate, d1_threshold, d2_threshold,
                  tumor_threshold, high_delta_ratio,
                  big_bang, neoplastic_div_rate, sweep_out,
-                 fine_sweep);
+                 fine_sweep, weighted_sse);
         return 0;
     }
 
@@ -441,7 +446,8 @@ int main(int argc, char* argv[]) {
     }
     std::cout << "  " << std::string(62, '-') << "\n";
     std::cout << "  SSE vs. Kuchenbaecker = "
-              << std::fixed << std::setprecision(2) << computeSSE(results) << "\n\n";
+              << std::fixed << std::setprecision(2) << computeSSE(results)
+              << "  (weighted SSE = " << std::setprecision(2) << computeWeightedSSE(results) << ")\n\n";
 
     return 0;
 }

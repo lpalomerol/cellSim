@@ -228,6 +228,198 @@ def fig4_bigbang_comparison() -> None:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+# Figure P4-1 — Paper4: weighted SSE calibration vs Kuchenbaecker
+# ---------------------------------------------------------------------------
+
+def fig_p4_calibration() -> None:
+    """Paper4 fig: weighted-SSE optimal params vs Kuchenbaecker + paper3 comparison."""
+    out_dir = Path("docs/paper4")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    cum_p3  = load_cumulative("results_final_n1000.csv")
+    cum_p4  = load_cumulative("results_p4_final_n1000.csv")
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    add_kuchenbaecker(ax)
+
+    ax.plot(AGES, cum_p3, "-", color="#e74c3c", lw=2, label="Paper3 (brca1=0.045, ld=0.120)")
+    ax.plot(AGES, cum_p4, "-", color="#27ae60", lw=2.5, label="Paper4 weighted SSE (brca1=0.050, ld=0.140)")
+
+    # Mark the 6 Kuchenbaecker anchor ages
+    p4_vals = [cum_p4[a] for a in KUCH_AGES]
+    ax.scatter(KUCH_AGES, p4_vals, color="#27ae60", zorder=5, s=50)
+
+    ax.set_xlabel("Age (years)", fontsize=12)
+    ax.set_ylabel("Cumulative breast cancer risk (%)", fontsize=12)
+    ax.set_title("Paper4: Weighted SSE calibration vs. Kuchenbaecker 2017 (BRCA1)", fontsize=12)
+    ax.legend(fontsize=10)
+    ax.set_xlim(0, 80)
+    ax.set_ylim(0, 100)
+    ax.grid(True, alpha=0.3)
+
+    for ext in ("png", "pdf"):
+        path = out_dir / f"fig_p4_calibration.{ext}"
+        fig.savefig(path, dpi=150, bbox_inches="tight")
+        print(f"  Saved {path}")
+    plt.close(fig)
+
+
+def fig_p4_sse_landscape() -> None:
+    """Paper4 fig: SSE_w landscape from fine sweep — shows shape of parameter space."""
+    out_dir = Path("docs/paper4")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    sweep_path = Path("results_sweep_p4_fine.csv")
+    if not sweep_path.exists():
+        print(f"  Skipping SSE landscape (missing {sweep_path})")
+        return
+
+    import collections
+    data = collections.defaultdict(dict)
+    brca1_vals, ld_vals = set(), set()
+    with open(sweep_path) as f:
+        for row in csv.DictReader(f):
+            b = float(row["brca1_rate"])
+            l = float(row["low_delta"])
+            s = float(row["sse_weighted"])
+            data[b][l] = s
+            brca1_vals.add(b)
+            ld_vals.add(l)
+
+    brca1_vals = sorted(brca1_vals)
+    ld_vals    = sorted(ld_vals)
+    import numpy as np
+    Z = np.array([[data[b].get(l, float("nan")) for l in ld_vals] for b in brca1_vals])
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    im = ax.contourf(ld_vals, brca1_vals, Z, levels=20, cmap="RdYlGn_r")
+    plt.colorbar(im, ax=ax, label="Weighted SSE (χ² units)")
+
+    # Mark chi²(6,0.95) contour
+    cs = ax.contour(ld_vals, brca1_vals, Z, levels=[12.59], colors=["blue"], linewidths=[2])
+    ax.clabel(cs, fmt="χ²=12.59 (p=0.05)", fontsize=9)
+
+    # Mark optimum
+    best_b, best_l, best_s = None, None, float("inf")
+    for b in brca1_vals:
+        for l in ld_vals:
+            s = data[b].get(l, float("inf"))
+            if s < best_s:
+                best_s, best_b, best_l = s, b, l
+    ax.scatter([best_l], [best_b], color="white", s=120, zorder=5,
+               label=f"Optimum (brca1={best_b}, ld={best_l}, SSE_w={best_s:.1f})")
+
+    ax.set_xlabel("low_delta", fontsize=12)
+    ax.set_ylabel("brca1_rate", fontsize=12)
+    ax.set_title("Paper4: Weighted SSE landscape — fine grid", fontsize=12)
+    ax.legend(fontsize=9, loc="upper left")
+
+    for ext in ("png", "pdf"):
+        path = out_dir / f"fig_p4_sse_landscape.{ext}"
+        fig.savefig(path, dpi=150, bbox_inches="tight")
+        print(f"  Saved {path}")
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# Validation
+# ---------------------------------------------------------------------------
+
+def validate_and_report(csv_path: str, out_dir: Path = None, weighted: bool = False) -> None:
+    """Compute simulated vs Kuchenbaecker cumulative risk, write JSON + print."""
+    import json
+    from datetime import datetime
+
+    if out_dir is None:
+        out_dir = OUT_DIR
+
+    cum = load_cumulative(csv_path)
+
+    # Count total runs and non-penetrant runs
+    n_total = 0
+    n_no_cancer = 0
+    with open(csv_path) as f:
+        for row in csv.DictReader(f):
+            n_total += 1
+            yr = row.get("onset_year", "")
+            if yr and float(yr) < 0:
+                n_no_cancer += 1
+
+    sse = sum((cum[age] - mean) ** 2 for age, mean in zip(KUCH_AGES, KUCH_MEAN))
+
+    # Weighted SSE: Σ (sim-target)² / σᵢ²  where σᵢ = (CI_hi - CI_lo) / 3.92
+    kuch_sigma = [(hi - lo) / 3.92 for lo, hi in zip(KUCH_LO, KUCH_HI)]
+    sse_w = sum((cum[age] - mean) ** 2 / (s * s)
+                for age, mean, s in zip(KUCH_AGES, KUCH_MEAN, kuch_sigma))
+    chi2_threshold = 12.59  # chi²(6, 0.95)
+
+    non_penetrance_pct = 100.0 * n_no_cancer / n_total if n_total > 0 else 0.0
+
+    risks = {}
+    ci_pass_count = 0
+    for age, mean, lo, hi in zip(KUCH_AGES, KUCH_MEAN, KUCH_LO, KUCH_HI):
+        sim = cum[age]
+        in_ci = lo <= sim <= hi
+        if in_ci:
+            ci_pass_count += 1
+        risks[str(age)] = {
+            "simulated": round(sim, 2),
+            "target": mean,
+            "diff": round(sim - mean, 2),
+            "ci": [lo, hi],
+            "in_ci": in_ci,
+        }
+
+    # Status: weighted mode uses chi² criterion; unweighted uses legacy heuristic
+    if weighted:
+        if sse_w < chi2_threshold and ci_pass_count >= 5:
+            status = "PASS"
+        elif sse_w < chi2_threshold * 2 or ci_pass_count >= 4:
+            status = "WARN"
+        else:
+            status = "FAIL"
+    else:
+        if ci_pass_count >= 5 and sse < 300:
+            status = "PASS"
+        elif ci_pass_count >= 3:
+            status = "WARN"
+        else:
+            status = "FAIL"
+
+    report = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "csv_file": csv_path,
+        "n_runs": n_total,
+        "sse": round(sse, 2),
+        "sse_weighted": round(sse_w, 2),
+        "chi2_threshold": chi2_threshold,
+        "non_penetrance_pct": round(non_penetrance_pct, 2),
+        "ci_pass_count": ci_pass_count,
+        "status": status,
+        "risks": risks,
+    }
+
+    json_path = out_dir / "validation_report.json"
+    with open(json_path, "w") as f:
+        json.dump(report, f, indent=2)
+
+    icon = {"PASS": "✅", "WARN": "⚠️", "FAIL": "❌"}[status]
+    chi2_flag = f"SSE_w={sse_w:.2f} {'<' if sse_w < chi2_threshold else '≥'} χ²(0.95,6)={chi2_threshold}"
+    print(f"\n{icon}  Status: {status}  (SSE={sse:.1f}, {chi2_flag}, CI coverage: {ci_pass_count}/6, non-penetrance: {non_penetrance_pct:.1f}%)")
+    print(f"{'Age':>5}  {'Simulated':>10}  {'Target':>8}  {'Diff':>7}  {'95% CI':>16}  In CI")
+    print("-" * 62)
+    for age, mean, lo, hi in zip(KUCH_AGES, KUCH_MEAN, KUCH_LO, KUCH_HI):
+        sim = cum[age]
+        in_ci = lo <= sim <= hi
+        flag = "✅" if in_ci else "❌"
+        print(f"{age:>5}  {sim:>9.1f}%  {mean:>7.1f}%  {sim-mean:>+6.1f}pp  [{lo:.1f}–{hi:.1f}]%  {flag}")
+    print(f"\nValidation report saved: {json_path}")
+    html_path = out_dir / "qa_report.html"
+    print(f"Generate HTML report with:")
+    print(f"  python3 scripts/qa_report.py {json_path} {html_path}")
+
+
+# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     missing = [
@@ -257,10 +449,24 @@ if __name__ == "__main__":
     print("Figures saved to docs/paper3/")
     print("=" * 70)
 
-    # NEW: Validate final calibration results
+    # Paper3 validation
     print("\n" + "=" * 70)
-    print("Validation")
+    print("Validation — Paper3 (unweighted SSE)")
     print("=" * 70)
-    validate_and_report("results_final_n1000.csv")
+    validate_and_report("results_final_n1000.csv", OUT_DIR, weighted=False)
+
+    # Paper4 figures + validation (only if CSV exists)
+    p4_csv = Path("results_p4_final_n1000.csv")
+    if p4_csv.exists():
+        print("\n" + "=" * 70)
+        print("Paper4 — Weighted SSE calibration")
+        print("=" * 70)
+        p4_dir = Path("docs/paper4")
+        fig_p4_calibration()
+        fig_p4_sse_landscape()
+        print("\n" + "=" * 70)
+        print("Validation — Paper4 (weighted SSE, χ² criterion)")
+        print("=" * 70)
+        validate_and_report(str(p4_csv), p4_dir, weighted=True)
 
     print("\n✅ All done. Open docs/paper3/qa_report.html for full report.")

@@ -1,7 +1,7 @@
 # CellSim Bootstrap Calibration — QA Testing Guide
 
-**Date:** 2026-05-19  
-**Version:** 1.0  
+**Date:** 2026-05-20  
+**Version:** 1.1  
 **Status:** Production Ready
 
 ---
@@ -42,13 +42,21 @@ Runs N=100 bootstrap with calibrated parameters and generates report.
 ## 🧪 Testing Components
 
 ### 1. Unit Tests (C++)
-**File:** `tests/RunBootstrappingTest.cpp`  
-**Tests:** 36 test cases covering:
-- `cumulativeRisk()` edge cases (empty, all-no-cancer, all-cancer, mixed)
-- `computeSSE()` boundary conditions (perfect match, extremes)
-- Seed generation (no collisions, overflow checks)
-- Numerical stability (large N, tiny probabilities)
-- Consistency (monotonicity, symmetry)
+
+**Test file:** `tests/RunBootstrappingTest.cpp`  
+**Production module:** `src/application/bootstrapping/BootstrappingMetrics.h/.cpp`  
+**Tests:** 26 test cases in 5 suites covering:
+
+| Suite | Tests | What it covers |
+|-------|-------|----------------|
+| `CumulativeRiskTest` | 10 | Edge cases: empty, negative onsets, immediate/late cancer, mixed, boundaries, large N |
+| `ComputeSSETest` | 7 | SSE calculation: perfect match, no cancer, early cancer, boundary ages |
+| `SeedGenerationTest` | 4 | `makeCellSeed()`: no collisions across 1000×500 runs/cells, overflow safety |
+| `NumericalStabilityTest` | 3 | Precision at N=100k, tiny probabilities (0.001%), large SSE exact value |
+| `ConsistencyTest` | 2 | Monotonicity of risk curve, risk always in [0, 100] |
+
+> **Note:** All tests exercise the real production functions from `BootstrappingMetrics.h`,
+> not local copies. A change to any of these functions will be caught by the test suite.
 
 **Run:**
 ```bash
@@ -280,14 +288,14 @@ Status: ❌ FAIL
 ### Edge Cases Tested
 
 1. **Empty inputs** — no crashes, return 0
-2. **Boundary conditions** — age 0, negative, > 100
-3. **All no-cancer** — 100% non-penetrance
+2. **Boundary conditions** — age 0, negative ages, onset beyond simulation window
+3. **All no-cancer** — negative onsets including invalid values (-1, -2, -999)
 4. **All immediate cancer** — 100% penetrance at age 0
 5. **Single run** — risks are 0% or 100%
 6. **Large N** — numerical stability (N=100,000)
-7. **Seed collisions** — 1000 runs × 500 cells = 500K unique seeds
-8. **Monotonicity** — risk increases with age
-9. **Symmetry** — SSE independent of result order
+7. **Seed collisions** — 1000 runs × 500 cells = 500K unique seeds via `makeCellSeed()`
+8. **Monotonicity** — risk never decreases with age
+9. **`final_neoplastic_pct` isolation** — metadata field does not affect risk calculation
 
 ---
 
@@ -355,6 +363,6 @@ jobs:
 
 ---
 
-**Last updated:** 2026-05-19  
+**Last updated:** 2026-05-20  
 **Author:** CellSim Development Team
 
