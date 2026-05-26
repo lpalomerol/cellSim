@@ -579,3 +579,82 @@ class TestEdgeCases(unittest.TestCase):
 if __name__ == '__main__':
     # Run tests with verbose output
     unittest.main(verbosity=2)
+
+
+class TestNumericalStability(unittest.TestCase):
+    """Test numerical stability safeguards in weight computation."""
+
+    def test_compute_weights_handles_extreme_distances(self):
+        """Weight computation should handle extreme distance values without underflow."""
+        rng = np.random.Generator(np.random.PCG64(42))
+        particles = abc_module.sample_prior(rng, n=5)
+        prev_particles = abc_module.sample_prior(rng, n=5)
+        prev_weights = np.ones(5) / 5
+        sigmas = np.ones(4) * 1e-10  # very small sigmas → extreme distances
+        
+        try:
+            weights = abc_module.compute_weights(particles, prev_particles, prev_weights, sigmas)
+            self.assertTrue(np.all(np.isfinite(weights)))
+            self.assertAlmostEqual(np.sum(weights), 1.0, places=6)
+        except RuntimeError as e:
+            # Also acceptable if it detects and raises explicitly
+            self.assertIn("NaN", str(e)) or self.assertIn("Inf", str(e))
+
+    def test_compute_weights_normalization(self):
+        """Weights should always sum to 1.0 within numerical tolerance."""
+        rng = np.random.Generator(np.random.PCG64(123))
+        for _ in range(10):
+            particles = abc_module.sample_prior(rng, n=10)
+            prev_particles = abc_module.sample_prior(rng, n=10)
+            prev_weights = np.random.dirichlet(np.ones(10))
+            sigmas = np.random.uniform(0.01, 0.5, size=4)
+            
+            weights = abc_module.compute_weights(particles, prev_particles, prev_weights, sigmas)
+            self.assertAlmostEqual(np.sum(weights), 1.0, places=10)
+
+
+class TestConvergenceDiagnostics(unittest.TestCase):
+    """Test convergence diagnostic functions."""
+
+    def test_ess_computation(self):
+        """ESS should measure effective sample size correctly."""
+        # Uniform weights → ESS = N
+        uniform_weights = np.ones(100) / 100
+        ess = abc_module.compute_ess(uniform_weights)
+        self.assertAlmostEqual(ess, 100.0, places=1)
+        
+        # Concentrated weights → ESS << N
+        concentrated = np.zeros(100)
+        concentrated[0] = 1.0
+        ess_low = abc_module.compute_ess(concentrated)
+        self.assertLess(ess_low, 10.0)
+
+    def test_gelman_rubin_converged(self):
+        """Rhat should be close to 1.0 for converged chains."""
+        # Two chains from same distribution
+        chain1 = np.random.normal(0, 1, size=100)
+        chain2 = np.random.normal(0, 1, size=100)
+        
+        rhat = abc_module.gelman_rubin_statistic([chain1, chain2])
+        self.assertLess(rhat, 1.2)  # Should be close to 1.0
+
+    def test_gelman_rubin_single_chain(self):
+        """Rhat should return NaN for single chain."""
+        chain = np.random.normal(0, 1, size=100)
+        rhat = abc_module.gelman_rubin_statistic([chain])
+        self.assertTrue(np.isnan(rhat))
+
+    def test_posterior_predictive_check_structure(self):
+        """Posterior predictive check should return structured output."""
+        rng = np.random.Generator(np.random.PCG64(999))
+        samples = abc_module.sample_prior(rng, n=50)
+        
+        result = abc_module.posterior_predictive_check(samples, n_sim=100, n_check=10)
+        
+        self.assertIn('n_posterior_samples', result)
+        self.assertIn('clinical_mean', result)
+        self.assertIsInstance(result['clinical_mean'], float)
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)
