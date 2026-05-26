@@ -2,6 +2,8 @@
 
 #include "BootstrappingMetrics.h"
 
+#include <algorithm>
+
 namespace application::bootstrapping {
 
 const ClinicalPoint KUCHENBAECKER_BRCA1[] = {
@@ -45,6 +47,50 @@ double computeWeightedSSE(const std::vector<RunResult>& results) {
         sse_w += (diff * diff) / (sigma * sigma);
     }
     return sse_w;
+}
+
+SaturationMilestones computeMilestones(const std::vector<application::YearlySnapshot>& snapshots) {
+    SaturationMilestones m;
+    for (const auto& snap : snapshots) {
+        if (snap.alive_cells <= 0) continue;
+        double pct = 100.0 * snap.neoplastic_alive / snap.alive_cells;
+        if (m.year_25 < 0 && pct >= 25.0) m.year_25 = snap.year;
+        if (m.year_50 < 0 && pct >= 50.0) m.year_50 = snap.year;
+        if (m.year_90 < 0 && pct >= 90.0) m.year_90 = snap.year;
+    }
+    return m;
+}
+
+double medianOnset(const std::vector<RunResult>& results) {
+    std::vector<int> onsets;
+    onsets.reserve(results.size());
+    for (const auto& r : results)
+        if (r.onset_year >= 0)
+            onsets.push_back(r.onset_year);
+
+    if (onsets.empty()) return -1.0;
+
+    std::sort(onsets.begin(), onsets.end());
+    const size_t n = onsets.size();
+    if (n % 2 == 1)
+        return static_cast<double>(onsets[n / 2]);
+    return 0.5 * (onsets[n / 2 - 1] + onsets[n / 2]);
+}
+
+double medianSaturation(const std::vector<int>& milestone_years) {
+    std::vector<int> reached;
+    reached.reserve(milestone_years.size());
+    for (int y : milestone_years)
+        if (y >= 0)
+            reached.push_back(y);
+
+    if (reached.empty()) return -1.0;
+
+    std::sort(reached.begin(), reached.end());
+    const size_t n = reached.size();
+    if (n % 2 == 1)
+        return static_cast<double>(reached[n / 2]);
+    return 0.5 * (reached[n / 2 - 1] + reached[n / 2]);
 }
 
 unsigned makeCellSeed(int run_seed, int cell_index) {

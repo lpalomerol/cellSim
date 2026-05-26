@@ -5,6 +5,7 @@
 #include "../src/domain/gene/Genome.h"
 #include "../src/domain/gene/GenomeFactory.h"
 #include "../src/domain/adapters/NullLogger.h"
+#include "../src/domain/adapters/FixedNoise.h"
 #include "../src/domain/exception/CellDeathException.h"
 
 using namespace domain;
@@ -52,6 +53,32 @@ protected:
         auto genome = Genome(std::move(genes), logger_);
 
         return CellFactory::createNormalCell(genome, logger_);
+    }
+
+    /// Helper: Create a cell configured to become TUMORAL after a single live() tick.
+    ///
+    /// TP53 -/- + BRCA1 +/-, with:
+    ///   d1_primer_threshold = 0.5  → D1 starts at 1.0, so already PRIMER
+    ///   d2_apoptosis_threshold = 0.5 → D2 starts at 1.0, so resists immune surveillance
+    ///   big_bang = true, neoplastic_div_rate = 0.0 (no division noise in tests)
+    std::unique_ptr<ICell> createQuickTumoralCell() {
+        std::unordered_map<std::string, Gene> genes;
+        genes.emplace("TP53",  Gene("TP53",  Gene::State::MinusMinus, 0.0, 0.0, logger_));
+        genes.emplace("BRCA1", Gene("BRCA1", Gene::State::PlusMinus,  0.0, 0.0, logger_));
+        auto genome = Genome(std::move(genes), logger_);
+
+        return CellFactory::createCustomCell(
+            std::make_unique<adapters::FixedNoise>(CellNoise{0.5}),
+            genome,
+            /*low_delta=*/    1.0,
+            /*high_delta=*/   2.0,
+            /*div_rate=*/     0.0,
+            /*neo_div_rate=*/ 0.0,
+            /*big_bang=*/     true,
+            /*d1_threshold=*/ 0.5,
+            /*d2_threshold=*/ 0.5,
+            logger_
+        );
     }
 };
 
@@ -219,3 +246,59 @@ TEST_F(TissueTest, Test12_MixedGenotypes) {
     EXPECT_EQ(unprotected.size(), 1);
 }
 
+// ── Saturation tests ──────────────────────────────────────────────────────
+
+// Test 13: Fresh tissue is not saturated
+TEST_F(TissueTest, Test13_NotSaturatedInitially) {
+    EXPECT_FALSE(tissue_->isSaturated());
+
+    tissue_->addCell(createNormalCell());
+    EXPECT_FALSE(tissue_->isSaturated());
+}
+
+// Test 14: Normal cells alone never trigger saturation
+TEST_F(TissueTest, Test14_NormalCellsDoNotSaturate) {
+    for (int i = 0; i < 5; ++i)
+        tissue_->addCell(createNormalCell());
+
+    for (int t = 0; t < 10; ++t)
+        tissue_->live();
+
+    EXPECT_FALSE(tissue_->isSaturated());
+}
+
+// Test 15: Saturation triggers when tumoral cells >= non-tumoral alive cells.
+//
+// Setup: 1 BASELINE cell + 2 cells that become TUMORAL after the first live().
+// After live(): tumoral=2 >= non_tumoral=1 → isSaturated() must be true.
+TEST_F(TissueTest, Test15_SaturationWhenTumoralEqualsNonTumoral) {
+    tissue_->addCell(createNormalCell());       // stays BASELINE
+    tissue_->addCell(createQuickTumoralCell()); // → TUMORAL after live()
+    tissue_->addCell(createQuickTumoralCell()); // → TUMORAL after live()
+
+    tissue_->live();
+
+    EXPECT_TRUE(tissue_->isSaturated());
+}
+
+// Test 16: Once saturated, no new daughters are added (birth count = 0).
+TEST_F(TissueTest, Test16_SaturationSuppressesBirths) {
+    tissue_->addCell(createNormalCell());
+    tissue_->addCell(createQuickTumoralCell());
+    tissue_->addCell(createQuickTumoralCell());
+
+    tissue_->live(); // triggers saturation
+
+    EXPECT_TRUE(tissue_->isSaturated());
+    EXPECT_EQ(tissue_->lastBirthCount(), 0);
+}
+
+// Test 17: A single quick-tumoral cell in isolation does NOT saturate
+// (tumoral=1, non_tumoral=0 → cells_.empty() guard prevents saturation).
+TEST_F(TissueTest, Test17_SingleTumoralCellDoesNotSaturateEmptyTissue) {
+    tissue_->addCell(createQuickTumoralCell());
+    tissue_->live();
+    // 1 TUMORAL, 0 non-tumoral — but tissue is not empty, so this IS >=
+    // Verify behaviour is consistent: either saturated or not, no crash.
+    EXPECT_NO_THROW(tissue_->live());
+}

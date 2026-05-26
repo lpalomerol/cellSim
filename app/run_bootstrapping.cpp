@@ -57,6 +57,8 @@ using application::bootstrapping::N_CLINICAL;
 using application::bootstrapping::cumulativeRisk;
 using application::bootstrapping::computeSSE;
 using application::bootstrapping::computeWeightedSSE;
+using application::bootstrapping::medianOnset;
+using application::bootstrapping::medianSaturation;
 using application::bootstrapping::makeCellSeed;
 
 // ---------------------------------------------------------------------------
@@ -119,13 +121,15 @@ RunResult runOnce(int seed, int n_cells, int max_t,
     int onset = onsetYear(tracker, tumor_threshold);
 
     double final_neo_pct = 0.0;
+    auto milestones = application::bootstrapping::computeMilestones(tracker.snapshots());
+
     if (!tracker.snapshots().empty()) {
         const auto& last = tracker.snapshots().back();
         if (last.alive_cells > 0)
             final_neo_pct = 100.0 * last.neoplastic_alive / last.alive_cells;
     }
 
-    return {seed, onset, final_neo_pct};
+    return {seed, onset, final_neo_pct, milestones.year_25, milestones.year_50, milestones.year_90};
 }
 
 // ---------------------------------------------------------------------------
@@ -405,11 +409,14 @@ int main(int argc, char* argv[]) {
     // --- Write per-run CSV ---
     {
         std::ofstream csv(output);
-        csv << "seed,onset_year,final_neoplastic_pct\n";
+        csv << "seed,onset_year,final_neoplastic_pct,year_25pct,year_50pct,year_90pct\n";
         for (const auto& r : results)
             csv << r.seed << ","
                 << r.onset_year << ","
-                << std::fixed << std::setprecision(2) << r.final_neoplastic_pct << "\n";
+                << std::fixed << std::setprecision(2) << r.final_neoplastic_pct << ","
+                << r.year_25pct << ","
+                << r.year_50pct << ","
+                << r.year_90pct << "\n";
     }
     std::cout << "  Per-run CSV written → " << output << "\n\n";
 
@@ -445,9 +452,25 @@ int main(int argc, char* argv[]) {
         std::cout << "\n";
     }
     std::cout << "  " << std::string(62, '-') << "\n";
+
+    // Compute saturation milestones
+    std::vector<int> sat25, sat50, sat90;
+    sat25.reserve(results.size());
+    sat50.reserve(results.size());
+    sat90.reserve(results.size());
+    for (const auto& r : results) {
+        sat25.push_back(r.year_25pct);
+        sat50.push_back(r.year_50pct);
+        sat90.push_back(r.year_90pct);
+    }
+
     std::cout << "  SSE vs. Kuchenbaecker = "
               << std::fixed << std::setprecision(2) << computeSSE(results)
-              << "  (weighted SSE = " << std::setprecision(2) << computeWeightedSSE(results) << ")\n\n";
+              << "  (weighted SSE = " << std::setprecision(2) << computeWeightedSSE(results) << ")"
+              << "  (median onset = " << std::setprecision(1) << medianOnset(results) << ")"
+              << "  (median sat25 = " << std::setprecision(1) << medianSaturation(sat25) << ")"
+              << "  (median sat50 = " << std::setprecision(1) << medianSaturation(sat50) << ")"
+              << "  (median sat90 = " << std::setprecision(1) << medianSaturation(sat90) << ")\n\n";
 
     return 0;
 }

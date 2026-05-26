@@ -59,6 +59,9 @@ namespace domain {
         // Get all cells with specific CellLifeStage (requires dynamic_cast to AgenticCell)
         [[nodiscard]] std::vector<ICell*> getCellsByStage(CellLifeStage stage);
 
+        // Returns true once tumoral cells >= non-tumoral alive cells (set during live())
+        [[nodiscard]] bool isSaturated() const { return saturated_; }
+
     private:
         ports::ILoggerPtr logger_;
         std::vector<std::unique_ptr<ICell>> cells_;
@@ -66,6 +69,7 @@ namespace domain {
         std::atomic<std::uint64_t> next_cell_id_{1};
         int last_death_count_ = 0;
         int last_birth_count_ = 0;
+        bool saturated_ = false;
     };
 
 } // namespace domain

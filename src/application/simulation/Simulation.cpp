@@ -111,6 +111,9 @@ namespace application {
             int neoplastic_count = executeCellCycle();
             cell_state_counter_[t][2] = neoplastic_count;
             captureAnnualSnapshot(t + 1);
+
+            if (tissue_.isSaturated())
+                break;
         }
     }
 

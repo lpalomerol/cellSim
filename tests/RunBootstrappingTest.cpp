@@ -468,3 +468,128 @@ TEST(ComputeWeightedSSETest, ChiSquaredInterpretation) {
     double sse_w = computeWeightedSSE(results);
     EXPECT_GT(sse_w, 22.5); // well above chi2(6, 0.999) = 22.46
 }
+
+// ============================================================================
+// TEST SUITE 6: computeMilestones — saturation milestone tracking
+// ============================================================================
+
+using application::YearlySnapshot;
+using application::bootstrapping::computeMilestones;
+using application::bootstrapping::SaturationMilestones;
+
+// Helper: build a minimal YearlySnapshot with only year/alive/neoplastic set.
+static YearlySnapshot makeSnap(int year, int alive, int neoplastic) {
+    YearlySnapshot s{};
+    s.year             = year;
+    s.alive_cells      = alive;
+    s.neoplastic_alive = neoplastic;
+    return s;
+}
+
+TEST(ComputeMilestonesTest, EmptySnapshots) {
+    SaturationMilestones m = computeMilestones({});
+    EXPECT_EQ(m.year_25, -1);
+    EXPECT_EQ(m.year_50, -1);
+    EXPECT_EQ(m.year_90, -1);
+}
+
+TEST(ComputeMilestonesTest, NeverReachesAnyThreshold) {
+    // 10% neoplastic throughout — below every milestone
+    std::vector<YearlySnapshot> snaps;
+    for (int y = 0; y <= 80; ++y)
+        snaps.push_back(makeSnap(y, 100, 10));  // 10% always
+
+    SaturationMilestones m = computeMilestones(snaps);
+    EXPECT_EQ(m.year_25, -1);
+    EXPECT_EQ(m.year_50, -1);
+    EXPECT_EQ(m.year_90, -1);
+}
+
+TEST(ComputeMilestonesTest, FullProgressionReachesAll) {
+    // Crosses all three thresholds at years 20, 30, 40
+    std::vector<YearlySnapshot> snaps = {
+        makeSnap(10, 100,  10),   // 10%
+        makeSnap(20, 100,  30),   // 30%  → crosses 25%
+        makeSnap(30, 100,  60),   // 60%  → crosses 50%
+        makeSnap(40, 100,  95),   // 95%  → crosses 90%
+    };
+
+    SaturationMilestones m = computeMilestones(snaps);
+    EXPECT_EQ(m.year_25, 20);
+    EXPECT_EQ(m.year_50, 30);
+    EXPECT_EQ(m.year_90, 40);
+}
+
+TEST(ComputeMilestonesTest, SimStopsAtSaturation50Pct) {
+    // Mirrors real behaviour: isSaturated() stops sim at ~50%
+    // → year_25 set, year_50 set, year_90 never reached
+    std::vector<YearlySnapshot> snaps = {
+        makeSnap(10, 100,  20),   // 20%
+        makeSnap(20, 100,  30),   // 30%  → crosses 25%
+        makeSnap(30, 100,  50),   // 50%  → crosses 50% (sim stops here)
+        // no further snapshots: saturation guard triggered
+    };
+
+    SaturationMilestones m = computeMilestones(snaps);
+    EXPECT_EQ(m.year_25, 20);
+    EXPECT_EQ(m.year_50, 30);
+    EXPECT_EQ(m.year_90, -1);  // never reached after early stop
+}
+
+TEST(ComputeMilestonesTest, ExactlyAtThresholdCountsAsCrossed) {
+    std::vector<YearlySnapshot> snaps = {
+        makeSnap(5,  100, 25),   // exactly 25.0%
+        makeSnap(10, 100, 50),   // exactly 50.0%
+        makeSnap(15, 100, 90),   // exactly 90.0%
+    };
+
+    SaturationMilestones m = computeMilestones(snaps);
+    EXPECT_EQ(m.year_25,  5);
+    EXPECT_EQ(m.year_50, 10);
+    EXPECT_EQ(m.year_90, 15);
+}
+
+TEST(ComputeMilestonesTest, SkipsSnapshotsWithNoAliveCells) {
+    // alive_cells=0 means the tissue is dead/uninitialized — must be ignored
+    std::vector<YearlySnapshot> snaps = {
+        makeSnap(5,   0,  50),   // alive=0: skip even though 50/0 would be NaN/inf
+        makeSnap(10, 100, 60),   // 60% → first valid snap, crosses 25% and 50%
+        makeSnap(15, 100, 95),   // 95% → crosses 90%
+    };
+
+    SaturationMilestones m = computeMilestones(snaps);
+    EXPECT_EQ(m.year_25, 10);   // year 5 was skipped
+    EXPECT_EQ(m.year_50, 10);
+    EXPECT_EQ(m.year_90, 15);
+}
+
+TEST(ComputeMilestonesTest, FirstCrossingIsRecorded_NotSubsequent) {
+    // Even if pct goes back down (edge case), the first crossing year is kept
+    std::vector<YearlySnapshot> snaps = {
+        makeSnap(10, 100, 30),   // 30% → crosses 25% first time
+        makeSnap(20, 100, 10),   // 10% (regression — unusual but should not overwrite)
+        makeSnap(30, 100, 60),   // 60% → crosses 50% first time
+    };
+
+    SaturationMilestones m = computeMilestones(snaps);
+    EXPECT_EQ(m.year_25, 10);   // first crossing at year 10
+    EXPECT_EQ(m.year_50, 30);
+    EXPECT_EQ(m.year_90, -1);
+}
+
+TEST(ComputeMilestonesTest, MonotonicityInvariant) {
+    // year_25 <= year_50 <= year_90 whenever set
+    std::vector<YearlySnapshot> snaps = {
+        makeSnap( 5, 100,  5),
+        makeSnap(15, 100, 25),
+        makeSnap(25, 100, 51),
+        makeSnap(35, 100, 91),
+    };
+
+    SaturationMilestones m = computeMilestones(snaps);
+    ASSERT_NE(m.year_25, -1);
+    ASSERT_NE(m.year_50, -1);
+    ASSERT_NE(m.year_90, -1);
+    EXPECT_LE(m.year_25, m.year_50);
+    EXPECT_LE(m.year_50, m.year_90);
+}

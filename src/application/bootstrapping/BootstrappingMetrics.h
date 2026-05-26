@@ -7,8 +7,25 @@
 #pragma once
 
 #include <vector>
+#include "../simulation/PopulationTracker.h"
 
 namespace application::bootstrapping {
+
+// ---------------------------------------------------------------------------
+// Saturation milestones: first year the tumoral fraction crossed 25/50/90%.
+// -1 means the threshold was never reached within the simulation.
+// ---------------------------------------------------------------------------
+struct SaturationMilestones {
+    int year_25 = -1;
+    int year_50 = -1;
+    int year_90 = -1;
+};
+
+// ---------------------------------------------------------------------------
+// Compute saturation milestones from a series of yearly snapshots.
+// Skips snapshots with alive_cells <= 0.
+// ---------------------------------------------------------------------------
+SaturationMilestones computeMilestones(const std::vector<application::YearlySnapshot>& snapshots);
 
 // ---------------------------------------------------------------------------
 // Kuchenbaecker et al. (JAMA 2017) — BRCA1 cumulative breast cancer risk
@@ -30,6 +47,9 @@ struct RunResult {
     int    seed;
     int    onset_year;           // -1 = no tumour within max_t
     double final_neoplastic_pct;
+    int    year_25pct = -1;      // first year ≥25% tumoral (-1 = never)
+    int    year_50pct = -1;      // first year ≥50% tumoral (-1 = never)
+    int    year_90pct = -1;      // first year ≥90% tumoral (-1 = never)
 };
 
 // ---------------------------------------------------------------------------
@@ -54,6 +74,19 @@ double computeSSE(const std::vector<RunResult>& results);
 // Returns 0.0 for empty results.
 // ---------------------------------------------------------------------------
 double computeWeightedSSE(const std::vector<RunResult>& results);
+
+// ---------------------------------------------------------------------------
+// Median saturation year computed from a vector of per-run milestone years.
+// Values of -1 (never reached) are ignored.
+// Returns -1.0 if no run reached the milestone.
+// ---------------------------------------------------------------------------
+double medianSaturation(const std::vector<int>& milestone_years);
+
+// ---------------------------------------------------------------------------
+// Median onset year across runs that developed a tumour (onset_year >= 0).
+// Returns -1.0 if no run developed a tumour.
+// ---------------------------------------------------------------------------
+double medianOnset(const std::vector<RunResult>& results);
 
 // ---------------------------------------------------------------------------
 // Unique seed per (run, cell) to ensure independence between runs.

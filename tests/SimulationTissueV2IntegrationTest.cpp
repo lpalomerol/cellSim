@@ -1,8 +1,11 @@
 #include <gtest/gtest.h>
 #include "../src/application/simulation/Simulation.h"
 #include "../src/domain/cell/CellFactory.h"
+#include "../src/domain/gene/Genome.h"
+#include "../src/domain/gene/Gene.h"
 #include "../src/domain/gene/GenomeFactory.h"
 #include "../src/domain/adapters/NullLogger.h"
+#include "../src/domain/adapters/FixedNoise.h"
 
 using namespace application;
 using namespace domain;
@@ -136,5 +139,46 @@ TEST_F(SimulationTissueV2IntegrationTest, Test10_EmptySimulation) {
 
     EXPECT_NO_THROW(sim.run());
     EXPECT_GE(sim.populationTracker().snapshots().size(), 1u);
+}
+
+// Test 11: Simulation stops before max_t when tissue saturates.
+//
+// Setup: 1 normal cell + 2 quick-tumoral cells in a 50-year simulation.
+// After the first tick the tumoral cells dominate → saturation → early exit.
+// The tracker should have fewer snapshots than max_t + 1 (year 0 + 50 years).
+TEST_F(SimulationTissueV2IntegrationTest, Test11_SimulationStopsEarlyOnSaturation) {
+    constexpr int MAX_T = 50;
+    Simulation sim(MAX_T);
+
+    // 1 BASELINE cell
+    sim.addCell(createNormalCell());
+
+    // 2 cells that become TUMORAL after the first live() tick
+    auto makeQuickTumoral = [this]() -> std::unique_ptr<ICell> {
+        std::unordered_map<std::string, Gene> genes;
+        genes.emplace("TP53",  Gene("TP53",  Gene::State::MinusMinus, 0.0, 0.0, logger_));
+        genes.emplace("BRCA1", Gene("BRCA1", Gene::State::PlusMinus,  0.0, 0.0, logger_));
+        auto genome = Genome(std::move(genes), logger_);
+        return CellFactory::createCustomCell(
+            std::make_unique<adapters::FixedNoise>(CellNoise{0.5}),
+            genome,
+            /*low_delta=*/    1.0,
+            /*high_delta=*/   2.0,
+            /*div_rate=*/     0.0,
+            /*neo_div_rate=*/ 0.0,
+            /*big_bang=*/     true,
+            /*d1_threshold=*/ 0.5,
+            /*d2_threshold=*/ 0.5,
+            logger_
+        );
+    };
+    sim.addCell(makeQuickTumoral());
+    sim.addCell(makeQuickTumoral());
+
+    EXPECT_NO_THROW(sim.run());
+
+    // With saturation at tick 1, the tracker should have < MAX_T + 1 snapshots
+    const std::size_t full_run_snapshots = static_cast<std::size_t>(MAX_T + 1);
+    EXPECT_LT(sim.populationTracker().snapshots().size(), full_run_snapshots);
 }
 

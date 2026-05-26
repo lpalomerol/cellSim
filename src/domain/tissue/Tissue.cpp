@@ -46,12 +46,29 @@ void Tissue::live() {
     }
 
     last_death_count_ = static_cast<int>(dead_indices.size());
-    last_birth_count_ = static_cast<int>(new_daughters.size());
 
-    // Add new daughter cells
-    for (auto& daughter : new_daughters) {
-        addCell(std::move(daughter));
+    // Saturation check: once tumoral cells >= non-tumoral alive cells the tissue
+    // is considered dominated.  Set the flag so Simulation::run() can break early.
+    std::size_t tumoral_count     = 0;
+    std::size_t non_tumoral_count = 0;
+    for (const auto& cell : cells_) {
+        if (!cell) continue;
+        if (cell->getCurrentCellLifeStage() == CellLifeStage::TUMORAL)
+            ++tumoral_count;
+        else
+            ++non_tumoral_count;
     }
+
+    if (!cells_.empty() && tumoral_count >= non_tumoral_count) {
+        saturated_ = true;
+        last_birth_count_ = 0;
+        logger_->logTissue("[Tissue] Tissue saturated (tumoral >= non-tumoral), simulation will stop");
+        return;
+    }
+
+    for (auto& daughter : new_daughters)
+        addCell(std::move(daughter));
+    last_birth_count_ = static_cast<int>(new_daughters.size());
 }
 
 void Tissue::addCell(std::unique_ptr<ICell> cell) {
