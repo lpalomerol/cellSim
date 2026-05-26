@@ -1,52 +1,32 @@
 #!/usr/bin/env python3
 """
-abc_final_v4.py — ABC-SMC v4: 4 free params + saturation milestone tracking.
+abc_final_v4.py — Publication-grade ABC-SMC for CellSim calibration.
 
-Changes vs v3:
-  - Parses median_sat25 / median_sat50 / median_sat90 from binary stdout.
-  - Stores them in gen_XX.csv for posterior characterisation.
-  - Acceptance criterion unchanged: SSE_w only (Kuchenbaecker fit).
-  - New plots: progression milestone distributions across gens + onset→sat speed.
-
-Fixed parameters (biologically/empirically justified):
-  d1_threshold = 2.0   (biological default)
-  d2_threshold = 5.0   (biological default)
-  tp53_rate    = 0.001 (collapsed in abc_explore + abc_calibrate)
-
-Free parameters (priors — high_delta extended to [0.05, 1.20]):
-  brca1_rate         ~ U[0.008, 0.017]
-  low_delta          ~ U[0.15,  0.45]
-  high_delta         ~ U[0.05,  1.20]   (high_delta > low_delta enforced)
-  neoplastic_div_rate ~ U[0.10,  0.24]
-
-Usage:
-    python3 scripts/abc_final_v4.py [OPTIONS]
-
-Options:
-    --n-particles INT    Particles per generation (default: 200)
-    --n-generations INT  Max SMC generations (default: 8)
-    --epsilon-0 FLOAT    Initial tolerance (default: 15.0)
-    --epsilon-final FLOAT  Stop threshold (default: 5.0)
-    --alpha FLOAT        Quantile for adaptive ε (default: 0.4)
-    --n-sim INT          CellSim runs per evaluation (default: 50)
-    --max-attempts INT   Max attempts per particle (default: 30000)
-    --output-dir PATH    Results directory (default: results/abc_final_v4/)
-    --seed INT           RNG seed (default: 42)
-    --workers INT        Parallel workers (default: 4)
-    --resume             Resume from last saved generation
-    --no-plots           Skip plots
-    -v, --verbose        Print every evaluation
+Key methodological safeguards:
+  1) No boundary clipping in proposals (paper-consistent reject-outside-prior).
+  2) Hard prior constraints enforced before simulation (high_delta > low_delta).
+  3) No particle padding; generation fails explicitly if N accepted not reached.
+  4) Distance = Mahalanobis (clinical + simulation covariance) from C++ binary.
+  5) Bt>1 stochastic replicates per particle (--n-reps).
+  6) Per-generation diagnostics persisted (acceptance, ESS, rejects, failures).
+  7) Reproducibility manifest with config, priors, seed, git commit, environment.
 """
+
+from __future__ import annotations
 
 import argparse
 import csv
+import json
 import os
+import platform
 import re
 import subprocess
 import sys
 import time
-from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -55,85 +35,32 @@ os.chdir(REPO_ROOT)
 
 BINARY = str(REPO_ROOT / "build" / "run_bootstrapping")
 
-KUCH_AGES = [30, 40, 50, 60, 70, 80]
-KUCH_MEAN = [4.0, 26.0, 46.0, 58.0, 65.0, 70.0]
-
 # Fixed parameters (biological defaults + empirically collapsed)
 D1_THRESHOLD = 2.0
 D2_THRESHOLD = 5.0
-TP53_RATE    = 0.001  # collapsed to this value across abc_explore + abc_calibrate
+TP53_RATE = 0.001
 
-# ---------------------------------------------------------------------------
-# Priors (informed by abc_final gen_02 posterior)
-# ---------------------------------------------------------------------------
 PRIORS = {
-    "brca1_rate":          (0.008,  0.017),
-    "low_delta":           (0.15,   0.45),
-    "high_delta":          (0.05,   1.20),   # EXTENDED — was [0.08, 0.65], bimodal hit boundary
-    "neoplastic_div_rate": (0.10,   0.24),
+    "brca1_rate": (0.008, 0.017),
+    "low_delta": (0.15, 0.45),
+    "high_delta": (0.05, 1.20),
+    "neoplastic_div_rate": (0.10, 0.24),
 }
 PARAM_NAMES = list(PRIORS.keys())
-PRIOR_LO    = np.array([PRIORS[p][0] for p in PARAM_NAMES])
-PRIOR_HI    = np.array([PRIORS[p][1] for p in PARAM_NAMES])
+PRIOR_LO = np.array([PRIORS[p][0] for p in PARAM_NAMES])
+PRIOR_HI = np.array([PRIORS[p][1] for p in PARAM_NAMES])
 
-_SSE_W_RE      = re.compile(r"weighted SSE\s*=\s*([\d.]+)")
+LOW_IDX = PARAM_NAMES.index("low_delta")
+HIGH_IDX = PARAM_NAMES.index("high_delta")
+
+_DIST_RE = re.compile(r"mahalanobis distance\s*=\s*([\d.eE+\-]+)")
 _MEDIAN_ONS_RE = re.compile(r"median onset\s*=\s*([\d.eE+\-]+)")
 _MEDIAN_S25_RE = re.compile(r"median sat25\s*=\s*([\d.eE+\-]+)")
 _MEDIAN_S50_RE = re.compile(r"median sat50\s*=\s*([\d.eE+\-]+)")
 _MEDIAN_S90_RE = re.compile(r"median sat90\s*=\s*([\d.eE+\-]+)")
 
 
-# ---------------------------------------------------------------------------
-# Simulator
-# ---------------------------------------------------------------------------
-
-def run_simulation(theta_arr: np.ndarray, n_sim: int) -> tuple[float, float, float, float, float] | tuple[None, None, None, None, None]:
-    brca1_rate, low_delta, high_delta, neo_div = theta_arr
-    cmd = [
-        BINARY,
-        "--n-runs",              str(n_sim),
-        "--brca1-rate",          f"{brca1_rate:.6f}",
-        "--low-delta",           f"{low_delta:.6f}",
-        "--high-delta",          f"{high_delta:.6f}",
-        "--tp53-rate",           f"{TP53_RATE:.6f}",
-        "--d1-threshold",        f"{D1_THRESHOLD:.1f}",
-        "--d2-threshold",        f"{D2_THRESHOLD:.1f}",
-        "--neoplastic-div-rate", f"{neo_div:.6f}",
-        "--big-bang",
-        "--weighted-sse",
-        "--output", "/dev/null",
-    ]
-    try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-        m_sse = _SSE_W_RE.search(r.stdout)
-        if m_sse:
-            sse_w     = float(m_sse.group(1))
-            onset_age = float(_MEDIAN_ONS_RE.search(r.stdout).group(1)) if _MEDIAN_ONS_RE.search(r.stdout) else float("nan")
-            sat25     = float(_MEDIAN_S25_RE.search(r.stdout).group(1)) if _MEDIAN_S25_RE.search(r.stdout) else float("nan")
-            sat50     = float(_MEDIAN_S50_RE.search(r.stdout).group(1)) if _MEDIAN_S50_RE.search(r.stdout) else float("nan")
-            sat90     = float(_MEDIAN_S90_RE.search(r.stdout).group(1)) if _MEDIAN_S90_RE.search(r.stdout) else float("nan")
-            return sse_w, onset_age, sat25, sat50, sat90
-    except (subprocess.TimeoutExpired, OSError):
-        pass
-    return None, None, None, None, None
-
-
-def _worker(args: tuple) -> tuple[np.ndarray, "float | None", "float | None", "float | None", "float | None", "float | None"]:
-    theta_arr, n_sim = args
-    sse_w, onset_age, sat25, sat50, sat90 = run_simulation(theta_arr, n_sim)
-    return theta_arr, sse_w, onset_age, sat25, sat50, sat90
-
-
-# ---------------------------------------------------------------------------
-# Prior helpers
-# ---------------------------------------------------------------------------
-
-LOW_IDX  = PARAM_NAMES.index("low_delta")
-HIGH_IDX = PARAM_NAMES.index("high_delta")
-
-
 def _valid(theta: np.ndarray) -> bool:
-    """Biological constraint: high_delta must exceed low_delta."""
     return bool(theta[HIGH_IDX] > theta[LOW_IDX])
 
 
@@ -146,6 +73,17 @@ def sample_prior(rng: np.random.Generator, n: int = 1) -> np.ndarray:
     return np.array(samples)
 
 
+def sample_from_priors(priors: dict[str, tuple[float, float]], rng: np.random.Generator, n: int) -> np.ndarray:
+    lo = np.array([priors[p][0] for p in PARAM_NAMES], dtype=float)
+    hi = np.array([priors[p][1] for p in PARAM_NAMES], dtype=float)
+    samples = []
+    while len(samples) < n:
+        candidate = rng.uniform(lo, hi, size=len(PARAM_NAMES))
+        if candidate[HIGH_IDX] > candidate[LOW_IDX]:
+            samples.append(candidate)
+    return np.array(samples)
+
+
 def log_prior(theta: np.ndarray) -> float:
     if np.any(theta < PRIOR_LO) or np.any(theta > PRIOR_HI):
         return -np.inf
@@ -154,41 +92,91 @@ def log_prior(theta: np.ndarray) -> float:
     return -np.sum(np.log(PRIOR_HI - PRIOR_LO))
 
 
-# ---------------------------------------------------------------------------
-# SMC weight update
-# ---------------------------------------------------------------------------
+def _to_float(match: re.Match[str] | None) -> float:
+    return float(match.group(1)) if match else float("nan")
 
-def compute_weights(
-    particles: np.ndarray,
-    prev_particles: np.ndarray,
-    prev_weights: np.ndarray,
-    sigmas: np.ndarray,
-) -> np.ndarray:
-    N, D = particles.shape
-    log_prior_vals = np.array([log_prior(particles[i]) for i in range(N)])
 
-    log_kernel = np.zeros((N, N))
-    for d in range(D):
-        diff = particles[:, d:d+1] - prev_particles[:, d]
-        log_kernel -= 0.5 * (diff / sigmas[d]) ** 2 + np.log(sigmas[d] * np.sqrt(2 * np.pi))
+def run_simulation(theta_arr: np.ndarray, n_sim: int, n_reps: int, seed_base: int) -> tuple[float, float, float, float, float] | tuple[None, None, None, None, None]:
+    brca1_rate, low_delta, high_delta, neo_div = theta_arr
+    distances: list[float] = []
+    onset_vals: list[float] = []
+    sat25_vals: list[float] = []
+    sat50_vals: list[float] = []
+    sat90_vals: list[float] = []
+
+    for rep in range(n_reps):
+        cmd = [
+            BINARY,
+            "--n-runs", str(n_sim),
+            "--brca1-rate", f"{brca1_rate:.6f}",
+            "--low-delta", f"{low_delta:.6f}",
+            "--high-delta", f"{high_delta:.6f}",
+            "--tp53-rate", f"{TP53_RATE:.6f}",
+            "--d1-threshold", f"{D1_THRESHOLD:.1f}",
+            "--d2-threshold", f"{D2_THRESHOLD:.1f}",
+            "--neoplastic-div-rate", f"{neo_div:.6f}",
+            "--big-bang",
+            "--mahalanobis",
+            "--seed-offset", str(seed_base + rep * 100_003),
+            "--output", "/dev/null",
+        ]
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+        except (subprocess.TimeoutExpired, OSError):
+            return None, None, None, None, None
+        if r.returncode != 0:
+            return None, None, None, None, None
+
+        m_dist = _DIST_RE.search(r.stdout)
+        if not m_dist:
+            return None, None, None, None, None
+
+        distances.append(float(m_dist.group(1)))
+        onset_vals.append(_to_float(_MEDIAN_ONS_RE.search(r.stdout)))
+        sat25_vals.append(_to_float(_MEDIAN_S25_RE.search(r.stdout)))
+        sat50_vals.append(_to_float(_MEDIAN_S50_RE.search(r.stdout)))
+        sat90_vals.append(_to_float(_MEDIAN_S90_RE.search(r.stdout)))
+
+    if not distances:
+        return None, None, None, None, None
+    return (
+        float(np.mean(distances)),
+        float(np.nanmedian(onset_vals)),
+        float(np.nanmedian(sat25_vals)),
+        float(np.nanmedian(sat50_vals)),
+        float(np.nanmedian(sat90_vals)),
+    )
+
+
+def _worker(args: tuple[np.ndarray, int, int, int]) -> tuple[np.ndarray, float | None, float | None, float | None, float | None, float | None]:
+    theta_arr, n_sim, n_reps, seed_base = args
+    distance, onset_age, sat25, sat50, sat90 = run_simulation(theta_arr, n_sim, n_reps, seed_base)
+    return theta_arr, distance, onset_age, sat25, sat50, sat90
+
+
+def compute_weights(particles: np.ndarray, prev_particles: np.ndarray, prev_weights: np.ndarray, sigmas: np.ndarray) -> np.ndarray:
+    n, d = particles.shape
+    log_prior_vals = np.array([log_prior(particles[i]) for i in range(n)])
+
+    log_kernel = np.zeros((n, n))
+    for dim in range(d):
+        diff = particles[:, dim : dim + 1] - prev_particles[:, dim]
+        log_kernel -= 0.5 * (diff / sigmas[dim]) ** 2 + np.log(sigmas[dim] * np.sqrt(2 * np.pi))
 
     log_denom = np.log(prev_weights) + log_kernel
-    log_denom_sum = np.array([np.logaddexp.reduce(log_denom[i]) for i in range(N)])
+    log_denom_sum = np.array([np.logaddexp.reduce(log_denom[i]) for i in range(n)])
 
     log_w = log_prior_vals - log_denom_sum
     log_w -= np.logaddexp.reduce(log_w)
     return np.exp(log_w)
 
 
-# ---------------------------------------------------------------------------
-# Generation runner
-# ---------------------------------------------------------------------------
-
 def run_generation(
     gen: int,
     n_particles: int,
     epsilon: float,
     n_sim: int,
+    n_reps: int,
     max_attempts: int,
     n_workers: int,
     rng: np.random.Generator,
@@ -196,34 +184,39 @@ def run_generation(
     prev_weights: np.ndarray | None,
     sigmas: np.ndarray | None,
     verbose: bool,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    accepted_theta:     list[np.ndarray] = []
-    accepted_sse:       list[float]      = []
-    accepted_onset_age: list[float]      = []
-    accepted_sat25:     list[float]      = []
-    accepted_sat50:     list[float]      = []
-    accepted_sat90:     list[float]      = []
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, float]]:
+    accepted_theta: list[np.ndarray] = []
+    accepted_dist: list[float] = []
+    accepted_onset_age: list[float] = []
+    accepted_sat25: list[float] = []
+    accepted_sat50: list[float] = []
+    accepted_sat90: list[float] = []
     n_attempts = 0
-    t_start    = time.time()
+    n_prior_reject = 0
+    n_sim_fail = 0
+    t_start = time.time()
 
     def _propose() -> np.ndarray:
         if gen == 0:
             return sample_prior(rng, 1)[0]
-        idx   = rng.choice(len(prev_particles), p=prev_weights)
-        theta = prev_particles[idx] + rng.normal(0, sigmas)
-        return np.clip(theta, PRIOR_LO, PRIOR_HI)
+        idx = rng.choice(len(prev_particles), p=prev_weights)
+        return prev_particles[idx] + rng.normal(0.0, sigmas)
 
     with ThreadPoolExecutor(max_workers=n_workers) as executor:
-        pending: dict = {}
+        pending: dict[Any, np.ndarray] = {}
 
-        def _submit_one():
-            nonlocal n_attempts
-            if n_attempts >= max_attempts:
+        def _submit_one() -> None:
+            nonlocal n_attempts, n_prior_reject
+            while n_attempts < max_attempts:
+                theta = _propose()
+                n_attempts += 1
+                if np.any(theta < PRIOR_LO) or np.any(theta > PRIOR_HI) or not _valid(theta):
+                    n_prior_reject += 1
+                    continue
+                seed_base = int(rng.integers(1, 2_000_000_000))
+                fut = executor.submit(_worker, (theta, n_sim, n_reps, seed_base))
+                pending[fut] = theta
                 return
-            theta = _propose()
-            fut   = executor.submit(_worker, (theta, n_sim))
-            pending[fut] = theta
-            n_attempts += 1
 
         for _ in range(n_workers):
             _submit_one()
@@ -231,25 +224,28 @@ def run_generation(
         while pending and len(accepted_theta) < n_particles:
             done, _ = wait(pending.keys(), return_when=FIRST_COMPLETED)
             for fut in done:
-                theta, sse_w, onset_age, sat25, sat50, sat90 = fut.result()
+                theta, distance, onset_age, sat25, sat50, sat90 = fut.result()
                 pending.pop(fut)
 
-                if sse_w is not None and sse_w <= epsilon:
+                if distance is None:
+                    n_sim_fail += 1
+                elif distance <= epsilon:
                     accepted_theta.append(theta)
-                    accepted_sse.append(sse_w)
+                    accepted_dist.append(distance)
                     accepted_onset_age.append(onset_age if onset_age is not None else float("nan"))
                     accepted_sat25.append(sat25 if sat25 is not None else float("nan"))
                     accepted_sat50.append(sat50 if sat50 is not None else float("nan"))
                     accepted_sat90.append(sat90 if sat90 is not None else float("nan"))
 
                 if verbose or (n_attempts % 50 == 0):
-                    rate    = len(accepted_theta) / max(n_attempts, 1) * 100
+                    rate = len(accepted_theta) / max(n_attempts, 1) * 100
                     elapsed = time.time() - t_start
                     print(
-                        f"  gen={gen} | attempts={n_attempts:5d} | "
+                        f"  gen={gen} | attempts={n_attempts:5d} | prior_rej={n_prior_reject:5d} | "
                         f"accepted={len(accepted_theta):4d}/{n_particles} ({rate:.1f}%) | "
-                        f"ε={epsilon:.2f} | {elapsed:.0f}s",
-                        end="\r", flush=True,
+                        f"eps={epsilon:.2f} | {elapsed:.0f}s",
+                        end="\r",
+                        flush=True,
                     )
 
                 if len(accepted_theta) < n_particles:
@@ -259,36 +255,67 @@ def run_generation(
             fut.cancel()
 
     print()
-    particles  = np.array(accepted_theta)
-    sse_vals   = np.array(accepted_sse)
+    particles = np.array(accepted_theta)
+    dist_vals = np.array(accepted_dist)
     onset_ages = np.array(accepted_onset_age)
-    sat25_arr  = np.array(accepted_sat25)
-    sat50_arr  = np.array(accepted_sat50)
-    sat90_arr  = np.array(accepted_sat90)
+    sat25_arr = np.array(accepted_sat25)
+    sat50_arr = np.array(accepted_sat50)
+    sat90_arr = np.array(accepted_sat90)
+
+    if len(particles) == 0:
+        return (
+            particles,
+            np.array([]),
+            dist_vals,
+            onset_ages,
+            sat25_arr,
+            sat50_arr,
+            sat90_arr,
+            {
+                "attempts": float(n_attempts),
+                "prior_reject": float(n_prior_reject),
+                "sim_fail": float(n_sim_fail),
+                "accepted": 0.0,
+                "acceptance_rate": 0.0,
+            },
+        )
 
     if gen == 0:
         weights = np.ones(len(particles)) / len(particles)
     else:
         weights = compute_weights(particles, prev_particles, prev_weights, sigmas)
 
-    return particles, weights, sse_vals, onset_ages, sat25_arr, sat50_arr, sat90_arr
+    diagnostics = {
+        "attempts": float(n_attempts),
+        "prior_reject": float(n_prior_reject),
+        "sim_fail": float(n_sim_fail),
+        "accepted": float(len(particles)),
+        "acceptance_rate": float(len(particles) / max(n_attempts, 1)),
+    }
+    return particles, weights, dist_vals, onset_ages, sat25_arr, sat50_arr, sat90_arr, diagnostics
 
 
-# ---------------------------------------------------------------------------
-# Persistence
-# ---------------------------------------------------------------------------
-
-def save_generation(out_dir: Path, gen: int, particles: np.ndarray, weights: np.ndarray, sse_vals: np.ndarray, onset_ages: np.ndarray, sat25: np.ndarray, sat50: np.ndarray, sat90: np.ndarray):
+def save_generation(
+    out_dir: Path,
+    gen: int,
+    particles: np.ndarray,
+    weights: np.ndarray,
+    dist_vals: np.ndarray,
+    onset_ages: np.ndarray,
+    sat25: np.ndarray,
+    sat50: np.ndarray,
+    sat90: np.ndarray,
+) -> Path:
     path = out_dir / f"gen_{gen:02d}.csv"
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(PARAM_NAMES + ["weight", "sse_weighted", "onset_age", "sat25", "sat50", "sat90"])
-        for theta, wt, sse, onset, s25, s50, s90 in zip(particles, weights, sse_vals, onset_ages, sat25, sat50, sat90):
-            w.writerow([f"{v:.6f}" for v in theta] + [f"{wt:.8f}", f"{sse:.4f}", f"{onset:.2f}", f"{s25:.2f}", f"{s50:.2f}", f"{s90:.2f}"])
+        w.writerow(PARAM_NAMES + ["weight", "distance_mahalanobis", "onset_age", "sat25", "sat50", "sat90"])
+        for theta, wt, dist, onset, s25, s50, s90 in zip(particles, weights, dist_vals, onset_ages, sat25, sat50, sat90):
+            w.writerow([f"{v:.6f}" for v in theta] + [f"{wt:.8f}", f"{dist:.4f}", f"{onset:.2f}", f"{s25:.2f}", f"{s50:.2f}", f"{s90:.2f}"])
     return path
 
 
-def load_generation(out_dir: Path, gen: int) -> "tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray] | None":
+def load_generation(out_dir: Path, gen: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray] | None:
     path = out_dir / f"gen_{gen:02d}.csv"
     if not path.exists():
         return None
@@ -296,15 +323,15 @@ def load_generation(out_dir: Path, gen: int) -> "tuple[np.ndarray, np.ndarray, n
         rows = list(csv.DictReader(f))
     if not rows:
         return None
-    particles  = np.array([[float(r[p]) for p in PARAM_NAMES] for r in rows])
-    weights    = np.array([float(r["weight"])      for r in rows])
-    sse_vals   = np.array([float(r["sse_weighted"]) for r in rows])
+    particles = np.array([[float(r[p]) for p in PARAM_NAMES] for r in rows])
+    weights = np.array([float(r["weight"]) for r in rows])
+    dist_vals = np.array([float(r["distance_mahalanobis"]) for r in rows])
     onset_ages = np.array([float(r.get("onset_age", "nan")) for r in rows])
-    sat25      = np.array([float(r.get("sat25", "nan")) for r in rows])
-    sat50      = np.array([float(r.get("sat50", "nan")) for r in rows])
-    sat90      = np.array([float(r.get("sat90", "nan")) for r in rows])
-    weights   /= weights.sum()
-    return particles, weights, sse_vals, onset_ages, sat25, sat50, sat90
+    sat25 = np.array([float(r.get("sat25", "nan")) for r in rows])
+    sat50 = np.array([float(r.get("sat50", "nan")) for r in rows])
+    sat90 = np.array([float(r.get("sat90", "nan")) for r in rows])
+    weights /= weights.sum()
+    return particles, weights, dist_vals, onset_ages, sat25, sat50, sat90
 
 
 def find_last_saved_gen(out_dir: Path) -> int:
@@ -314,7 +341,7 @@ def find_last_saved_gen(out_dir: Path) -> int:
     return gen
 
 
-def _save_eps_history(out_dir: Path, eps_history: list) -> None:
+def _save_eps_history(out_dir: Path, eps_history: list[float]) -> None:
     with open(out_dir / "epsilon_schedule.csv", "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["generation", "epsilon"])
@@ -322,9 +349,60 @@ def _save_eps_history(out_dir: Path, eps_history: list) -> None:
             w.writerow([i, f"{e:.6f}"])
 
 
-# ---------------------------------------------------------------------------
-# Main ABC-SMC loop
-# ---------------------------------------------------------------------------
+def _append_diag(out_dir: Path, row: dict[str, float | int]) -> None:
+    path = out_dir / "generation_diagnostics.csv"
+    exists = path.exists()
+    with open(path, "a", newline="") as f:
+        w = csv.DictWriter(
+            f,
+            fieldnames=[
+                "generation",
+                "epsilon",
+                "attempts",
+                "prior_reject",
+                "sim_fail",
+                "accepted",
+                "acceptance_rate",
+                "ess",
+                "max_weight",
+                "distance_mean",
+                "distance_min",
+            ],
+        )
+        if not exists:
+            w.writeheader()
+        w.writerow(row)
+
+
+def _save_manifest(out_dir: Path, args: argparse.Namespace) -> None:
+    try:
+        git_sha = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False).stdout.strip()
+    except OSError:
+        git_sha = ""
+    cli_args = {
+        k: (str(v) if isinstance(v, Path) else v)
+        for k, v in vars(args).items()
+    }
+    manifest = {
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "repo_root": str(REPO_ROOT),
+        "git_commit": git_sha,
+        "python": sys.version,
+        "platform": platform.platform(),
+        "binary": BINARY,
+        "algorithm": "ABC-SMC (Toni et al. style SIS weights)",
+        "distance": "Mahalanobis (clinical diagonal + simulation covariance mean estimator)",
+        "priors": PRIORS,
+        "fixed_parameters": {
+            "d1_threshold": D1_THRESHOLD,
+            "d2_threshold": D2_THRESHOLD,
+            "tp53_rate": TP53_RATE,
+        },
+        "cli_args": cli_args,
+    }
+    with open(out_dir / "run_manifest.json", "w") as f:
+        json.dump(manifest, f, indent=2, sort_keys=True)
+
 
 def run_abc_final(
     n_particles: int,
@@ -333,6 +411,7 @@ def run_abc_final(
     epsilon_final: float,
     alpha: float,
     n_sim: int,
+    n_reps: int,
     max_attempts: int,
     out_dir: Path,
     seed: int,
@@ -343,63 +422,56 @@ def run_abc_final(
     rng = np.random.default_rng(seed)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"ABC-SMC Final v4 — 4 free parameters + saturation milestones  (workers={n_workers})")
-    print(f"  Free params   : {', '.join(PARAM_NAMES)}")
-    print(f"  Fixed         : d1_threshold={D1_THRESHOLD}  d2_threshold={D2_THRESHOLD}  tp53_rate={TP53_RATE}")
-    print(f"  Particles/gen : {n_particles}")
-    print(f"  Generations   : {n_generations}")
-    print(f"  ε schedule    : {epsilon_0:.1f} → adaptive (α={alpha}) → stop at {epsilon_final:.2f}")
-    print(f"  N_sim/eval    : {n_sim}")
+    print(f"ABC-SMC Final v4 (publication profile)  workers={n_workers}")
+    print(f"  free params    : {', '.join(PARAM_NAMES)}")
+    print(f"  fixed params   : d1={D1_THRESHOLD} d2={D2_THRESHOLD} tp53={TP53_RATE}")
+    print(f"  particles/gen  : {n_particles}")
+    print(f"  generations    : {n_generations}")
+    print(f"  eps schedule   : {epsilon_0:.2f} -> adaptive(alpha={alpha}) stop at {epsilon_final:.2f}")
+    print(f"  sim per eval   : n_sim={n_sim}  n_reps={n_reps}")
     print()
 
     particles = prev_particles = None
-    weights   = prev_weights   = None
-    sse_vals  = None
-    sigmas    = None
-    epsilon   = epsilon_0
+    weights = prev_weights = None
+    dist_vals = None
+    sigmas = None
+    epsilon = epsilon_0
     eps_history: list[float] = []
-    start_gen   = 0
+    start_gen = 0
 
     if resume:
         last_gen = find_last_saved_gen(out_dir)
-        if last_gen < 0:
-            print("[resume] No saved generations found — starting from scratch.")
-        else:
+        if last_gen >= 0:
             loaded = load_generation(out_dir, last_gen)
-            if loaded is None:
-                print(f"[resume] Failed to load gen_{last_gen:02d}.csv — starting from scratch.")
-            else:
-                particles, weights, sse_vals, _, _, _, _ = loaded
+            if loaded is not None:
+                particles, weights, dist_vals, _, _, _, _ = loaded
                 n_particles = len(particles)
                 sch = out_dir / "epsilon_schedule.csv"
                 if sch.exists():
                     with open(sch) as f:
                         for row in csv.DictReader(f):
                             eps_history.append(float(row["epsilon"]))
-                epsilon = float(np.quantile(sse_vals, alpha))
-                sigmas = 2.0 * np.sqrt(np.average(
-                    (particles - np.average(particles, weights=weights, axis=0)) ** 2,
-                    weights=weights, axis=0,
-                ))
+                epsilon = float(np.quantile(dist_vals, alpha))
+                sigmas = 2.0 * np.sqrt(np.average((particles - np.average(particles, weights=weights, axis=0)) ** 2, weights=weights, axis=0))
                 sigmas = np.maximum(sigmas, 1e-6)
                 prev_particles = particles.copy()
-                prev_weights   = weights.copy()
-                start_gen      = last_gen + 1
-                print(f"[resume] Loaded gen_{last_gen:02d}  ({n_particles} particles) "
-                      f"— continuing from gen {start_gen}  ε={epsilon:.4f}")
+                prev_weights = weights.copy()
+                start_gen = last_gen + 1
+                print(f"[resume] loaded gen_{last_gen:02d}, continuing at gen {start_gen}, eps={epsilon:.4f}")
                 print()
 
     for gen in range(start_gen, n_generations):
-        print(f"{'='*65}")
-        print(f"  Generation {gen}   ε = {epsilon:.4f}")
-        print(f"{'='*65}")
+        print("=" * 70)
+        print(f"  Generation {gen}   eps={epsilon:.4f}")
+        print("=" * 70)
         t0 = time.time()
 
-        particles, weights, sse_vals, onset_ages, sat25_arr, sat50_arr, sat90_arr = run_generation(
+        particles, weights, dist_vals, onset_ages, sat25_arr, sat50_arr, sat90_arr, diag = run_generation(
             gen=gen,
             n_particles=n_particles,
             epsilon=epsilon,
             n_sim=n_sim,
+            n_reps=n_reps,
             max_attempts=max_attempts,
             n_workers=n_workers,
             rng=rng,
@@ -411,82 +483,167 @@ def run_abc_final(
 
         actual_n = len(particles)
         if actual_n == 0:
-            print(f"  [warn] No particles accepted at ε={epsilon:.2f}. Stopping.")
-            break
-
+            raise RuntimeError(f"Generation {gen}: no particles accepted at eps={epsilon:.4f}. Increase eps/max-attempts.")
         if actual_n < n_particles:
-            print(f"  [warn] Only {actual_n}/{n_particles} particles — padding by resampling.")
-            idx        = rng.choice(actual_n, size=n_particles - actual_n, replace=True)
-            particles  = np.vstack([particles, particles[idx]])
-            weights    = np.concatenate([weights, weights[idx]])
-            sse_vals   = np.concatenate([sse_vals, sse_vals[idx]])
-            onset_ages = np.concatenate([onset_ages, onset_ages[idx]])
-            sat25_arr  = np.concatenate([sat25_arr, sat25_arr[idx]])
-            sat50_arr  = np.concatenate([sat50_arr, sat50_arr[idx]])
-            sat90_arr  = np.concatenate([sat90_arr, sat90_arr[idx]])
-            weights   /= weights.sum()
+            raise RuntimeError(
+                f"Generation {gen}: accepted {actual_n}/{n_particles} particles before max attempts. "
+                "No padding is used; increase eps/max-attempts/workers."
+            )
 
-        path    = save_generation(out_dir, gen, particles, weights, sse_vals, onset_ages, sat25_arr, sat50_arr, sat90_arr)
+        path = save_generation(out_dir, gen, particles, weights, dist_vals, onset_ages, sat25_arr, sat50_arr, sat90_arr)
         elapsed = time.time() - t0
-        ess     = 1.0 / np.sum(weights ** 2)
+        ess = float(1.0 / np.sum(weights**2))
+        max_weight = float(weights.max())
         valid_onset = onset_ages[~np.isnan(onset_ages)]
-        onset_str   = f"onset mean={valid_onset.mean():.1f}y" if len(valid_onset) > 0 else "onset=n/a"
         valid_sat50 = sat50_arr[~np.isnan(sat50_arr) & (sat50_arr > 0)]
-        sat50_str   = f"sat50 mean={valid_sat50.mean():.1f}y" if len(valid_sat50) > 0 else "sat50=n/a"
-        print(f"  Accepted: {actual_n}  |  ESS: {ess:.1f}/{n_particles}  |  "
-              f"SSE_w mean={sse_vals.mean():.2f} min={sse_vals.min():.2f}  |  "
-              f"{onset_str}  |  {sat50_str}  |  {elapsed:.1f}s")
-        print(f"  Saved → {path}")
+        onset_str = f"onset mean={valid_onset.mean():.1f}y" if len(valid_onset) > 0 else "onset=n/a"
+        sat50_str = f"sat50 mean={valid_sat50.mean():.1f}y" if len(valid_sat50) > 0 else "sat50=n/a"
+        print(
+            f"  accepted={actual_n}/{n_particles} | ESS={ess:.1f}/{n_particles} | "
+            f"distance mean={dist_vals.mean():.2f} min={dist_vals.min():.2f} | "
+            f"prior_rej={int(diag['prior_reject'])} sim_fail={int(diag['sim_fail'])} | {onset_str} | {sat50_str} | {elapsed:.1f}s"
+        )
+        print(f"  saved -> {path}")
 
-        print(f"  Posterior (weighted mean ± std):")
+        _append_diag(
+            out_dir,
+            {
+                "generation": gen,
+                "epsilon": epsilon,
+                "attempts": int(diag["attempts"]),
+                "prior_reject": int(diag["prior_reject"]),
+                "sim_fail": int(diag["sim_fail"]),
+                "accepted": actual_n,
+                "acceptance_rate": float(diag["acceptance_rate"]),
+                "ess": ess,
+                "max_weight": max_weight,
+                "distance_mean": float(dist_vals.mean()),
+                "distance_min": float(dist_vals.min()),
+            },
+        )
+
+        print("  posterior (weighted mean +- std):")
         wmean = np.average(particles, weights=weights, axis=0)
-        wstd  = np.sqrt(np.average((particles - wmean)**2, weights=weights, axis=0))
+        wstd = np.sqrt(np.average((particles - wmean) ** 2, weights=weights, axis=0))
         for name, lo, hi, mu, sd in zip(PARAM_NAMES, PRIOR_LO, PRIOR_HI, wmean, wstd):
-            print(f"    {name:<22s}: {mu:.5f} ± {sd:.5f}  [prior: {lo:.4f}–{hi:.4f}]")
+            print(f"    {name:<22s}: {mu:.5f} +- {sd:.5f}  [prior: {lo:.4f}-{hi:.4f}]")
 
         eps_history.append(epsilon)
-        next_epsilon = float(np.quantile(sse_vals, alpha))
-        print(f"  Next ε = {next_epsilon:.4f}  (α={alpha} quantile)")
+        next_epsilon = float(np.quantile(dist_vals, alpha))
+        print(f"  next eps = {next_epsilon:.4f} (alpha-quantile)")
 
         if next_epsilon <= epsilon_final:
-            print(f"  ε below final threshold ({epsilon_final}) — stopping.")
+            print(f"  eps reached target ({epsilon_final}) - stopping.")
             eps_history.append(next_epsilon)
             break
 
-        epsilon        = next_epsilon
+        epsilon = next_epsilon
         prev_particles = particles.copy()
-        prev_weights   = weights.copy()
-        sigmas = 2.0 * np.sqrt(np.average(
-            (particles - np.average(particles, weights=weights, axis=0)) ** 2,
-            weights=weights, axis=0
-        ))
+        prev_weights = weights.copy()
+        sigmas = 2.0 * np.sqrt(np.average((particles - np.average(particles, weights=weights, axis=0)) ** 2, weights=weights, axis=0))
         sigmas = np.maximum(sigmas, 1e-6)
 
-    print(f"\n{'='*65}")
-    print(f"  ABC-SMC Final complete  |  ε: {' → '.join(f'{e:.2f}' for e in eps_history)}")
-    print(f"  Results in: {out_dir}")
-    print(f"{'='*65}")
+    print("\n" + "=" * 70)
+    print(f"  ABC-SMC complete | eps: {' -> '.join(f'{e:.2f}' for e in eps_history)}")
+    print(f"  results in: {out_dir}")
+    print("=" * 70)
     _save_eps_history(out_dir, eps_history)
-    return particles, weights, sse_vals
+    return particles, weights, dist_vals
 
 
-# ---------------------------------------------------------------------------
-# Plots
-# ---------------------------------------------------------------------------
+def run_prior_sensitivity(
+    out_dir: Path,
+    epsilon_ref: float,
+    n_sim: int,
+    n_reps: int,
+    n_workers: int,
+    seed: int,
+    factors: list[float],
+    n_samples: int,
+) -> None:
+    rng = np.random.default_rng(seed + 10_007)
+    rows: list[dict[str, float]] = []
+
+    base_centers = {k: 0.5 * (v[0] + v[1]) for k, v in PRIORS.items()}
+    base_widths = {k: (v[1] - v[0]) for k, v in PRIORS.items()}
+
+    with ThreadPoolExecutor(max_workers=n_workers) as executor:
+        for factor in factors:
+            priors_var = {}
+            for k in PARAM_NAMES:
+                c = base_centers[k]
+                w = base_widths[k] * factor
+                priors_var[k] = (max(0.0, c - 0.5 * w), c + 0.5 * w)
+
+            theta_set = sample_from_priors(priors_var, rng, n_samples)
+            futures = []
+            for theta in theta_set:
+                seed_base = int(rng.integers(1, 2_000_000_000))
+                futures.append(executor.submit(run_simulation, theta, n_sim, n_reps, seed_base))
+
+            distances = []
+            for fut in futures:
+                dist, *_ = fut.result()
+                if dist is not None and np.isfinite(dist):
+                    distances.append(float(dist))
+
+            if not distances:
+                rows.append(
+                    {
+                        "factor": factor,
+                        "n_eval": float(n_samples),
+                        "n_ok": 0.0,
+                        "acceptance_at_eps_ref": 0.0,
+                        "distance_median": float("nan"),
+                        "distance_mean": float("nan"),
+                    }
+                )
+                continue
+
+            d = np.array(distances, dtype=float)
+            rows.append(
+                {
+                    "factor": factor,
+                    "n_eval": float(n_samples),
+                    "n_ok": float(len(d)),
+                    "acceptance_at_eps_ref": float(np.mean(d <= epsilon_ref)),
+                    "distance_median": float(np.median(d)),
+                    "distance_mean": float(np.mean(d)),
+                }
+            )
+
+    out = out_dir / "prior_sensitivity.csv"
+    with open(out, "w", newline="") as f:
+        w = csv.DictWriter(
+            f,
+            fieldnames=[
+                "factor",
+                "n_eval",
+                "n_ok",
+                "acceptance_at_eps_ref",
+                "distance_median",
+                "distance_mean",
+            ],
+        )
+        w.writeheader()
+        for row in rows:
+            w.writerow(row)
+    print(f"[sensitivity] Saved {out}")
+
 
 def plot_final(out_dir: Path, n_generations: int, epsilon_final: float) -> None:
     try:
         import matplotlib
+
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError:
-        print("[warn] matplotlib not available — skipping plots")
+        print("[warn] matplotlib not available - skipping plots")
         return
 
     n_params = len(PARAM_NAMES)
-    colors   = plt.cm.viridis(np.linspace(0.15, 0.9, n_generations))
+    colors = plt.cm.viridis(np.linspace(0.15, 0.9, n_generations))
 
-    # --- 1. Marginal posteriors ---
     fig, axes = plt.subplots(1, n_params, figsize=(3.5 * n_params, 4))
     if n_params == 1:
         axes = [axes]
@@ -500,22 +657,21 @@ def plot_final(out_dir: Path, n_generations: int, epsilon_final: float) -> None:
             rows = list(csv.DictReader(f))
         if not rows:
             continue
-        data    = {p: np.array([float(r[p]) for r in rows]) for p in PARAM_NAMES}
+        data = {p: np.array([float(r[p]) for r in rows]) for p in PARAM_NAMES}
         weights = np.array([float(r["weight"]) for r in rows])
         weights /= weights.sum()
         data["onset_age"] = np.array([float(r.get("onset_age", "nan")) for r in rows])
-        data["sat25"]     = np.array([float(r.get("sat25", "nan")) for r in rows])
-        data["sat50"]     = np.array([float(r.get("sat50", "nan")) for r in rows])
-        data["sat90"]     = np.array([float(r.get("sat90", "nan")) for r in rows])
-        data["_weights"]  = weights
-        data["_gen"]      = gen
+        data["sat25"] = np.array([float(r.get("sat25", "nan")) for r in rows])
+        data["sat50"] = np.array([float(r.get("sat50", "nan")) for r in rows])
+        data["sat90"] = np.array([float(r.get("sat90", "nan")) for r in rows])
+        data["_weights"] = weights
+        data["_gen"] = gen
         all_gens_data.append(data)
 
         for ax, p in zip(axes, PARAM_NAMES):
             lo, hi = PRIORS[p]
-            bins   = np.linspace(lo, hi, 25)
-            ax.hist(data[p], bins=bins, weights=weights, density=True,
-                    alpha=0.5, color=colors[gen], label=f"gen {gen}")
+            bins = np.linspace(lo, hi, 25)
+            ax.hist(data[p], bins=bins, weights=weights, density=True, alpha=0.5, color=colors[gen], label=f"gen {gen}")
 
     for ax, p in zip(axes, PARAM_NAMES):
         lo, hi = PRIORS[p]
@@ -526,32 +682,25 @@ def plot_final(out_dir: Path, n_generations: int, epsilon_final: float) -> None:
         ax.legend(fontsize=7)
         ax.grid(True, alpha=0.3)
 
-    fig.suptitle(
-        f"ABC-SMC v4 — 4 params  (d1={D1_THRESHOLD}, d2={D2_THRESHOLD}, tp53={TP53_RATE}, ε_final={epsilon_final})",
-        fontsize=11, fontweight="bold"
-    )
+    fig.suptitle(f"ABC-SMC v4 marginals (Mahalanobis, eps_final={epsilon_final})", fontsize=11, fontweight="bold")
     plt.tight_layout()
     for ext in ("png", "pdf"):
         p = out_dir / f"abc_final_v4_marginals.{ext}"
         fig.savefig(p, dpi=150, bbox_inches="tight")
-        print(f"  Saved {p}")
+        print(f"  saved {p}")
     plt.close(fig)
 
     if not all_gens_data:
         return
 
-    # --- 2. Milestone progression plot (last gen) ---
     last = all_gens_data[-1]
-    w    = last["_weights"]
-    gen  = last["_gen"]
-
+    w = last["_weights"]
+    gen = last["_gen"]
     milestone_fields = ["onset_age", "sat25", "sat50", "sat90"]
     milestone_labels = ["Onset (5%)", "Sat 25%", "Sat 50%", "Sat 90%"]
     milestone_colors = ["#2196F3", "#4CAF50", "#FF9800", "#F44336"]
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-
-    # 2a. Weighted distributions of each milestone
     ax = axes[0]
     for field, label, color in zip(milestone_fields, milestone_labels, milestone_colors):
         vals = last[field]
@@ -561,62 +710,62 @@ def plot_final(out_dir: Path, n_generations: int, epsilon_final: float) -> None:
             continue
         wt_valid = wt_valid / wt_valid.sum()
         bins = np.linspace(0, 85, 30)
-        ax.hist(valid, bins=bins, weights=wt_valid, density=True,
-                alpha=0.55, color=color, label=label)
+        ax.hist(valid, bins=bins, weights=wt_valid, density=True, alpha=0.55, color=color, label=label)
     ax.set_xlabel("Age (years)", fontsize=10)
     ax.set_ylabel("Weighted density", fontsize=10)
-    ax.set_title(f"Milestone age distributions — gen {gen}", fontsize=10)
+    ax.set_title(f"Milestone age distributions - gen {gen}", fontsize=10)
     ax.legend(fontsize=9)
     ax.grid(True, alpha=0.3)
 
-    # 2b. Speed: onset → sat50 scatter (coloured by neoplastic_div_rate)
     ax = axes[1]
     onset = last["onset_age"]
     sat50 = last["sat50"]
-    neo   = last["neoplastic_div_rate"]
-    mask  = (~np.isnan(onset)) & (~np.isnan(sat50)) & (onset > 0) & (sat50 > 0)
+    neo = last["neoplastic_div_rate"]
+    mask = (~np.isnan(onset)) & (~np.isnan(sat50)) & (onset > 0) & (sat50 > 0)
     speed = sat50[mask] - onset[mask]
-    sc = ax.scatter(onset[mask], speed, c=neo[mask], cmap="plasma",
-                    s=20 + 80 * w[mask] / w[mask].max(), alpha=0.7)
+    sc = ax.scatter(onset[mask], speed, c=neo[mask], cmap="plasma", s=20 + 80 * w[mask] / w[mask].max(), alpha=0.7)
     plt.colorbar(sc, ax=ax, label="neoplastic_div_rate")
     ax.set_xlabel("Onset age (years)", fontsize=10)
-    ax.set_ylabel("Progression speed (onset→sat50, years)", fontsize=10)
-    ax.set_title("Tumor aggressiveness proxy — gen " + str(gen), fontsize=10)
+    ax.set_ylabel("Progression speed (onset->sat50, years)", fontsize=10)
+    ax.set_title("Tumor aggressiveness proxy - gen " + str(gen), fontsize=10)
     ax.grid(True, alpha=0.3)
 
-    fig.suptitle("ABC-SMC v4 — Tumor progression milestones", fontsize=11, fontweight="bold")
+    fig.suptitle("ABC-SMC v4 progression milestones", fontsize=11, fontweight="bold")
     plt.tight_layout()
     for ext in ("png", "pdf"):
         p = out_dir / f"abc_final_v4_milestones.{ext}"
         fig.savefig(p, dpi=150, bbox_inches="tight")
-        print(f"  Saved {p}")
+        print(f"  saved {p}")
     plt.close(fig)
 
 
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--n-particles",   type=int,   default=200,   metavar="INT")
-    parser.add_argument("--n-generations", type=int,   default=8,     metavar="INT")
-    parser.add_argument("--epsilon-0",     type=float, default=15.0,  metavar="FLOAT")
-    parser.add_argument("--epsilon-final", type=float, default=5.0,   metavar="FLOAT")
-    parser.add_argument("--alpha",         type=float, default=0.4,   metavar="FLOAT")
-    parser.add_argument("--n-sim",         type=int,   default=50,    metavar="INT")
-    parser.add_argument("--max-attempts",  type=int,   default=30000, metavar="INT")
-    parser.add_argument("--output-dir",    type=Path,  default=Path("results/abc_final_v4/"), metavar="PATH")
-    parser.add_argument("--seed",          type=int,   default=42,    metavar="INT")
-    parser.add_argument("--workers",       type=int,   default=4,     metavar="INT")
-    parser.add_argument("--resume",        action="store_true", help="Resume from last saved generation")
-    parser.add_argument("--no-plots",      action="store_true")
+    parser.add_argument("--n-particles", type=int, default=200, metavar="INT")
+    parser.add_argument("--n-generations", type=int, default=8, metavar="INT")
+    parser.add_argument("--epsilon-0", type=float, default=15.0, metavar="FLOAT")
+    parser.add_argument("--epsilon-final", type=float, default=5.0, metavar="FLOAT")
+    parser.add_argument("--alpha", type=float, default=0.4, metavar="FLOAT")
+    parser.add_argument("--n-sim", type=int, default=50, metavar="INT")
+    parser.add_argument("--n-reps", type=int, default=3, metavar="INT", help="Bt replicates per particle")
+    parser.add_argument("--max-attempts", type=int, default=30000, metavar="INT")
+    parser.add_argument("--output-dir", type=Path, default=Path("results/abc_final_v4/"), metavar="PATH")
+    parser.add_argument("--seed", type=int, default=42, metavar="INT")
+    parser.add_argument("--workers", type=int, default=4, metavar="INT")
+    parser.add_argument("--prior-sensitivity", action="store_true", help="Run lightweight prior sensitivity analysis")
+    parser.add_argument("--sensitivity-factors", type=str, default="0.8,1.2", help="Comma-separated prior-width scale factors")
+    parser.add_argument("--sensitivity-n", type=int, default=40, metavar="INT", help="Evaluations per sensitivity factor")
+    parser.add_argument("--resume", action="store_true", help="Resume from last saved generation")
+    parser.add_argument("--no-plots", action="store_true")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
     if not Path(BINARY).exists():
         print(f"[error] Binary not found: {BINARY}\n  Run: make rebuild")
         sys.exit(1)
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    _save_manifest(args.output_dir, args)
 
     result = run_abc_final(
         n_particles=args.n_particles,
@@ -625,6 +774,7 @@ def main() -> None:
         epsilon_final=args.epsilon_final,
         alpha=args.alpha,
         n_sim=args.n_sim,
+        n_reps=args.n_reps,
         max_attempts=args.max_attempts,
         out_dir=args.output_dir,
         seed=args.seed,
@@ -636,6 +786,19 @@ def main() -> None:
     if not args.no_plots and result is not None:
         print("\n[plots] Generating final plots...")
         plot_final(args.output_dir, args.n_generations, args.epsilon_final)
+
+    if args.prior_sensitivity:
+        factors = [float(x.strip()) for x in args.sensitivity_factors.split(",") if x.strip()]
+        run_prior_sensitivity(
+            out_dir=args.output_dir,
+            epsilon_ref=args.epsilon_final,
+            n_sim=args.n_sim,
+            n_reps=args.n_reps,
+            n_workers=args.workers,
+            seed=args.seed,
+            factors=factors,
+            n_samples=args.sensitivity_n,
+        )
 
 
 if __name__ == "__main__":

@@ -57,6 +57,7 @@ using application::bootstrapping::N_CLINICAL;
 using application::bootstrapping::cumulativeRisk;
 using application::bootstrapping::computeSSE;
 using application::bootstrapping::computeWeightedSSE;
+using application::bootstrapping::computeMahalanobisDistance;
 using application::bootstrapping::medianOnset;
 using application::bootstrapping::medianSaturation;
 using application::bootstrapping::makeCellSeed;
@@ -141,14 +142,15 @@ std::vector<RunResult> runBatch(int n_runs, int n_cells, int max_t,
                                 double d1_threshold, double d2_threshold,
                                 double tumor_threshold,
                                 bool big_bang = false,
-                                double neoplastic_div_rate = 0.1)
+                                double neoplastic_div_rate = 0.1,
+                                int seed_offset = 0)
 {
     std::vector<RunResult> results(n_runs, {-1, -1, 0.0});
 #ifdef BOOTSTRAPPING_USE_OMP
     #pragma omp parallel for schedule(dynamic, 4)
 #endif
     for (int s = 0; s < n_runs; ++s)
-        results[s] = runOnce(s, n_cells, max_t,
+        results[s] = runOnce(seed_offset + s, n_cells, max_t,
                              low_delta, high_delta,
                              brca1_rate, tp53_rate,
                              d1_threshold, d2_threshold,
@@ -175,7 +177,8 @@ void runSweep(int sweep_n_runs, int n_cells, int max_t,
               bool big_bang, double neoplastic_div_rate,
               const std::string& sweep_output,
               bool fine_grid = false,
-              bool weighted_sse = false)
+              bool weighted_sse = false,
+              bool mahalanobis = false)
 {
     // Coarse grid (Phase 3)
     static const double BRCA1_COARSE[] = {0.010, 0.020, 0.040, 0.060, 0.080, 0.100};
@@ -200,7 +203,8 @@ void runSweep(int sweep_n_runs, int n_cells, int max_t,
               << "  big_bang=" << (big_bang ? "true" : "false")
               << "  neoplastic_div_rate=" << neoplastic_div_rate
               << (fine_grid ? "  [FINE GRID]" : "  [COARSE GRID]")
-              << (weighted_sse ? "  [WEIGHTED SSE]" : "  [UNWEIGHTED SSE]") << "\n\n";
+              << (mahalanobis ? "  [MAHALANOBIS]" : (weighted_sse ? "  [WEIGHTED SSE]" : "  [UNWEIGHTED SSE]"))
+              << "\n\n";
 
     std::vector<SweepResult> sweep_results;
     sweep_results.reserve(total_combos);
@@ -227,7 +231,8 @@ void runSweep(int sweep_n_runs, int n_cells, int max_t,
             sr.brca1_rate = br;
             sr.low_delta  = ld;
             sr.high_delta = hd;
-            sr.sse        = weighted_sse ? computeWeightedSSE(results) : computeSSE(results);
+            if (mahalanobis) sr.sse = computeMahalanobisDistance(results);
+            else sr.sse = weighted_sse ? computeWeightedSSE(results) : computeSSE(results);
             for (int i = 0; i < 7; ++i)
                 sr.risk[i] = cumulativeRisk(results, AGES[i]);
 
@@ -243,7 +248,8 @@ void runSweep(int sweep_n_runs, int n_cells, int max_t,
     // Write CSV
     {
         std::ofstream csv(sweep_output);
-        csv << "brca1_rate,low_delta,high_delta," << (weighted_sse ? "sse_weighted" : "sse");
+        csv << "brca1_rate,low_delta,high_delta,"
+            << (mahalanobis ? "distance_mahalanobis" : (weighted_sse ? "sse_weighted" : "sse"));
         for (int a : AGES) csv << ",risk_" << a;
         csv << "\n";
         for (const auto& sr : sweep_results) {
@@ -330,9 +336,12 @@ int main(int argc, char* argv[]) {
         ("high-delta-ratio","high_delta = ratio * low_delta (sweep mode)",
             cxxopts::value<double>()->default_value("2.0"))
         ("weighted-sse",     "Use weighted SSE (1/σᵢ²) for calibration — σᵢ from Kuchenbaecker 95% CI")
+        ("mahalanobis",      "Use Mahalanobis distance with full covariance (clinical + simulation)")
         ("big-bang",        "Enable big bang mode (neoplastic cells divide faster)")
         ("neoplastic-div-rate", "Neoplastic division rate when big bang is on",
             cxxopts::value<double>()->default_value("0.1"))
+        ("seed-offset",     "Seed offset for bootstrap runs (supports replicated evaluations)",
+            cxxopts::value<int>()->default_value("0"))
         ("verbose,v",       "Print per-seed progress")
         ("h,help",          "Show help");
 
@@ -358,7 +367,9 @@ int main(int argc, char* argv[]) {
     const double high_delta_ratio= args["high-delta-ratio"].as<double>();
     const bool   big_bang        = args.count("big-bang") > 0;
     const bool   weighted_sse    = args.count("weighted-sse") > 0;
+    const bool   mahalanobis     = args.count("mahalanobis") > 0;
     const double neoplastic_div_rate = args["neoplastic-div-rate"].as<double>();
+    const int    seed_offset     = args["seed-offset"].as<int>();
 
     // --- Header ---
     std::cout << "\n╔══════════════════════════════════════════════════════════════╗\n";
@@ -376,7 +387,7 @@ int main(int argc, char* argv[]) {
                  tp53_rate, d1_threshold, d2_threshold,
                  tumor_threshold, high_delta_ratio,
                  big_bang, neoplastic_div_rate, sweep_out,
-                 fine_sweep, weighted_sse);
+                 fine_sweep, weighted_sse, mahalanobis);
         return 0;
     }
 
@@ -402,7 +413,7 @@ int main(int argc, char* argv[]) {
                             brca1_rate, tp53_rate,
                             d1_threshold, d2_threshold,
                             tumor_threshold,
-                            big_bang, neoplastic_div_rate);
+                            big_bang, neoplastic_div_rate, seed_offset);
 
     if (verbose) std::cout << "  done.\n";
 
@@ -464,9 +475,13 @@ int main(int argc, char* argv[]) {
         sat90.push_back(r.year_90pct);
     }
 
+    const double sse = computeSSE(results);
+    const double sse_weighted = computeWeightedSSE(results);
+    const double d_mahal = computeMahalanobisDistance(results);
     std::cout << "  SSE vs. Kuchenbaecker = "
-              << std::fixed << std::setprecision(2) << computeSSE(results)
-              << "  (weighted SSE = " << std::setprecision(2) << computeWeightedSSE(results) << ")"
+              << std::fixed << std::setprecision(2) << sse
+              << "  (weighted SSE = " << std::setprecision(2) << sse_weighted << ")"
+              << "  (mahalanobis distance = " << std::setprecision(2) << d_mahal << ")"
               << "  (median onset = " << std::setprecision(1) << medianOnset(results) << ")"
               << "  (median sat25 = " << std::setprecision(1) << medianSaturation(sat25) << ")"
               << "  (median sat50 = " << std::setprecision(1) << medianSaturation(sat50) << ")"

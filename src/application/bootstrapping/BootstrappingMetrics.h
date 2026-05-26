@@ -76,6 +76,14 @@ double computeSSE(const std::vector<RunResult>& results);
 double computeWeightedSSE(const std::vector<RunResult>& results);
 
 // ---------------------------------------------------------------------------
+// Mahalanobis distance using full covariance on cumulative-risk anchors.
+// Σ = Σ_clinical(diagonal from reported CIs) + Σ_simulation(mean estimator).
+// Returns diffᵀ Σ⁻¹ diff, with a small ridge regularization for stability.
+// Returns 0.0 for empty results.
+// ---------------------------------------------------------------------------
+double computeMahalanobisDistance(const std::vector<RunResult>& results);
+
+// ---------------------------------------------------------------------------
 // Median saturation year computed from a vector of per-run milestone years.
 // Values of -1 (never reached) are ignored.
 // Returns -1.0 if no run reached the milestone.

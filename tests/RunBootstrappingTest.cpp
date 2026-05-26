@@ -17,6 +17,7 @@ using application::bootstrapping::N_CLINICAL;
 using application::bootstrapping::cumulativeRisk;
 using application::bootstrapping::computeSSE;
 using application::bootstrapping::computeWeightedSSE;
+using application::bootstrapping::computeMahalanobisDistance;
 using application::bootstrapping::makeCellSeed;
 
 // ============================================================================
@@ -592,4 +593,206 @@ TEST(ComputeMilestonesTest, MonotonicityInvariant) {
     ASSERT_NE(m.year_90, -1);
     EXPECT_LE(m.year_25, m.year_50);
     EXPECT_LE(m.year_50, m.year_90);
+}
+
+// ============================================================================
+// TEST SUITE: computeMahalanobisDistance — Publication-Grade ABC-SMC Metric
+// ============================================================================
+
+TEST(ComputeMahalanobisDistanceTest, EmptyResults) {
+    // Empty input should return 0 (no deviation from prior reference)
+    std::vector<RunResult> empty;
+    double dist = computeMahalanobisDistance(empty);
+    EXPECT_DOUBLE_EQ(dist, 0.0);
+}
+
+TEST(ComputeMahalanobisDistanceTest, SingleRunNoCancer) {
+    // Single run with no cancer (all ages > onset_year means not observed)
+    // cumulative risk at all ages should be 0%
+    std::vector<RunResult> results = {{0, -1, 0.0}};
+    double dist = computeMahalanobisDistance(results);
+    
+    // Expect non-negative distance (typically large since clinical has 10-40%)
+    EXPECT_GE(dist, 0.0);
+    // Distance should be bounded (not NaN/inf)
+    EXPECT_TRUE(std::isfinite(dist));
+}
+
+TEST(ComputeMahalanobisDistanceTest, AllImmediateOnset) {
+    // All runs have early cancer (onset at year 0)
+    // cumulative risk at all ages should be 100%
+    std::vector<RunResult> results;
+    for (int i = 0; i < 50; ++i)
+        results.push_back({i, 0, 100.0});
+    
+    double dist = computeMahalanobisDistance(results);
+    
+    // Expect finite distance (not NaN/inf)
+    EXPECT_TRUE(std::isfinite(dist));
+    // Should be large since clinical expectations are 10-40%, not 100%
+    EXPECT_GT(dist, 0.0);
+}
+
+TEST(ComputeMahalanobisDistanceTest, IsNonNegative) {
+    // Mahalanobis distance should always be >= 0
+    std::vector<RunResult> scenarios[] = {
+        {{0, -1, 0.0}},                          // no cancer
+        {{0, 30, 50.0}, {1, 40, 60.0}},         // mixed
+        {{0, 0, 100.0}, {1, 0, 100.0}},         // early
+        {{0, 80, 10.0}, {1, 90, 20.0}},         // late
+    };
+    
+    for (const auto& scenario : scenarios) {
+        double dist = computeMahalanobisDistance(scenario);
+        EXPECT_GE(dist, 0.0) << "Distance should be non-negative for all scenarios";
+        EXPECT_TRUE(std::isfinite(dist)) << "Distance should be finite";
+    }
+}
+
+TEST(ComputeMahalanobisDistanceTest, RepeatedResultsConsistent) {
+    // Running the same input twice should yield the same distance
+    std::vector<RunResult> results = {
+        {0, 30, 100.0},
+        {1, 35, 90.0},
+        {2, -1, 0.0},
+    };
+    
+    double dist1 = computeMahalanobisDistance(results);
+    double dist2 = computeMahalanobisDistance(results);
+    
+    EXPECT_DOUBLE_EQ(dist1, dist2);
+}
+
+TEST(ComputeMahalanobisDistanceTest, LargerSampleConsistency) {
+    // Larger sample should produce smoother/more stable estimates
+    // (order-independent: permutations of same data should give same distance)
+    std::vector<RunResult> original = {
+        {0, 25, 100.0},
+        {1, 30, 95.0},
+        {2, 35, 85.0},
+        {3, -1, 0.0},
+        {4, 50, 100.0},
+    };
+    
+    double dist1 = computeMahalanobisDistance(original);
+    
+    // Permute
+    std::vector<RunResult> permuted = original;
+    std::rotate(permuted.begin(), permuted.begin() + 2, permuted.end());
+    
+    double dist2 = computeMahalanobisDistance(permuted);
+    
+    // Should be identical (input order should not matter)
+    EXPECT_DOUBLE_EQ(dist1, dist2);
+}
+
+TEST(ComputeMahalanobisDistanceTest, MonotonicBehavior) {
+    // As simulated risk diverges from clinical, distance should increase
+    // Clinical baseline expectations: age 50 → ~25%, age 70 → ~45%
+    
+    // Scenario 1: realistic (closer to clinical)
+    std::vector<RunResult> realistic;
+    for (int i = 0; i < 100; ++i) {
+        if (i < 25) realistic.push_back({i, 50 + (i % 20), 100.0});  // ~25% by 50
+        else        realistic.push_back({i, -1, 0.0});
+    }
+    
+    // Scenario 2: unrealistic (very early)
+    std::vector<RunResult> tooEarly;
+    for (int i = 0; i < 100; ++i)
+        tooEarly.push_back({i, 30, 100.0});  // 100% by 30 (way too early)
+    
+    // Scenario 3: unrealistic (very late)
+    std::vector<RunResult> tooLate;
+    for (int i = 0; i < 100; ++i)
+        tooLate.push_back({i, -1, 0.0});  // 0% always (way too late)
+    
+    double dist_realistic = computeMahalanobisDistance(realistic);
+    double dist_early = computeMahalanobisDistance(tooEarly);
+    double dist_late = computeMahalanobisDistance(tooLate);
+    
+    // All should be finite and comparable
+    EXPECT_TRUE(std::isfinite(dist_realistic));
+    EXPECT_TRUE(std::isfinite(dist_early));
+    EXPECT_TRUE(std::isfinite(dist_late));
+    
+    // Extreme scenarios should have larger distances
+    EXPECT_GT(dist_early, dist_realistic);
+    EXPECT_GT(dist_late, dist_realistic);
+}
+
+TEST(ComputeMahalanobisDistanceTest, NumericalStability) {
+    // Test that ridge regularization (1e-6) handles potential singularity
+    // even with very uniform results (all runs identical)
+    
+    std::vector<RunResult> uniform;
+    for (int i = 0; i < 100; ++i)
+        uniform.push_back({i, 40, 100.0});
+    
+    double dist = computeMahalanobisDistance(uniform);
+    
+    // Should not be NaN/inf even with uniform input
+    EXPECT_TRUE(std::isfinite(dist));
+    EXPECT_GE(dist, 0.0);
+}
+
+TEST(ComputeMahalanobisDistanceTest, SmallVsLargeSamples) {
+    // Distance should be stable across sample sizes
+    // (empirical covariance has n*(n-1) in denominator, so smaller n → less empirical covariance)
+    
+    std::vector<RunResult> small, large;
+    
+    // Generate identical-in-composition samples
+    for (int i = 0; i < 3; ++i) {
+        small.push_back({i, 30 + (i * 10), 100.0});
+    }
+    
+    for (int i = 0; i < 3; ++i) {
+        large.push_back({i, 30 + (i * 10), 100.0});
+    }
+    for (int i = 3; i < 30; ++i) {
+        // Repeat same pattern to make larger sample with same composition
+        large.push_back({i, 30 + ((i % 3) * 10), 100.0});
+    }
+    
+    double dist_small = computeMahalanobisDistance(small);
+    double dist_large = computeMahalanobisDistance(large);
+    
+    // Both should be finite
+    EXPECT_TRUE(std::isfinite(dist_small));
+    EXPECT_TRUE(std::isfinite(dist_large));
+    
+    // Distances should be in same ballpark (not wildly different)
+    // They won't be identical due to empirical covariance, but should be comparable
+    double ratio = dist_large / (dist_small + 1e-10);  // +eps to avoid div-by-zero
+    EXPECT_GT(ratio, 0.5);  // At least 50% of small distance
+    EXPECT_LT(ratio, 2.0);  // At most 2x the small distance
+}
+
+TEST(ComputeMahalanobisDistanceTest, DistanceComparisonConcordance) {
+    // Two different parameter sets: one should have smaller Mahalanobis distance
+    // if it's closer to the clinical observation
+    
+    // Scenario A: matches clinical (25% by 50, 45% by 70)
+    std::vector<RunResult> scenarioA;
+    for (int i = 0; i < 100; ++i) {
+        if (i < 25) {
+            scenarioA.push_back({i, 50 + (i % 15), 100.0});  // 25% by 50
+        } else if (i < 45) {
+            scenarioA.push_back({i, 70 + ((i - 25) % 15), 100.0});  // additional 20% by 70
+        } else {
+            scenarioA.push_back({i, -1, 0.0});
+        }
+    }
+    
+    // Scenario B: way off (100% by 30, 0% by 70)
+    std::vector<RunResult> scenarioB;
+    for (int i = 0; i < 100; ++i)
+        scenarioB.push_back({i, 30, 100.0});
+    
+    double distA = computeMahalanobisDistance(scenarioA);
+    double distB = computeMahalanobisDistance(scenarioB);
+    
+    // Scenario A (closer to clinical) should have smaller distance
+    EXPECT_LT(distA, distB);
 }
