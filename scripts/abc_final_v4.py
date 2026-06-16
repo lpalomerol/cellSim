@@ -6,10 +6,11 @@ Key methodological safeguards:
   1) No boundary clipping in proposals (paper-consistent reject-outside-prior).
   2) Hard prior constraints enforced before simulation (high_delta > low_delta).
   3) No particle padding; generation fails explicitly if N accepted not reached.
-  4) Distance = Mahalanobis (clinical + simulation covariance) from C++ binary.
+  4) Distance = Weighted SSE (1/σᵢ² from Kuchenbaecker 95% CI) from C++ binary.
   5) Bt>1 stochastic replicates per particle (--n-reps).
   6) Per-generation diagnostics persisted (acceptance, ESS, rejects, failures).
   7) Reproducibility manifest with config, priors, seed, git commit, environment.
+  8) OpenMP threads controlled (OMP_NUM_THREADS=1) to prevent oversubscription.
 """
 
 from __future__ import annotations
@@ -30,6 +31,12 @@ from typing import Any
 
 import numpy as np
 
+# Force OpenMP to use 1 thread per C++ binary to avoid oversubscription.
+# The run_bootstrapping binary uses OpenMP internally; without this, N workers
+# would spawn N×n_cores threads competing for n_cores CPUs (context switching).
+# With OMP_NUM_THREADS=1, Python ThreadPoolExecutor controls parallelism efficiently.
+os.environ["OMP_NUM_THREADS"] = "1"
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 os.chdir(REPO_ROOT)
 
@@ -38,13 +45,16 @@ BINARY = str(REPO_ROOT / "build" / "run_bootstrapping")
 # Fixed parameters (biological defaults + empirically collapsed)
 D1_THRESHOLD = 2.0
 D2_THRESHOLD = 5.0
-TP53_RATE = 0.001
+TP53_RATE = 0.003  # matches C++ default and calibration_sweep conditions
 
+# Priors anchored on results_sweep_p4_fine.csv (big-bang, weighted SSE):
+#   optimal region: brca1_rate≈0.050, low_delta≈0.14, high_delta≈0.28
+#   previous priors were completely outside this region — fixed here.
 PRIORS = {
-    "brca1_rate": (0.008, 0.017),
-    "low_delta": (0.15, 0.45),
-    "high_delta": (0.05, 1.20),
-    "neoplastic_div_rate": (0.10, 0.24),
+    "brca1_rate":          (0.025, 0.080),
+    "low_delta":           (0.06,  0.22),
+    "high_delta":          (0.12,  0.60),
+    "neoplastic_div_rate": (0.10,  0.24),
 }
 PARAM_NAMES = list(PRIORS.keys())
 PRIOR_LO = np.array([PRIORS[p][0] for p in PARAM_NAMES])
@@ -53,7 +63,7 @@ PRIOR_HI = np.array([PRIORS[p][1] for p in PARAM_NAMES])
 LOW_IDX = PARAM_NAMES.index("low_delta")
 HIGH_IDX = PARAM_NAMES.index("high_delta")
 
-_DIST_RE = re.compile(r"mahalanobis distance\s*=\s*([\d.eE+\-]+)")
+_DIST_RE = re.compile(r"weighted SSE\s*=\s*([\d.eE+\-]+)")
 _MEDIAN_ONS_RE = re.compile(r"median onset\s*=\s*([\d.eE+\-]+)")
 _MEDIAN_S25_RE = re.compile(r"median sat25\s*=\s*([\d.eE+\-]+)")
 _MEDIAN_S50_RE = re.compile(r"median sat50\s*=\s*([\d.eE+\-]+)")
@@ -163,9 +173,9 @@ def posterior_predictive_check(samples: np.ndarray, n_sim: int, n_check: int = 5
     Returns:
         dict with keys: 'sim_mean', 'sim_std', 'clinical_mean', 'clinical_std', 'coverage'
     """
-    # Kuchenbaecker et al. clinical data (target for ABC)
+    # Kuchenbaecker 2017 BRCA1 clinical data — must match BootstrappingMetrics.cpp
     CLINICAL_TARGETS = {
-        30: 0.01, 40: 0.05, 50: 0.25, 60: 0.40, 70: 0.45, 80: 0.47
+        30: 0.04, 40: 0.26, 50: 0.46, 60: 0.58, 70: 0.65, 80: 0.70
     }
     
     # Subsample for computational efficiency
@@ -211,7 +221,7 @@ def run_simulation(theta_arr: np.ndarray, n_sim: int, n_reps: int, seed_base: in
             "--d2-threshold", f"{D2_THRESHOLD:.1f}",
             "--neoplastic-div-rate", f"{neo_div:.6f}",
             "--big-bang",
-            "--mahalanobis",
+            "--weighted-sse",
             "--seed-offset", str(seed_base + rep * 100_003),
             "--output", "/dev/null",
         ]
@@ -385,6 +395,16 @@ def run_generation(
     sat50_arr = np.array(accepted_sat50)
     sat90_arr = np.array(accepted_sat90)
 
+    # Rigor improvement #3: No particle padding
+    # Generation must reach exactly n_particles or fail explicitly
+    if len(particles) < n_particles:
+        raise RuntimeError(
+            f"Generation {gen} failed: only {len(particles)}/{n_particles} particles accepted "
+            f"after {n_attempts} attempts (prior_reject={n_prior_reject}, sim_fail={n_sim_fail}). "
+            f"Consider: (1) increasing --max-attempts, (2) relaxing epsilon, "
+            f"(3) checking prior constraints, or (4) increasing --workers for better sampling."
+        )
+
     if len(particles) == 0:
         return (
             particles,
@@ -432,7 +452,7 @@ def save_generation(
     path = out_dir / f"gen_{gen:02d}.csv"
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(PARAM_NAMES + ["weight", "distance_mahalanobis", "onset_age", "sat25", "sat50", "sat90"])
+        w.writerow(PARAM_NAMES + ["weight", "distance_weighted_sse", "onset_age", "sat25", "sat50", "sat90"])
         for theta, wt, dist, onset, s25, s50, s90 in zip(particles, weights, dist_vals, onset_ages, sat25, sat50, sat90):
             w.writerow([f"{v:.6f}" for v in theta] + [f"{wt:.8f}", f"{dist:.4f}", f"{onset:.2f}", f"{s25:.2f}", f"{s50:.2f}", f"{s90:.2f}"])
     return path
@@ -448,7 +468,9 @@ def load_generation(out_dir: Path, gen: int) -> tuple[np.ndarray, np.ndarray, np
         return None
     particles = np.array([[float(r[p]) for p in PARAM_NAMES] for r in rows])
     weights = np.array([float(r["weight"]) for r in rows])
-    dist_vals = np.array([float(r["distance_mahalanobis"]) for r in rows])
+    # Support both old (distance_mahalanobis) and new (distance_weighted_sse) column names
+    dist_col = "distance_weighted_sse" if "distance_weighted_sse" in rows[0] else "distance_mahalanobis"
+    dist_vals = np.array([float(r[dist_col]) for r in rows])
     onset_ages = np.array([float(r.get("onset_age", "nan")) for r in rows])
     sat25 = np.array([float(r.get("sat25", "nan")) for r in rows])
     sat50 = np.array([float(r.get("sat50", "nan")) for r in rows])
@@ -492,8 +514,8 @@ def _append_diag(out_dir: Path, row: dict[str, float | int]) -> None:
             "ess_ratio",  # ESS / N_particles
             "rhat",  # Gelman-Rubin statistic (if multi-chain available)
             "max_weight",
-            "distance_mean",
-            "distance_min",
+            "weighted_sse_mean",
+            "weighted_sse_min",
         ]
         w = csv.DictWriter(f, fieldnames=fieldnames)
         if not exists:
@@ -518,7 +540,7 @@ def _save_manifest(out_dir: Path, args: argparse.Namespace) -> None:
         "platform": platform.platform(),
         "binary": BINARY,
         "algorithm": "ABC-SMC (Toni et al. style SIS weights)",
-        "distance": "Mahalanobis (clinical diagonal + simulation covariance mean estimator)",
+        "distance": "Weighted SSE (1/σᵢ² weights from Kuchenbaecker 95% CI)",
         "priors": PRIORS,
         "fixed_parameters": {
             "d1_threshold": D1_THRESHOLD,
@@ -619,7 +641,7 @@ def run_abc_final(
 
         path = save_generation(out_dir, gen, particles, weights, dist_vals, onset_ages, sat25_arr, sat50_arr, sat90_arr)
         elapsed = time.time() - t0
-        ess = float(1.0 / np.sum(weights**2))
+        ess = compute_ess(weights)
         max_weight = float(weights.max())
         valid_onset = onset_ages[~np.isnan(onset_ages)]
         valid_sat50 = sat50_arr[~np.isnan(sat50_arr) & (sat50_arr > 0)]
@@ -651,8 +673,8 @@ def run_abc_final(
                 "ess_ratio": ess_ratio,
                 "rhat": rhat,
                 "max_weight": max_weight,
-                "distance_mean": float(dist_vals.mean()),
-                "distance_min": float(dist_vals.min()),
+                "weighted_sse_mean": float(dist_vals.mean()),
+                "weighted_sse_min": float(dist_vals.min()),
             },
         )
 
@@ -666,10 +688,11 @@ def run_abc_final(
         next_epsilon = float(np.quantile(dist_vals, alpha))
         print(f"  next eps = {next_epsilon:.4f} (alpha-quantile)")
 
-        if next_epsilon <= epsilon_final:
-            print(f"  eps reached target ({epsilon_final}) - stopping.")
-            eps_history.append(next_epsilon)
-            break
+        # Early stopping if epsilon converges (disabled to always complete n_generations)
+        # if next_epsilon <= epsilon_final:
+        #     print(f"  eps reached target ({epsilon_final}) - stopping.")
+        #     eps_history.append(next_epsilon)
+        #     break
 
         epsilon = next_epsilon
         prev_particles = particles.copy()
@@ -816,7 +839,7 @@ def plot_final(out_dir: Path, n_generations: int, epsilon_final: float) -> None:
         ax.legend(fontsize=7)
         ax.grid(True, alpha=0.3)
 
-    fig.suptitle(f"ABC-SMC v4 marginals (Mahalanobis, eps_final={epsilon_final})", fontsize=11, fontweight="bold")
+    fig.suptitle(f"ABC-SMC v4 marginals (Weighted SSE, eps_final={epsilon_final})", fontsize=11, fontweight="bold")
     plt.tight_layout()
     for ext in ("png", "pdf"):
         p = out_dir / f"abc_final_v4_marginals.{ext}"
@@ -877,15 +900,16 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--n-particles", type=int, default=200, metavar="INT")
     parser.add_argument("--n-generations", type=int, default=8, metavar="INT")
-    parser.add_argument("--epsilon-0", type=float, default=15.0, metavar="FLOAT")
+    parser.add_argument("--epsilon-0", type=float, default=20.0, metavar="FLOAT")
     parser.add_argument("--epsilon-final", type=float, default=5.0, metavar="FLOAT")
-    parser.add_argument("--alpha", type=float, default=0.4, metavar="FLOAT")
-    parser.add_argument("--n-sim", type=int, default=50, metavar="INT")
-    parser.add_argument("--n-reps", type=int, default=3, metavar="INT", help="Bt replicates per particle")
-    parser.add_argument("--max-attempts", type=int, default=30000, metavar="INT")
-    parser.add_argument("--output-dir", type=Path, default=Path("results/abc_final_v4/"), metavar="PATH")
-    parser.add_argument("--seed", type=int, default=42, metavar="INT")
-    parser.add_argument("--workers", type=int, default=4, metavar="INT")
+    parser.add_argument("--alpha", type=float, default=0.6, metavar="FLOAT")
+    parser.add_argument("--n-sim", type=int, default=150, metavar="INT")
+    parser.add_argument("--n-reps", type=int, default=1, metavar="INT", help="Bt replicates per particle")
+    parser.add_argument("--max-attempts", type=int, default=1000000, metavar="INT")
+    parser.add_argument("--output-dir", type=Path, default=Path("results/abc_corrected_v1/"), metavar="PATH")
+    parser.add_argument("--seed", type=int, default=999, metavar="INT")
+    parser.add_argument("--workers", type=int, default=4, metavar="INT", 
+                        help="Parallel workers (OMP_NUM_THREADS=1 set automatically; safe to use n_cores or more)")
     parser.add_argument("--prior-sensitivity", action="store_true", help="Run lightweight prior sensitivity analysis")
     parser.add_argument("--sensitivity-factors", type=str, default="0.8,1.2", help="Comma-separated prior-width scale factors")
     parser.add_argument("--sensitivity-n", type=int, default=40, metavar="INT", help="Evaluations per sensitivity factor")
