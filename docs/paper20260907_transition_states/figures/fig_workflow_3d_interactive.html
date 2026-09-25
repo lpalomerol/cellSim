@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>cellSim 3D Workflow Interactivo</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 20px; background: #f8f9fa; }
+        .header { text-align: center; margin-bottom: 15px; }
+        .header h1 { margin: 0 0 8px 0; font-size: 22px; color: #1a202c; }
+        .header p { margin: 0; font-size: 14px; color: #4a5568; }
+        #plot-container { width: 100%; height: 800px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .rules-card { margin-top: 15px; background: white; padding: 15px 20px; border-radius: 8px; border-left: 4px solid #2b6cb0; font-size: 13px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Workflow Multidimensional 3D del Modelo cellSim</h1>
+        <p>Modelo Basado en Agentes: Estados Genotípicos, Acumulación de Daño y Destinos Celulares</p>
+    </div>
+    <div id="plot-container"></div>
+    <div class="rules-card">
+        <strong>Reglas Biológicas Fundamentales:</strong><br>
+        • <b>Letalidad Sintética (Fase 1):</b> BRCA1 -/- con TP53 (+/+ o +/-) induce Apoptosis Intrínseca.<br>
+        • <b>Supervivencia LOH:</b> Requiere mutación previa de TP53 -/- para franquear la viabilidad celular.<br>
+        • <b>Barrera PRIMER (&theta;<sub>intr</sub> = 2.0):</b> Reconocimiento tisular y riesgo de Apoptosis Extrínseca.<br>
+        • <b>Barrera TUMORAL (&theta;<sub>inm</sub> = 5.0, Ratio 2.5&times;):</b> Evasión inmune, inmortalización y mitosis desregulada (d<sub>neo</sub> = 0.158).
+    </div>
+
+    <script>
+        const nodes = [
+            { id: 'Base', x: 0, y: 0, z: 0, name: 'Base (BASELINE)<br>TP53 +/+, BRCA1 +/-<br>Homeostasis', color: '#4caf50', size: 14, symbol: 'circle' },
+            { id: 'St1', x: 1, y: 0, z: 0, name: 'St. 1 (UNSTABLE)<br>TP53 +/-, BRCA1 +/-<br>&uarr; &delta;<sub>BRCA+</sub> (0.107)', color: '#fbc02d', size: 14, symbol: 'circle' },
+            { id: 'St2', x: 2, y: 0, z: 0, name: 'St. 2 (UNPROTECTED)<br>TP53 -/-, BRCA1 +/-<br>&uarr;&uarr; &delta;<sub>BRCA-</sub> (0.353)', color: '#f57c00', size: 14, symbol: 'circle' },
+            { id: 'St3', x: 2, y: 1, z: 0, name: 'St. 3 (UNPROT. LOH)<br>TP53 -/-, BRCA1 -/-<br>&uarr;&uarr;&uarr; 2&middot;&delta;<sub>BRCA-</sub> (0.707)', color: '#d84315', size: 14, symbol: 'circle' },
+            
+            { id: 'P1', x: 2, y: 0, z: 1, name: 'PRIMER (Pre-T1)<br>TP53 -/-, BRCA1 +/-<br>D<sub>intr</sub> &ge; 2.0 (Vulnerable)', color: '#e91e63', size: 14, symbol: 'circle' },
+            { id: 'P2', x: 2, y: 1, z: 1, name: 'PRIMER (Pre-T2)<br>TP53 -/-, BRCA1 -/-<br>D<sub>intr</sub> &ge; 2.0 (Hipermutado)', color: '#ad1457', size: 14, symbol: 'circle' },
+            
+            { id: 'T1', x: 2, y: 0, z: 2, name: 'T1 (TUMORAL)<br>TP53 -/-, BRCA1 +/-<br>D<sub>inm</sub> &ge; 5.0 (Evasión)<br>Mitosis d<sub>neo</sub> = 0.158', color: '#e53935', size: 16, symbol: 'circle' },
+            { id: 'T2', x: 2, y: 1, z: 2, name: 'T2 (TUMORAL LOH)<br>TP53 -/-, BRCA1 -/-<br>D<sub>inm</sub> &ge; 5.0 (Evasión)<br>Clon LOH Agresivo', color: '#b71c1c', size: 16, symbol: 'circle' },
+            
+            { id: 'APT_INTR', x: 0.5, y: 1.0, z: 0, name: 'APT. INTR&Iacute;NSECA<br>Letalidad Sint&eacute;tica (p53)<br>BRCA1-/- con p53 activo', color: '#546e7a', size: 16, symbol: 'x' },
+            { id: 'APT_EXTR', x: 2.5, y: 0.5, z: 1, name: 'APT. EXTR&Iacute;NSECA<br>Aclaramiento Tisular<br>D<sub>inm</sub> < 5.0 en PRIMER', color: '#37474f', size: 16, symbol: 'x' }
+        ];
+
+        const nodeTrace = {
+            x: nodes.map(n => n.x),
+            y: nodes.map(n => n.y),
+            z: nodes.map(n => n.z),
+            text: nodes.map(n => n.name),
+            mode: 'markers+text',
+            hoverinfo: 'text',
+            textposition: 'top center',
+            marker: {
+                size: nodes.map(n => n.size),
+                color: nodes.map(n => n.color),
+                symbol: nodes.map(n => n.symbol),
+                line: { color: '#ffffff', width: 2 }
+            },
+            type: 'scatter3d',
+            name: 'Estados Celulares'
+        };
+
+        const planes = [
+            { z: 0, name: 'Plano 0: Homeostasis (Z=0)', color: 'rgba(200, 230, 201, 0.35)' },
+            { z: 1, name: 'Plano 1: PRIMER (Z=1)', color: 'rgba(255, 249, 196, 0.35)' },
+            { z: 2, name: 'Plano 2: TUMORAL (Z=2)', color: 'rgba(255, 205, 210, 0.35)' }
+        ];
+
+        const planeTraces = planes.map(p => ({
+            x: [-0.5, 2.8, 2.8, -0.5],
+            y: [-0.5, -0.5, 1.5, 1.5],
+            z: [p.z, p.z, p.z, p.z],
+            i: [0, 0],
+            j: [1, 2],
+            k: [2, 3],
+            type: 'mesh3d',
+            color: p.color,
+            name: p.name,
+            hoverinfo: 'name'
+        }));
+
+        const layout = {
+            margin: { l: 0, r: 0, b: 0, t: 30 },
+            scene: {
+                xaxis: { title: 'Eje X: TP53 (+/+, +/-, -/-)', tickvals: [0, 1, 2], ticktext: ['TP53 +/+', 'TP53 +/-', 'TP53 -/-'] },
+                yaxis: { title: 'Eje Y: BRCA1 (+/-, -/-)', tickvals: [0, 1], ticktext: ['BRCA1 +/-', 'BRCA1 -/-'] },
+                zaxis: { title: 'Eje Z: Fenotipo / Daño', tickvals: [0, 1, 2], ticktext: ['Z=0: Basal', 'Z=1: PRIMER', 'Z=2: TUMORAL'] },
+                camera: {
+                    eye: { x: 1.6, y: -1.6, z: 1.2 }
+                }
+            }
+        };
+
+        Plotly.newPlot('plot-container', [...planeTraces, nodeTrace], layout, { responsive: true });
+    </script>
+</body>
+</html>

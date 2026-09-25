@@ -1,0 +1,46 @@
+{
+  "ci_level": 2,
+  "ci_factor": 0.25,
+  "n_particles": 200,
+  "n_generations": 8,
+  "priors": {
+    "brca1_rate": [
+      0.025,
+      0.08
+    ],
+    "low_delta": [
+      0.06,
+      0.22
+    ],
+    "high_delta": [
+      0.12,
+      0.6
+    ],
+    "neoplastic_div_rate": [
+      0.1,
+      0.24
+    ],
+    "tp53_rate": [
+      0.0022500000000000003,
+      0.00375
+    ],
+    "d1_threshold": [
+      1.5,
+      2.5
+    ],
+    "d2_threshold": [
+      3.75,
+      6.25
+    ],
+    "division_rate": [
+      0.00075,
+      0.00125
+    ],
+    "tumor_threshold": [
+      0.037500000000000006,
+      0.0625
+    ]
+  },
+  "completed_at": "2026-08-24T10:20:18.111495+00:00",
+  "platform": "Linux-7.0.0-30-generic-x86_64-with-glibc2.39"
+}

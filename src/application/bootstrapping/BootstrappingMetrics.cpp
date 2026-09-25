@@ -82,7 +82,7 @@ double computeSSE(const std::vector<RunResult>& results) {
     return sse;
 }
 
-double computeWeightedSSE(const std::vector<RunResult>& results) {
+    double computeWeightedSSE(const std::vector<RunResult>& results) {
     if (results.empty()) return 0.0;
 
     // σᵢ = (ci_hi − ci_lo) / 3.92  (95% CI width → 1 standard deviation)

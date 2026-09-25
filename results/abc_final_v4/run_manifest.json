@@ -1,0 +1,52 @@
+{
+  "algorithm": "ABC-SMC (Toni et al. style SIS weights)",
+  "binary": "/home/luis/CLionProjects/cellSim/build/run_bootstrapping",
+  "cli_args": {
+    "alpha": 0.6,
+    "epsilon_0": 20.0,
+    "epsilon_final": 5.0,
+    "max_attempts": 50000,
+    "n_generations": 4,
+    "n_particles": 150,
+    "n_reps": 1,
+    "n_sim": 50,
+    "no_plots": false,
+    "output_dir": "results/abc_final_v4",
+    "prior_sensitivity": false,
+    "resume": true,
+    "seed": 999,
+    "sensitivity_factors": "0.8,1.2",
+    "sensitivity_n": 40,
+    "verbose": false,
+    "workers": 12
+  },
+  "distance": "Weighted SSE (1/\u03c3\u1d62\u00b2 weights from Kuchenbaecker 95% CI)",
+  "fixed_parameters": {
+    "d1_threshold": 2.0,
+    "d2_threshold": 5.0,
+    "tp53_rate": 0.001
+  },
+  "git_commit": "72cda45a1ec6dbdd240471805fc8a65b3090a760",
+  "platform": "Linux-6.17.0-29-generic-x86_64-with-glibc2.39",
+  "priors": {
+    "brca1_rate": [
+      0.008,
+      0.017
+    ],
+    "high_delta": [
+      0.05,
+      1.2
+    ],
+    "low_delta": [
+      0.15,
+      0.45
+    ],
+    "neoplastic_div_rate": [
+      0.1,
+      0.24
+    ]
+  },
+  "python": "3.12.3 (main, Mar 23 2026, 19:04:32) [GCC 13.3.0]",
+  "repo_root": "/home/luis/CLionProjects/cellSim",
+  "timestamp_utc": "2026-05-27T17:50:17.598279+00:00"
+}

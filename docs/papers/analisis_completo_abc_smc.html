@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis Completo del Algoritmo ABC-SMC y sus Ejemplos</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1, h2, h3, h4, h5 {
+            color: #2c3e50;
+        }
+        h1 { font-size: 2.2em; text-align: center; border-bottom: 3px solid #3498db; padding-bottom: 10px; margin-bottom: 20px; }
+        h2 { font-size: 1.9em; margin-top: 40px; border-bottom: 2px solid #3498db; padding-bottom: 8px;}
+        h3 { font-size: 1.6em; margin-top: 30px; border-bottom: 1px solid #bdc3c7; padding-bottom: 6px;}
+        h4 { font-size: 1.3em; margin-top: 25px; }
+        h5 { font-size: 1.1em; }
+        ul, ol {
+            list-style-position: inside;
+            padding-left: 5px;
+        }
+        li { margin-bottom: 10px; }
+        strong { color: #2980b9; }
+        code {
+            background-color: #ecf0f1;
+            color: #c0392b;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+        }
+        pre code {
+            display: block;
+            padding: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .profile-block {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            background-color: #fdfdfd;
+        }
+        hr {
+            border: 0;
+            height: 1px;
+            background: #ddd;
+            margin: 40px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Análisis Completo del Algoritmo ABC-SMC y sus Ejemplos</h1>
+        <p>Este documento ofrece una explicación detallada del algoritmo ABC-SMC y su aplicación en los ejemplos del paper "Approximate Bayesian computation scheme for parameter inference and model selection in dynamical systems", adaptada para perfiles de ingeniería informática y de biología matemática.</p>
+
+        <hr>
+
+        <h2>Parte 1: El Algoritmo ABC-SMC Detallado</h2>
+        <p>El objetivo del algoritmo es encontrar los valores más probables de los parámetros de un modelo (<code>θ</code>) dada una evidencia experimental (<code>D_obs</code>). En términos formales, busca aproximar la <strong>distribución a posteriori</strong> <code>p(θ | D_obs)</code>.</p>
+
+        <h3>Glosario de Conceptos Clave</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Término</th>
+                    <th>Interpretación (Ingeniería Informática)</th>
+                    <th>Interpretación (Biología/Matemáticas)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Parámetro (<code>θ</code>)</strong></td>
+                    <td>Las variables de configuración de tu función de simulación.</td>
+                    <td>El vector de parámetros del modelo que se desea inferir.</td>
+                </tr>
+                <tr>
+                    <td><strong>Partícula</strong></td>
+                    <td>Un objeto o <code>struct</code> que contiene un juego completo de valores para los parámetros. Una hipótesis.</td>
+                    <td>Un punto <code>θ^(i)</code> en el espacio de parámetros.</td>
+                </tr>
+                <tr>
+                    <td><strong>Población</strong></td>
+                    <td>Un <code>array</code> o <code>list</code> de <code>N</code> partículas.</td>
+                    <td>Un conjunto de <code>N</code> partículas <code>{θ_t}</code> que, en conjunto, aproximan una distribución de probabilidad.</td>
+                </tr>
+                <tr>
+                    <td><strong>Prior (<code>π(θ)</code>)</strong></td>
+                    <td>Los rangos (mín/máx) que definen el espacio de búsqueda inicial para los parámetros.</td>
+                    <td>La distribución de probabilidad a priori, que encapsula nuestro conocimiento sobre <code>θ</code> antes de ver los datos.</td>
+                </tr>
+                <tr>
+                    <td><strong>Tolerancia (<code>ε</code>)</strong></td>
+                    <td>Un umbral de error (<code>float</code>). Si <code>error <= ε</code>, la simulación es válida.</td>
+                    <td>El error máximo permitido. Define el soporte de la distribución objetivo en la generación <code>t</code>.</td>
+                </tr>
+                <tr>
+                    <td><strong>Kernel (<code>K_t</code>)</strong></td>
+                    <td>Una función "jiggle" o "mutate" que modifica ligeramente una partícula (ej. añadiendo ruido gaussiano).</td>
+                    <td>Un kernel de transición <code>K_t(θ'|θ)</code> que define la probabilidad de pasar de la partícula <code>θ</code> a <code>θ'</code>.</td>
+                </tr>
+                <tr>
+                    <td><strong>Peso (<code>w</code>)</strong></td>
+                    <td>Un <code>float</code> que indica la importancia de una partícula para el muestreo de la siguiente generación.</td>
+                    <td>El peso de importancia que corrige la diferencia entre la distribución de muestreo y la distribución objetivo.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>El Algoritmo Paso a Paso</h3>
+
+        <h4>S1: Inicialización</h4>
+        <div class="profile-block">
+            <p><strong>Propósito:</strong> Configurar los parámetros de ejecución del algoritmo.</p>
+            <p><strong>Interpretación (Ingeniería):</strong> Se definen las constantes y se prepara el bucle principal.</p>
+            <pre><code>Tolerances = [50.0, 25.0, 10.0, 5.0, 1.0] # Umbrales de error decrecientes
+N = 1000  # Tamaño de la población
+current_t = 1 # Empezamos en la primera generación</code></pre>
+            <p><strong>Interpretación (Matemáticas):</strong> Se fija la secuencia de tolerancias <code>ε_1 > ε_2 > ... > ε_T</code> y el número de partículas <code>N</code>. Se inicializa el índice de población <code>t=1</code>.</p>
+        </div>
+
+        <h4>S2.0: Inicio de una Generación</h4>
+         <div class="profile-block">
+            <p><strong>Propósito:</strong> Preparar las estructuras de datos para la nueva población.</p>
+            <p><strong>Interpretación (Ingeniería):</strong> Se inicializan los <code>arrays</code> que contendrán las partículas y pesos de la generación <code>t</code>.</p>
+            <pre><code>Population[current_t] = []
+Weights[current_t] = []</code></pre>
+            <p><strong>Interpretación (Matemáticas):</strong> Se preparan los conjuntos para la población <code>{θ_t}</code> y los pesos <code>{w_t}</code>.</p>
+        </div>
+
+        <h4>S2.1: Bucle de Propuesta y Selección de una Partícula</h4>
+        <div class="profile-block">
+            <p><strong>Propósito:</strong> Generar una partícula candidata y aceptarla si su simulación se parece lo suficiente a los datos reales.</p>
+            <p><strong>Interpretación (Ingeniería):</strong> Se itera <code>N</code> veces para encontrar <code>N</code> partículas válidas.</p>
+            <pre><code>for i in 1..N:
+    while True: # Bucle hasta aceptar una partícula
+        # 1. Proponer un candidato
+        if current_t == 1:
+            candidate = sample_from_prior_range()
+        else:
+            parent = weighted_sample(Population[t-1], Weights[t-1])
+            candidate = jiggle_function(parent)
+
+        # 2. Simular y medir error
+        sim_data = model(candidate)
+        error = distance(sim_data, observed_data)
+
+        # 3. Aceptar o rechazar
+        if error <= Tolerances[current_t]:
+            # ¡Aceptada! Salir del bucle y procesarla en S2.2
+            break</code></pre>
+            <p><strong>Interpretación (Matemáticas):</strong> Para cada <code>i</code> de 1 a <code>N</code>, se repite: se propone un candidato <code>θ**</code> (desde el prior <code>π(θ)</code> si <code>t=1</code>, o perturbando una <code>θ*</code> de la población anterior si <code>t>1</code>). Se acepta si <code>d(D_sim, D_obs) <= ε_t</code>.</p>
+        </div>
+        
+        <h4>S2.2: Almacenamiento y Cálculo del Peso</h4>
+        <div class="profile-block">
+             <p><strong>Propósito:</strong> Guardar la partícula aceptada y calcular su peso, que refleja su importancia y corrige sesgos del muestreo.</p>
+            <p><strong>Interpretación (Ingeniería):</strong> Se añade la partícula al <code>array</code> de la población y se calcula su peso.</p>
+            <pre><code>Population[current_t].add(candidate)
+
+# --- Cálculo del Peso ---
+if current_t == 1:
+    # En la primera ronda, todas las soluciones son igual de importantes
+    new_weight = 1.0
+else:
+    # El peso es la plausibilidad a priori dividida por la
+    # probabilidad de haberla generado ("popularidad").
+    numerator = prior_pdf(candidate) # La "altura" en el paisaje del prior
+    
+    denominator = 0.0
+    for j in 1..N:
+        old_particle = Population[t-1][j]
+        old_weight = Weights[t-1][j]
+        # La función "jiggle" debe poder decirnos la prob. de la transición
+        transition_prob = jiggle_function.pdf(candidate | old_particle)
+        denominator += old_weight * transition_prob
+        
+    new_weight = numerator / denominator
+
+Weights[current_t].add(new_weight)</code></pre>
+            <p><strong>Interpretación (Matemáticas):</strong> Se añade <code>θ**</code> a <code>{θ_t}</code>. El peso <code>w_t</code> se calcula como <code>w_t = π(θ**) / Σ[w_{t-1} * K_t(θ**|θ_{t-1})]</code>. Si <code>t=1</code>, <code>w_1 = 1</code>. El numerador es el valor de la PDF del prior en el punto <code>θ**</code>. El denominador es la densidad de probabilidad de la mezcla de kernels de la población anterior, evaluada en <code>θ**</code>.</p>
+        </div>
+
+        <h4>S3: Normalización y Siguiente Iteración</h4>
+        <div class="profile-block">
+            <p><strong>Propósito:</strong> Estandarizar los pesos para que sumen 1 y puedan usarse como una distribución de probabilidad para el muestreo de la siguiente generación.</p>
+            <p><strong>Interpretación (Ingeniería):</strong></p>
+            <pre><code># Al final del bucle for i in 1..N
+total_weight = sum(Weights[current_t])
+for j in 1..N:
+    Weights[current_t][j] = Weights[current_t][j] / total_weight
+
+# Pasar a la siguiente generación
+current_t += 1</code></pre>
+            <p><strong>Interpretación (Matemáticas):</strong> Se normalizan los pesos <code>w_t</code> para que <code>Σ(w_t) = 1</code>. Se incrementa <code>t</code>. Si <code>t <= T</code>, se regresa a S2.0. Si no, el algoritmo finaliza y <code>{θ_T}</code> con sus pesos <code>{w_T}</code> es la aproximación de la distribución a posteriori.</p>
+        </div>
+
+        <hr>
+
+        <h2>Parte 2: Aplicación en Ejemplos del Paper</h2>
+        
+        <h3>Resumen de los Ejemplos</h3>
+        <ul>
+            <li><strong>Ejemplo 3.1 (Lotka-Volterra):</strong> Se utiliza un modelo clásico de depredador-presa para demostrar dos puntos clave del algoritmo ABC-SMC:
+                <ol>
+                    <li><strong>Eficiencia:</strong> Es computacionalmente muy superior a métodos más simples, necesitando cientos de veces menos simulaciones para alcanzar un resultado preciso.</li>
+                    <li><strong>Flexibilidad:</strong> Funciona sin cambios tanto para modelos deterministas (basados en Ecuaciones Diferenciales Ordinarias) como para modelos estocásticos (que usan simuladores como el Algoritmo de Gillespie).</li>
+                </ol>
+            </li>
+            <li><strong>Ejemplo 3.2 (Repressilator):</strong> Se emplea un modelo más complejo de un circuito genético para ilustrar la capacidad más avanzada del algoritmo:
+                <ul><li><strong>Análisis de Sensibilidad y Estructura:</strong> Más allá de inferir parámetros, el método revela qué parámetros son cruciales para el comportamiento del sistema y cuáles son "identificables" con los datos experimentales disponibles. Proporciona un diagnóstico profundo sobre la relación entre el modelo y los datos, una herramienta muy potente para cualquier científico o ingeniero.</li></ul>
+            </li>
+        </ul>
+
+        <h3>Ejemplo 3.1: Modelo Depredador-Presa de Lotka-Volterra</h3>
+        <p>Este es el modelo "hola, mundo" de los sistemas dinámicos. Describe cómo las poblaciones de depredadores y presas interactúan y oscilan en el tiempo.</p>
+
+        <h4>3.1.1: El Caso Determinista (Curvas Perfectas con Ruido)</h4>
+         <div class="profile-block">
+            <h5>Explicación (Ingeniería Informática):</h5>
+            <ul>
+                <li><strong>Setup del Test:</strong>
+                    <ol>
+                        <li><strong>Generación de "Ground Truth":</strong> Se ejecuta el modelo con <code>a=1</code> y <code>b=1</code> para generar las curvas "verdaderas".</li>
+                        <li><strong>Creación de "Datos Observados":</strong> Se toman solo 8 puntos de esas curvas y se les añade ruido aleatorio. Esto simula un experimento real, donde las mediciones son imperfectas y escasas.</li>
+                        <li><strong>Función de Distancia:</strong> Se usa la Suma de Errores al Cuadrado (SSE) entre los 8 puntos de la simulación y los 8 puntos observados.</li>
+                    </ol>
+                </li>
+                <li><strong>Benchmark de Rendimiento:</strong>
+                    <ul>
+                        <li><strong>Fuerza Bruta (ABC Rejection):</strong> Necesitó <strong>14.1 millones</strong> de simulaciones para encontrar 1000 partículas válidas. Extremadamente ineficiente.</li>
+                        <li><strong>ABC-SMC (el método del paper):</strong> Necesitó solo <strong>52,194</strong> simulaciones en total para obtener el mismo resultado, pero con mucha más precisión. Es <strong>~270 veces más rápido</strong>.</li>
+                    </ul>
+                </li>
+                <li><strong>Resultado:</strong> El algoritmo devuelve una población de 1000 <code>structs</code> de parámetros. Al hacer un histograma de los valores <code>a</code> y <code>b</code> de esos structs, se ve que se agrupan exactamente alrededor de <code>(1, 1)</code>. <strong>El test pasa: el código funciona y es eficiente.</strong></li>
+            </ul>
+        </div>
+        
+        <div class="profile-block">
+            <h5>Explicación (Biología/Matemáticas):</h5>
+            <ul>
+                <li><strong>Hipótesis:</strong> ¿Podemos recuperar los parámetros <code>a</code> y <code>b</code> del sistema a partir de datos escasos y ruidosos, que es el escenario experimental habitual?</li>
+                <li><strong>Análisis de Eficiencia:</strong> Se compara el ABC-SMC con métodos más simples (rejection sampling, MCMC). Se demuestra que el enfoque secuencial reduce drásticamente el coste computacional, ya que guía la búsqueda hacia regiones de alta probabilidad posterior en lugar de explorar a ciegas el espacio del prior.</li>
+                <li><strong>Resultado:</strong> La distribución a posteriori final para los parámetros <code>a</code> y <code>b</code> (Figura 2f del paper) está correctamente centrada en los valores verdaderos <code>(1, 1)</code> usados para generar los datos. Esto valida que el método es capaz de inferir los parámetros correctos del sistema dinámico.</li>
+            </ul>
+        </div>
+
+        <h4>3.1.2: El Caso Estocástico (Simulaciones inherentemente ruidosas)</h4>
+        <div class="profile-block">
+            <h5>Explicación (Ingeniería Informática):</h5>
+             <ul>
+                <li><strong>Cambio en el <code>model()</code>:</strong> En lugar de un ODE solver, la función <code>model()</code> ahora usa el <strong>Algoritmo de Gillespie</strong>. Este es un método estándar para simular sistemas donde los eventos (nacimientos, muertes, reacciones) ocurren de forma aleatoria en el tiempo. Cada vez que lo ejecutas con los mismos parámetros, obtienes un resultado ligeramente diferente.</li>
+                <li><strong>Parámetros:</strong> Los nuevos parámetros son <code>(c1, c2, c3)</code>, que representan las propensiones de las reacciones estocásticas.</li>
+                <li><strong>Resultado:</strong> El algoritmo funciona sin necesidad de cambiar su lógica principal. Se le pasa una función <code>model()</code> diferente y es capaz de encontrar los valores correctos para <code>c1, c2, c3</code>. <strong>Demuestra la modularidad y flexibilidad del framework ABC-SMC.</strong></li>
+            </ul>
+        </div>
+        <div class="profile-block">
+            <h5>Explicación (Biología/Matemáticas):</h5>
+            <ul>
+                <li><strong>Hipótesis:</strong> ¿Se puede aplicar el mismo formalismo a sistemas estocásticos, descritos por una Ecuación Maestra en lugar de ODEs? Los modelos estocásticos son a menudo más realistas para sistemas biológicos a nivel celular.</li>
+                <li><strong>Metodología:</strong> El ABC-SMC es naturalmente compatible con modelos estocásticos, ya que solo requiere la capacidad de simular datos desde el modelo, no resolverlo analíticamente. El Algoritmo de Gillespie proporciona este mecanismo de simulación.</li>
+                <li><strong>Resultado:</strong> Las distribuciones a posteriori para <code>c1, c2, c3</code> (Figura 3) se centran correctamente en los valores verdaderos. Se demuestra que el ABC-SMC es un método general que no está limitado a un tipo particular de modelo matemático (determinista o estocástico).</li>
+            </ul>
+        </div>
+        
+        <h3>Ejemplo 3.2: El Modelo Repressilator</h3>
+        <p>Este es un modelo famoso de un circuito genético sintético. Tres genes se reprimen entre sí en un bucle, creando oscilaciones. Es más complejo, con 6 ecuaciones y 4 parámetros a inferir: <code>θ = (α0, n, β, α)</code>.</p>
+        
+        <h4>3.2.1: El Caso Determinista y el Análisis de Sensibilidad</h4>
+        <div class="profile-block">
+            <h5>Explicación (Ingeniería Informática):</h5>
+            <ul>
+                <li><strong>Setup del Test:</strong> Similar al anterior, pero con un giro: se simulan las 6 variables (3 mRNAs y 3 proteínas), pero la <strong>función de distancia solo usa los datos de los 3 mRNAs</strong>. Esto simula un experimento donde solo puedes medir una parte del sistema.</li>
+                <li><strong>Resultado 2 (Análisis de "Inferibilidad"):</strong> Al observar cómo evoluciona la incertidumbre de cada parámetro a lo largo de las generaciones (Figura 4b), se ve que el error para el parámetro <code>n</code> baja muy rápido, mientras que el error para <code>α</code> apenas cambia.
+                    <ul><li><strong>Lección para el Ingeniero:</strong> Tus datos de entrada (los niveles de mRNA) contienen mucha información para averiguar <code>n</code>, pero casi ninguna para averiguar <code>α</code>. Si quisieras saber el valor de <code>α</code>, necesitarías un tipo de experimento diferente. <strong>El algoritmo te dice qué partes de tu modelo puedes identificar con los datos que tienes.</strong></li></ul>
+                </li>
+                <li><strong>Resultado 3 (Análisis de Componentes Principales - PCA):</strong> Se aplica PCA a la población final de partículas (Figura 4d).
+                    <ul><li><strong>Lección para el Ingeniero:</strong> El PCA encuentra las "direcciones" más importantes en el espacio de parámetros. La "dirección" menos importante (el último componente principal) corresponde a la combinación de parámetros a la que el modelo es <strong>más sensible</strong>. En este caso, una combinación de <code>n</code> y <code>β</code>. <strong>Esto te ayuda a depurar y entender las dependencias ocultas en tu modelo complejo.</strong></li></ul>
+                </li>
+            </ul>
+        </div>
+        <div class="profile-block">
+            <h5>Explicación (Biología/Matemáticas):</h5>
+            <ul>
+                <li><strong>Hipótesis:</strong> Además de la inferencia, ¿puede el método revelar propiedades estructurales del modelo, como la sensibilidad a los parámetros y la "identificabilidad" de los mismos?</li>
+                <li><strong>Análisis de Sensibilidad Global:</strong> El seguimiento de las distribuciones marginales intermedias (de <code>t=1</code> a <code>T</code>) proporciona un análisis de sensibilidad global "gratuito". Los parámetros cuyas distribuciones se contraen rápidamente (como <code>n</code>) son aquellos a los que el sistema es muy sensible y que los datos pueden identificar bien (son "identificables"). Los parámetros que apenas cambian (como <code>α</code>) son "sloppy" (descuidados).</li>
+                <li><strong>Identificación de "Stiffness":</strong> El PCA sobre la distribución a posteriori final revela las combinaciones de parámetros "stiff" (rígidas) y "sloppy". El último eigen-vector (el de menor eigen-valor) apunta en la dirección del espacio de parámetros a la que el modelo es más sensible. Esto es análogo a calcular la matriz Hessiana en el máximo de la verosimilitud. Revela que la dinámica del sistema está fuertemente controlada por una combinación específica de <code>n</code> y <code>β</code>.</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,18 @@
+category,metric,phenotype_a,phenotype_b,clinical_benchmark,ci_95_lo,ci_95_hi
+Cumulative Risk,Risk_Age_30,1.9,4.1,4.0,2.0,7.0
+Cumulative Risk,Risk_Age_40,25.0,28.7,26.0,22.0,30.0
+Cumulative Risk,Risk_Age_50,47.5,49.3,46.0,41.0,52.0
+Cumulative Risk,Risk_Age_60,58.1,58.7,58.0,52.0,65.0
+Cumulative Risk,Risk_Age_70,62.9,63.1,65.0,56.0,73.0
+Cumulative Risk,Risk_Age_80,65.1,64.6,70.0,60.0,80.0
+Goodness of Fit,SSE,36.09000000000006,51.45000000000004,0.0,0.0,0.0
+Goodness of Fit,SSE_Weighted,4.394233037482284,4.496162660119981,0.0,0.0,0.0
+Goodness of Fit,Mahalanobis_Distance,1.9678049294622388,1.8615689830294153,0.0,0.0,0.0
+Goodness of Fit,CI_Coverage_Hits,5.0,6.0,6.0,6.0,6.0
+Progression Stats,Lifetime_Penetrance_Pct,65.1,64.6,70.0,60.0,80.0
+Progression Stats,Onset_Age_Mean,45.36866359447004,43.922600619195045,,,
+Progression Stats,Onset_Age_Median,43.0,42.0,,,
+Progression Stats,Progression_Gap_Mean,13.341384863123993,16.234323432343235,,,
+Hypothesis Test,KS_Stat_Onset,0.07777746072962292,0.036662625123875844,,,
+Hypothesis Test,Welch_t_Onset,2.4144648072164285,0.01589625765815566,,,
+Hypothesis Test,Welch_t_Prog_Gap,-20.507192568943605,9.08911909672077e-80,,,

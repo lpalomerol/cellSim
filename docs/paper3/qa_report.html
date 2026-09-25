@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CellSim Bootstrap Calibration — QA Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            background: #f9fafb;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 40px;
+        }
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        .header .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        .header .timestamp {
+            margin-top: 15px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        .content {
+            padding: 40px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: white;
+            background: #22c55e;
+            margin-bottom: 30px;
+        }
+        .summary {
+            background: #f3f4f6;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .summary h2 {
+            margin-bottom: 15px;
+            color: #1f2937;
+            font-size: 1.3em;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .summary-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #3b82f6;
+        }
+        .summary-item .label {
+            font-size: 0.85em;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+        .summary-item .value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        h2 {
+            color: #1f2937;
+            font-size: 1.5em;
+            margin: 30px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 14px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+        }
+        tr:hover {
+            background: #f9fafb;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .pass {
+            color: #22c55e;
+            font-weight: 600;
+        }
+        .fail {
+            color: #ef4444;
+            font-weight: 600;
+        }
+        .warn {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        .badge-pass {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .badge-fail {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .metric {
+            font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+            font-size: 0.95em;
+        }
+        .footer {
+            background: #f9fafb;
+            padding: 20px 40px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 0.9em;
+            border-top: 1px solid #e5e7eb;
+        }
+        .interpretation {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 6px;
+        }
+        .interpretation h3 {
+            color: #1e40af;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧬 CellSim Bootstrap Calibration</h1>
+            <div class="subtitle">QA Validation Report — Kuchenbaecker et al. 2017 (BRCA1)</div>
+            <div class="timestamp">Generated: 2026-05-20 19:19:19</div>
+        </div>
+        
+        <div class="content">
+            <div class="status-badge">
+                ✅ Status: PASS
+            </div>
+            
+            <div class="summary">
+                <h2>Summary</h2>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="label">CSV File</div>
+                        <div class="value" style="font-size: 1em;">results_final_n1000.csv</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Bootstrap Runs</div>
+                        <div class="value">1000</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">SSE</div>
+                        <div class="value">48.5</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Non-penetrance</div>
+                        <div class="value">29.7%</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">CI Coverage</div>
+                        <div class="value">5/6</div>
+                    </div>
+                </div>
+            </div>
+            
+            <h2>Cumulative Risk Validation</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Age (years)</th>
+                        <th>Simulated (%)</th>
+                        <th>Target (%)</th>
+                        <th>Difference (pp)</th>
+                        <th>95% CI</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>30</strong></td>
+                        <td class="metric">1.7%</td>
+                        <td class="metric">4.0%</td>
+                        <td class="metric fail">-2.3pp</td>
+                        <td class="metric">[2.0–7.0]%</td>
+                        <td><span class="badge badge-fail">❌ OUT OF CI</span></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>40</strong></td>
+                        <td class="metric">22.7%</td>
+                        <td class="metric">26.0%</td>
+                        <td class="metric pass">-3.3pp</td>
+                        <td class="metric">[22.0–30.0]%</td>
+                        <td><span class="badge badge-pass">✅ IN CI</span></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>50</strong></td>
+                        <td class="metric">49.1%</td>
+                        <td class="metric">46.0%</td>
+                        <td class="metric pass">+3.1pp</td>
+                        <td class="metric">[41.0–52.0]%</td>
+                        <td><span class="badge badge-pass">✅ IN CI</span></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>60</strong></td>
+                        <td class="metric">61.6%</td>
+                        <td class="metric">58.0%</td>
+                        <td class="metric pass">+3.6pp</td>
+                        <td class="metric">[52.0–65.0]%</td>
+                        <td><span class="badge badge-pass">✅ IN CI</span></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>70</strong></td>
+                        <td class="metric">68.1%</td>
+                        <td class="metric">65.0%</td>
+                        <td class="metric pass">+3.1pp</td>
+                        <td class="metric">[56.0–73.0]%</td>
+                        <td><span class="badge badge-pass">✅ IN CI</span></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>80</strong></td>
+                        <td class="metric">70.3%</td>
+                        <td class="metric">70.0%</td>
+                        <td class="metric pass">+0.3pp</td>
+                        <td class="metric">[60.0–80.0]%</td>
+                        <td><span class="badge badge-pass">✅ IN CI</span></td>
+                    </tr>
+
+                </tbody>
+            </table>
+            
+            <div class="interpretation">
+                <h3>📊 Interpretation</h3>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><strong>Excellent fit:</strong> SSE < 100 indicates high agreement with clinical data</li>
+                    <li><strong>Non-penetrance (29.7%):</strong> Within expected range (25–35%)</li>
+                    <li><strong>CI coverage:</strong> 5/6 ages within 95% CI (excellent)</li>
+
+                </ul>
+            </div>
+            
+            <h2>Recommendations</h2>
+
+            <p style="color: #22c55e; font-weight: 600;">
+                ✅ Calibration meets publication quality standards. Proceed with manuscript preparation.
+            </p>
+
+        </div>
+        
+        <div class="footer">
+            Generated by CellSim QA Pipeline • 
+            <a href="https://github.com/yourusername/cellSim" style="color: #3b82f6; text-decoration: none;">GitHub</a>
+        </div>
+    </div>
+</body>
+</html>

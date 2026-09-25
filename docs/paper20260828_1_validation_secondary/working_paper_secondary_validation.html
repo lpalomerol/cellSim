@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cellSim: Inferencia Bayesiana Canónica y Validación de Parámetros Secundarios</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- MathJax for rendering LaTeX formulas -->
+    <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm 15mm 20mm 15mm;
+            @bottom-right {
+                content: counter(page);
+            }
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.65;
+            color: #1e293b;
+            background: #ffffff;
+            padding: 40px 60px;
+            max-width: 1000px;
+            margin: 0 auto;
+            font-size: 14px;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+                max-width: 100%;
+                font-size: 12px;
+                color: #0f172a;
+            }
+            .no-print { display: none !important; }
+            h1, h2, h3, h4 { page-break-after: avoid; }
+            table, figure, .figure-container, pre { page-break-inside: avoid; }
+        }
+
+        h1 {
+            font-family: 'Merriweather', Georgia, serif;
+            font-size: 26px;
+            color: #0f172a;
+            margin-bottom: 8px;
+            font-weight: 700;
+            line-height: 1.3;
+            border-bottom: 2px solid #0284c7;
+            padding-bottom: 12px;
+        }
+        h2 {
+            font-family: 'Inter', sans-serif;
+            font-size: 19px;
+            color: #0369a1;
+            margin-top: 36px;
+            margin-bottom: 14px;
+            font-weight: 700;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 6px;
+        }
+        h3 {
+            font-size: 15px;
+            color: #1e293b;
+            margin-top: 24px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        h4 {
+            font-size: 14px;
+            color: #334155;
+            margin-top: 18px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        p {
+            margin-bottom: 14px;
+            text-align: justify;
+        }
+        ul, ol {
+            margin-left: 24px;
+            margin-bottom: 14px;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+        hr {
+            border: 0;
+            height: 1px;
+            background: #e2e8f0;
+            margin: 30px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 12.5px;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 9px 12px;
+            text-align: left;
+            border: 1px solid #cbd5e1;
+        }
+        th {
+            background: #f1f5f9;
+            color: #0f172a;
+            font-weight: 600;
+            border-bottom: 2px solid #94a3b8;
+        }
+        tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        blockquote {
+            border-left: 4px solid #0284c7;
+            padding: 12px 18px;
+            margin: 18px 0;
+            background: #f0f9ff;
+            border-radius: 0 6px 6px 0;
+            color: #0369a1;
+            font-size: 13.5px;
+        }
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: #f1f5f9;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #0f172a;
+        }
+        pre {
+            font-family: 'JetBrains Mono', monospace;
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 14px 18px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 18px 0;
+            font-size: 11.5px;
+            line-height: 1.5;
+        }
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin: 12px 0 6px 0;
+            border: 1px solid #e2e8f0;
+        }
+        em {
+            color: #475569;
+            font-size: 12.5px;
+        }
+        a {
+            color: #0284c7;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<h1 id="cellsim-working-paper-2026-01-evaluacion-de-sensibilidad-global-de-parametros-secundarios-reduccion-de-varianza-multivariante-y-dinamica-fisiologica-tp53brca1">cellSim Working Paper 2026-01: Evaluación de Sensibilidad Global de Parámetros Secundarios, Reducción de Varianza Multivariante y Dinámica Fisiológica TP53/BRCA1</h1>
+<p><strong>Autores:</strong> Equipo cellSim<br />
+<strong>Fecha:</strong> 28 de agosto de 2026<br />
+<strong>Documento de Trabajo:</strong> <code>docs/paper20260828_1_validation_secondary/working_paper_secondary_validation.md</code><br />
+<strong>Clasificación:</strong> Biología Teórica, Oncología Matemática, Inferencia Bayesiana (ABC-SMC)</p>
+<hr />
+<h2 id="resumen-ejecutivo-abstract">Resumen Ejecutivo (Abstract)</h2>
+<p>En este documento de trabajo se analiza la robustez estructural, la identificabilidad bayesiana y la resiliencia del modelo estocástico multiescala basado en agentes <strong>cellSim</strong> ante la relajación simultánea de los parámetros que permanecieron fijos en su calibración original. Mediante un protocolo de Approximate Bayesian Computation con Sequential Monte Carlo (ABC-SMC) estructurado en tres niveles crecientes de libertad e incertidumbre ($\pm10\%$, $\pm25\%$ y $\pm50\%$), se evalúa la contracción del espacio posterior frente a la cohorte epidemiológica de referencia de portadoras de $BRCA1^{+/-}$ (<em>Kuchenbaecker et al., JAMA 2017</em>). </p>
+<p>Demostramos que:
+1. <strong>Dominancia de Parámetros Primarios:</strong> La tasa de mutación somática del segundo alelo de $BRCA1$ ($\beta_{BRCA1}$) y el coeficiente de inestabilidad con $BRCA1$ activo ($\delta_{\text{BRCA+}}$, antes denominado $\delta_{low}$) concentran la práctica totalidad de la identificabilidad bayesiana, contrayendo sus intervalos de credibilidad al 95% a una fracción estrecha del prior ($\beta_{BRCA1} = 0.0459 \pm 0.0041$ [$95\%\text{ CI: } 0.0381, 0.0535$] y $\delta_{\text{BRCA+}} = 0.1067 \pm 0.0164$ [$95\%\text{ CI: } 0.0795, 0.1403$]).
+2. <strong>Naturaleza de Parámetros <em>Sloppy</em> (Blandos):</strong> Los parámetros secundarios (<code>d1_threshold</code> / $\theta_{D\text{_intrinseca}}$, <code>d2_threshold</code> / $\theta_{D\text{_inmune}}$, <code>division_rate</code>, <code>tumor_threshold</code>) presentan distribuciones posteriores planas que abarcan la totalidad del soporte a priori con centros de gravedad invariantes en sus valores originales $\theta_0$ ($95\%\text{ CI}$ coincidentes con los límites del prior). Esto demuestra matemáticamente que los datos epidemiológicos clínicos agregados no restringen sus valores individuales y que fijarlos en el diseño base responde estrictamente al principio de parsimonia (Navaja de Ockham).
+3. <strong>El Gen TP53 como Interruptor Fisiológico On/Off:</strong> A diferencia de $BRCA1$ (cuya tasa de mutación $\beta_{BRCA1}$ modula continuamente la latencia clínica), la tasa de degradación de $TP53$ ($\text{tp53_rate} = 0.0030$) actúa como una condición de frontera biológica crítica: un incremento de apenas $+0.0005$ destruye la meseta clínica del $\approx 70\%$ de penetrancia acumulada observada en pacientes humanas a los 80 años, disparando el error cuadrático global ($SSE$) en un $+1200\%$.
+4. <strong>Estabilidad de Fenotipos Tumorales:</strong> La estructura bimodal de dos subtipos tumorales emergentes—<strong>Fenotipo A (Escape Proliferativo Clonal / Alta Proliferación)</strong> y <strong>Fenotipo B (Contención Tisular / Basal-Resiliente)</strong>—se mantiene invariante en los niveles fisiológicos de incertidumbre ($\pm10\%$ y $\pm25\%$), colapsando únicamente en el nivel extremo ($\pm50\%$) por inducción de ruido blanco estocástico derivado de la sobre-parametrización.</p>
+<hr />
+<h2 id="1-introduccion-y-marco-del-modelo">1. Introducción y Marco del Modelo</h2>
+<h3 id="11-contexto-biologico-y-definicion-del-modelo-agentic-cell">1.1 Contexto Biológico y Definición del Modelo Agentic Cell</h3>
+<p>La carcinogénesis mamaria en pacientes portadoras de mutaciones germinales heterocigotas en el gen $BRCA1$ ($BRCA1^{+/-}$) representa un proceso biológico complejo gobernado por la interacción estocástica entre la pérdida de función de reparación genómica, la vigilancia apoptótica y la capacidad de evasión del microambiente celular.</p>
+<p>El simulador <strong>cellSim</strong> modela este proceso mediante el paradigma de <strong>Células Agénticas (<em>Agentic Cells</em>)</strong>, donde cada célula del tejido epitelial actúa como un agente computacional autónomo con estado interno, ciclo de vida secuencial y toma de decisiones probabilística basada en umbrales de daño.</p>
+<pre><code>       ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+       │                          ESTADOS Y TRANSICIONES DEL AGENTE CELULAR                          │
+       └─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  [BASELINE]              [UNSTABLE]              [UNPROTECTED]          [PRIMER]                  [TUMORAL]
+  BRCA1: +/-              BRCA1: +/-              BRCA1: +/-             BRCA1: +/- o -/-          BRCA1: -/-
+  TP53:  +/+       ──&gt;    TP53:  +/-       ──&gt;    TP53:  -/-      ──&gt;    D_intrinseca ≥ θ_D_intr ──&gt; D_inmune ≥ θ_D_inmune
+  (Sano/Estable)          (Daño Leve)             (Sin Freno p53)        (Pre-tumoral)             (Evasión Inmune)
+       │                       │
+       │ (Si BRCA1 muta -/-)   │ (Si BRCA1 muta -/-)
+       ▼                       ▼
+    [DEAD]                  [DEAD]
+  (Apoptosis p53)         (Apoptosis p53)
+</code></pre>
+<blockquote>
+<p>⚠️ <strong>Regla Biológica Fundamental de Viabilidad:</strong> Si una célula en estado <code>BASELINE</code> (TP53 $+/+$) o <code>UNSTABLE</code> (TP53 $+/-$) experimenta la pérdida somática del segundo alelo de BRCA1 ($BRCA1^{+/-} \to BRCA1^{-/-}$), <strong>la célula es eliminada inmediatamente por apoptosis (transición directa a <code>DEAD</code>)</strong>. La presencia de proteína p53 funcional detecta el colapso en la recombinación homóloga e induce el suicidio celular. Para que una célula con daño severo en BRCA1 sobreviva y pueda progresar hacia la malignidad, <strong>es requisito biológico sine qua non que TP53 haya mutado previamente a $-/-$ (<code>UNPROTECTED</code>)</strong>.</p>
+</blockquote>
+<p>Cada célula está caracterizada formalmente por <strong>cuatro variables de estado y dos umbrales críticos de activación</strong>:</p>
+<ol>
+<li><strong>Estado Génico $BRCA1$:</strong> Gen supresor tumoral responsable de la reparación de roturas de doble cadena de ADN por recombinación homóloga.</li>
+<li><em>Estado nativo:</em> $BRCA1^{+/-}$ (heterocigoto, funcional, vivo).</li>
+<li><em>Transición:</em> Mutación somática unidireccional del segundo alelo $BRCA1^{+/-} \to BRCA1^{-/-}$ con tasa probabilística anual $\beta_{BRCA1}$ (<code>brca1_rate</code>).</li>
+<li><em>Regla biológica de letalidad sintética:</em> Una célula $BRCA1^{-/-}$ en presencia de un gen $TP53$ funcional es detectada y sufre apoptosis intrínseca inmediata (<code>DEAD</code>). Solo si $TP53$ ha perdido su función ($-/-$), la célula $BRCA1^{-/-}$ sobrevive, acumulando daño genómico acelerado.</li>
+<li><strong>Estado Génico $TP53$:</strong> El "guardián del genoma", mediador maestro de la parada del ciclo celular y de la apoptosis intrínseca.</li>
+<li><em>Estados posibles:</em> $+/+$ (homocigoto funcional), $+/-$ (heterocigoto con función parcial), $-/-$ (nulo / deficiente).</li>
+<li><em>Transición:</em> Progresión mutacional estocástica $+/+ \to +/- \to -/-$ regida por la tasa base $\text{tp53_rate}$.</li>
+<li><strong>Acumulador $D_{\text{intrínseca}}$ y Umbral $\theta_{D\text{_intrinseca}}$ (Daño ADN Intrínseco / Inestabilidad Genómica):</strong> </li>
+<li>$D_{\text{intrínseca}}$ (denominado en código <code>d1</code>) es una variable continua adimensional que cuantifica la carga de daño macromolecular y aberraciones cromosómicas acumuladas.</li>
+<li><em>Dinámica de crecimiento:</em> $D_{\text{intrínseca}}(t+1) = D_{\text{intrínseca}}(t) + \delta_{\text{intrínseca}}(t) + \text{age_factor}(t)$.</li>
+<li><strong>Umbral $\theta_{D\text{_intrinseca}} = 2.0$ (Barrera de Inestabilidad Intrínseca):</strong> Punto de corte biofísico a partir del cual el daño supera la capacidad basal de reparación celular. Cuando $D_{\text{intrínseca}} \ge \theta_{D\text{_intrinseca}}$ bajo fondo $TP53^{-/-}$, la célula transiciona al estado <strong>PRIMER</strong> (célula pre-neoplásica detectable por el microambiente).</li>
+<li><strong>Acumulador $D_{\text{inmune}}$ y Umbral $\theta_{D\text{_inmune}}$ (Resistencia Inmune / Evasión Extrínseca):</strong> </li>
+<li>$D_{\text{inmune}}$ (denominado en código <code>d2</code> o daño extrínseco) es una variable continua adimensional que mide el grado de inmunorresistencia y la capacidad de anular las señales pro-apoptóticas inducidas por el estroma y los linfocitos citotóxicos.</li>
+<li><em>Dinámica de crecimiento:</em> $D_{\text{inmune}}(t+1) = D_{\text{inmune}}(t) + \delta_{\text{inmune}}(t) + \text{age_factor}(t)$.</li>
+<li><strong>Umbral $\theta_{D\text{_inmune}} = 5.0$ (Barrera de Evasión Extrínseca / Inmune):</strong> Punto de corte biológico que representa la neutralización de la vigilancia inmune. Cuando $D_{\text{inmune}} \ge \theta_{D\text{_inmune}}$, la célula transiciona al estado <strong>TUMORAL</strong> (inmortalización celular, evasión de apoptosis extrínseca y desregulación proliferativa).</li>
+<li><strong>Ratio de Barrera $\theta_{D\text{_inmune}} / \theta_{D\text{_intrinseca}} = 2.5$:</strong> Esta asimetría formaliza matemáticamente que alcanzar la evasión inmune sostenida requiere $2.5\times$ más acumulación biológica que franquear la inestabilidad genómica intrínseca inicial.</li>
+</ol>
+<hr />
+<h3 id="12-resumen-de-la-calibracion-previa-abc-smc-y-comparacion-epidemiologica">1.2 Resumen de la Calibración Previa ABC-SMC y Comparación Epidemiológica</h3>
+<p>En la calibración fundamental de cellSim, el modelo fue parametrizado frente a la mayor cohorte clínica prospectiva de portadoras de $BRCA1$: el estudio de <strong>Kuchenbaecker et al. (JAMA 2017)</strong> ($N=9.856$ portadoras). A continuación, se presenta la comparación bidimensional entre la incidencia acumulada observada en la población general y en portadoras de $BRCA1^{+/-}$:</p>
+<h4 id="tabla-comparativa-de-incidencia-acumulada-de-cancer-de-mama-por-edad-poblacion-general-vs-portadoras-brca1">📊 <strong>Tabla Comparativa de Incidencia Acumulada de Cáncer de Mama por Edad: Población General vs. Portadoras BRCA1</strong></h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Edad (Años)</th>
+<th style="text-align: center;">IAPC</th>
+<th style="text-align: center;">IACB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><strong>20</strong></td>
+<td style="text-align: center;">$0.00\%$</td>
+<td style="text-align: center;">$0.00\%$</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>30</strong></td>
+<td style="text-align: center;">$0.08\%$</td>
+<td style="text-align: center;">$4.00\%$</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>40</strong></td>
+<td style="text-align: center;">$0.59\%$</td>
+<td style="text-align: center;">$26.00\%$</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>50</strong></td>
+<td style="text-align: center;">$2.23\%$</td>
+<td style="text-align: center;">$46.00\%$</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>60</strong></td>
+<td style="text-align: center;">$4.80\%$</td>
+<td style="text-align: center;">$58.00\%$</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>70</strong></td>
+<td style="text-align: center;">$8.14\%$</td>
+<td style="text-align: center;">$65.00\%$</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>80</strong></td>
+<td style="text-align: center;">$11.18\%$</td>
+<td style="text-align: center;">$70.00\%$</td>
+</tr>
+</tbody>
+</table>
+<p><em>Definición de siglas y fuentes:</em> <strong>IAPC</strong>: Incidencia Acumulada en Población General (<em>SEER / DevCan Database; Cancer Research UK</em>). <strong>IACB</strong>: Incidencia Acumulada en Cohorte $BRCA1^{+/-}$ (<em>Kuchenbaecker et al., JAMA 2017</em>, vector objetivo $\mathbf{y}_{\text{obs}}$ empleado en cellSim).</p>
+<p>Dado que la función de verosimilitud analítica $p(\mathbf{y}_{\text{obs}} \mid \theta)$ de un sistema estocástico de 500 células interactuando durante 80 años es intratable, se empleó <strong>Approximate Bayesian Computation acoplado a Sequential Monte Carlo (ABC-SMC)</strong> (<em>Toni et al., 2009; Liepe et al., 2014</em>).</p>
+<pre><code>┌─────────────────────────────────────────────────────────────────────────────┐
+│                    ALGORITMO ABC-SMC (Toni et al. 2009)                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+  Prior π(θ) ──&gt; [Generación 0: ε = 20.0] ──&gt; ρ(y*, y_obs) ≤ ε_0 (Rechazo)
+                        │
+                        ▼ (Kernel de Perturbación Gaussiano Adaptativo)
+                 [Generación 1: ε = 15.43]
+                        │
+                        ▼
+                 [Generación 2: ε = 11.61]
+                        │
+                        ▼
+                 [Generación 3: ε = 8.19]
+                        │
+                        ▼
+                 [Generación 4: ε = 6.20] ──&gt; Posterior Final p(θ | y_obs)
+                                               (Fit perfecto dentro de IC 95%)
+</code></pre>
+<h4 id="resultados-clave-de-la-calibracion-base-y-premisa-de-parametros-secundarios">Resultados Clave de la Calibración Base y Premisa de Parámetros Secundarios</h4>
+<ol>
+<li><strong>Identificación de Parámetros Primarios:</strong> Se obtuvieron distribuciones a posteriori estrechas para:</li>
+<li>$\beta_{BRCA1} = 0.0445 \pm 0.0041$ (tasa anual de segundo hit somático en $BRCA1$, $\sim 4.45\%$ anual).</li>
+<li>$\delta_{\text{BRCA+}} = 0.1093 \pm 0.0189$ (inestabilidad con $BRCA1$ activo / heterocigoto, antes $\delta_{low}$).</li>
+<li>$d_{\text{neo}} = 0.1564 \pm 0.0410$ (tasa de división y proliferación celular neoplásica).</li>
+<li><strong>Estructura Bimodal y Gradiente Funcional (Subtipos de Crecimiento):</strong> Se descubrió una fuerte anticorrelación lineal ($r = -0.609$, $p &lt; 10^{-21}$) entre $\delta_{\text{BRCA+}}$ y $d_{\text{neo}}$. Desde una perspectiva biológica, esto refleja dos estrategias celulares distintas:</li>
+<li><strong>Fenotipo A (Escape Proliferativo Clonal / Rápida Expansión):</strong> $\delta_{\text{BRCA+}} \approx 0.095, d_{\text{neo}} \approx 0.189$. Presenta una barrera apoptótica más laxa que permite que, una vez superado el punto de control, el clon tumoral colonice el tejido rápidamente.</li>
+<li><strong>Fenotipo B (Contención Tisular / Basal-Resiliente):</strong> $\delta_{\text{BRCA+}} \approx 0.116, d_{\text{neo}} \approx 0.133$. Muestra una mayor vigilancia celular y contención por el microambiente estromal, lo que genera una acumulación lenta y difusa de daño (<em>field cancerization</em>) con saturación tisular retardada.</li>
+<li><strong>Identificación Empírica de Parámetros Secundarios:</strong> En aquella primera fase de calibración exploratoria, con el fin de garantizar la identificabilidad numérica del sistema y evitar el sobreajuste en un espacio de 9 dimensiones, <strong>se identificaron y fijaron de forma empírica 5 parámetros secundarios</strong>: $\text{tp53_rate} = 0.0030$, $\theta_{D\text{_intrinseca}} = 2.0$, $\theta_{D\text{_inmune}} = 5.0$, $\text{division_rate} = 0.0010$ y $\text{tumor_threshold} = 0.05$.</li>
+</ol>
+<blockquote>
+<p>🎯 <strong>Motivación del Presente Estudio de Validación:</strong> La decisión inicial de fijar estos 5 parámetros fue empírica y metodológica. Por tanto, el objetivo central de este documento de trabajo es <strong>someter a prueba dicha premisa</strong>: liberar sistemáticamente los parámetros secundarios en tres grados de libertad crecientes ($\pm10\%$, $\pm25\%$, $\pm50\%$) para validar formalmente si la fijación original era matemáticamente sólida y biológicamente neutra.</p>
+</blockquote>
+<hr />
+<h2 id="2-diseno-del-experimento-de-sensibilidad-multinivel">2. Diseño del Experimento de Sensibilidad Multinivel</h2>
+<h3 id="21-planteamiento-del-problema-identificabilidad-y-la-navaja-de-ockham">2.1 Planteamiento del Problema: Identificabilidad y la Navaja de Ockham</h3>
+<p>Un desafío recurrente en la modelización matemática de sistemas biológicos complejos radica en la <strong>identificabilidad de parámetros</strong>: cuando el número de parámetros libres crece excesivamente frente a la dimensionalidad de las observaciones clínicas disponibles (en este caso, 6 puntos de incidencia acumulada $R(a)$ a lo largo de 80 años), los algoritmos de optimización e inferencia bayesiana caen en <strong>variedades degeneradas (<em>sloppy manifolds</em>)</strong>. En tales regiones del espacio, infinitas combinaciones arbitrarias de parámetros pueden generar curvas epidemiológicas macroscópicamente indistinguibles (<em>Gutenkunst et al., 2007; Transtrum et al., 2015; Liepe et al., 2014</em>).</p>
+<p>En la calibración inicial de cellSim, se fijaron 5 parámetros secundarios basándose en consideraciones empíricas y biofísicas para permitir que los 4 parámetros primarios ($\beta_{BRCA1}$, $\delta_{\text{BRCA+}}$, $\delta_{\text{BRCA-}}$, $d_{\text{neo}}$) absorbieran la varianza biológicamente significativa. </p>
+<p>Para verificar de forma cuantitativa y rigurosa qué ocurre cuando todos los parámetros varían libremente, se diseñó el presente <strong>experimento de sensibilidad bayesiana multinivel</strong>.</p>
+<pre><code>       ┌─────────────────────────────────────────────────────────────────────────────┐
+       │             DISEÑO DEL EXPERIMENTO DE SENSIBILIDAD MULTINIVEL               │
+       └─────────────────────────────────────────────────────────────────────────────┘
+
+   NIVEL 1: Margen Fisiológico (±10%)
+   ──────────────────────────────────────────────────────────
+   • Modela la incertidumbre y ruido de medición biológica.
+   • tp53_rate ∈ [0.0027, 0.0033], θ_D_intr ∈ [1.8, 2.2], θ_D_inmune ∈ [4.5, 5.5], etc.
+
+   NIVEL 2: Incertidumbre Intermedia (±25%)
+   ──────────────────────────────────────────────────────────
+   • Modela variabilidad biológica interindividual moderada.
+   • tp53_rate ∈ [0.00225, 0.00375], θ_D_intr ∈ [1.5, 2.5], θ_D_inmune ∈ [3.75, 6.25], etc.
+
+   NIVEL 3: Relajación Extrema (±50%)
+   ──────────────────────────────────────────────────────────
+   • Prueba de estrés / frontera: espacio no condicionado.
+   • tp53_rate ∈ [0.0015, 0.0045], θ_D_intr ∈ [1.0, 3.0], θ_D_inmune ∈ [2.5, 7.5], etc.
+</code></pre>
+<hr />
+<h3 id="22-taxonomia-de-parametros-del-modelo-y-espacio-de-busqueda-abc-smc">2.2 Taxonomía de Parámetros del Modelo y Espacio de Búsqueda ABC-SMC</h3>
+<p>Para facilitar la comprensión del sistema antes de detallar los rangos numéricos de búsqueda, a continuación se describe la taxonomía completa de los parámetros del modelo, divididos en <strong>Parámetros Primarios</strong> (objeto central de inferencia clínica) y <strong>Parámetros Secundarios</strong> (factores de escala biofísica y calibración homeostática):</p>
+<h4 id="tabla-preambulo-taxonomia-y-significado-biologico-de-los-parametros-del-modelo">📋 <strong>Tabla Preámbulo: Taxonomía y Significado Biológico de los Parámetros del Modelo</strong></h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Tipo</th>
+<th style="text-align: left;">Parámetro en Código</th>
+<th style="text-align: center;">Símbolo Matemático</th>
+<th style="text-align: left;">Significado Biológico y Rol Fisiológico</th>
+<th style="text-align: center;">Rango Típico / Unidades</th>
+<th style="text-align: left;">Justificación de su Clasificación</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>PRIMARIO</strong></td>
+<td style="text-align: left;"><code>brca1_rate</code></td>
+<td style="text-align: center;">$\beta_{BRCA1}$</td>
+<td style="text-align: left;"><strong>Tasa de Mutación Somática de $BRCA1$:</strong> Probabilidad anual de pérdida somática del segundo alelo ($BRCA1^{+/-} \to BRCA1^{-/-}$). Actúa como dial de latencia temporal.</td>
+<td style="text-align: center;">$[0.025, 0.080]\text{ año}^{-1}$</td>
+<td style="text-align: left;"><strong>Rígido (<em>Stiff</em>):</strong> Controla directamente la edad de inicio y pendiente de penetrancia clínica.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>PRIMARIO</strong></td>
+<td style="text-align: left;"><code>low_delta</code></td>
+<td style="text-align: center;">$\delta_{\text{BRCA+}}$</td>
+<td style="text-align: left;"><strong>Inestabilidad con $BRCA1$ Activo ($BRCA1^{+/-}$):</strong> Tasa basal de acumulación de daño genómico e inmune en células heterocigotas viables.</td>
+<td style="text-align: center;">$[0.060, 0.220]\text{ daño/año}$</td>
+<td style="text-align: left;"><strong>Rígido (<em>Stiff</em>):</strong> Dicta la velocidad de avance hacia el estado pre-tumoral en portadoras.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>PRIMARIO</strong></td>
+<td style="text-align: left;"><code>high_delta</code></td>
+<td style="text-align: center;">$\delta_{\text{BRCA-}}$</td>
+<td style="text-align: left;"><strong>Inestabilidad con $BRCA1$ Desactivado ($BRCA1^{-/-}$):</strong> Tasa acelerada de daño catastrófico tras la pérdida somática completa de reparación homóloga.</td>
+<td style="text-align: center;">$[0.120, 0.600]\text{ daño/año}$</td>
+<td style="text-align: left;"><strong>Sloppy condicionado:</strong> Satura rápidamente al superar la barrera $\delta_{\text{BRCA-}} &gt; \delta_{\text{BRCA+}}$.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>PRIMARIO</strong></td>
+<td style="text-align: left;"><code>neoplastic_div_rate</code></td>
+<td style="text-align: center;">$d_{\text{neo}}$</td>
+<td style="text-align: left;"><strong>Tasa de Proliferación Neoplásica:</strong> Velocidad de mitosis clonal desregulada una vez alcanzado el estado tumoral.</td>
+<td style="text-align: center;">$[0.100, 0.240]\text{ año}^{-1}$</td>
+<td style="text-align: left;"><strong>Acoplado:</strong> Define los fenotipos tumorales A (expansión rápida) y B (contención tisular).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>SECUNDARIO</strong></td>
+<td style="text-align: left;"><code>tp53_rate</code></td>
+<td style="text-align: center;">$\mu_{TP53}$</td>
+<td style="text-align: left;"><strong>Tasa de Mutación Somática de $TP53$:</strong> Probabilidad de transición $+/+ \to +/- \to -/-$. Interruptor on/off de apoptosis.</td>
+<td style="text-align: center;">$0.0030\text{ año}^{-1}$</td>
+<td style="text-align: left;"><strong>Interruptor de Frontera:</strong> Fija la meseta clínica de penetrancia acumulada a los 80 años (~70%).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>SECUNDARIO</strong></td>
+<td style="text-align: left;"><code>d1_threshold</code></td>
+<td style="text-align: center;">$\theta_{D\text{_intrinseca}}$</td>
+<td style="text-align: left;"><strong>Umbral de Daño Intrínseco:</strong> Nivel de daño ADN acumulado necesario para alcanzar el estado pre-tumoral (<code>PRIMER</code>).</td>
+<td style="text-align: center;">$2.00\text{ (adimensional)}$</td>
+<td style="text-align: left;"><strong>Factor de Escala:</strong> Define la unidad de medida de daño celular interno.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>SECUNDARIO</strong></td>
+<td style="text-align: left;"><code>d2_threshold</code></td>
+<td style="text-align: center;">$\theta_{D\text{_inmune}}$</td>
+<td style="text-align: left;"><strong>Umbral de Evasión Inmune/Extrínseca:</strong> Nivel de daño necesario para franquear la barrera inmune y convertirse en <code>TUMORAL</code>.</td>
+<td style="text-align: center;">$5.00\text{ (adimensional)}$</td>
+<td style="text-align: left;"><strong>Factor de Escala:</strong> Ratio $\theta_{D\text{_inmune}}/\theta_{D\text{_intrinseca}} = 2.5$ fija la contención inmune.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>SECUNDARIO</strong></td>
+<td style="text-align: left;"><code>division_rate</code></td>
+<td style="text-align: center;">$d_{\text{basal}}$</td>
+<td style="text-align: left;"><strong>Tasa de División Basal del Tejido:</strong> Recambio mitótico fisiológico del epitelio mamario en reposo.</td>
+<td style="text-align: center;">$0.0010\text{ año}^{-1}$</td>
+<td style="text-align: left;"><strong>Cinéticamente Neutro:</strong> $150\times$ inferior a la tasa proliferativa tumoral $d_{\text{neo}}$.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>SECUNDARIO</strong></td>
+<td style="text-align: left;"><code>tumor_threshold</code></td>
+<td style="text-align: center;">$\phi_{\text{tumor}}$</td>
+<td style="text-align: left;"><strong>Fracción Tumoral de Inicio Clínico:</strong> Porcentaje de células transformadas para detección clínica ($10^9$ células $\approx 1\text{ cm}^3$).</td>
+<td style="text-align: center;">$0.05\text{ (5\%)}$</td>
+<td style="text-align: left;"><strong>Fisiológicamente Neutro:</strong> Equivale a la resolución mamográfica clínica estándar.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="espacio-de-busqueda-y-distribuciones-a-priori-en-el-experimento-multinivel">Espacio de Búsqueda y Distribuciones a Priori en el Experimento Multinivel</h4>
+<p>El experimento libera <strong>simultáneamente los 9 parámetros del modelo</strong> en el motor ABC-SMC (<code>scripts/abc_sensitivity_v5.py</code>). Mientras los 4 parámetros primarios mantienen sus distribuciones a priori ancladas en la literatura, los 5 parámetros secundarios adoptan distribuciones a priori uniformes $U[a, b]$ centradas en su valor de referencia con una dispersión controlada por el nivel:</p>
+<p>$$\theta_k \sim U\left[\theta_{k,0}(1 - \Delta), \, \theta_{k,0}(1 + \Delta)\right] \quad \text{con } \Delta \in {0.10, 0.25, 0.50}$$</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parámetro</th>
+<th style="text-align: left;">Rol en el Modelo</th>
+<th style="text-align: center;">Valor Base ($\theta_0$)</th>
+<th style="text-align: center;">Nivel 1 ($\pm10\%$)</th>
+<th style="text-align: center;">Nivel 2 ($\pm25\%$)</th>
+<th style="text-align: center;">Nivel 3 ($\pm50\%$)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong><code>brca1_rate</code> ($\beta_{BRCA1}$)</strong></td>
+<td style="text-align: left;"><em>Primario (Mutación segundo hit)</em></td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">$U[0.025, 0.080]$</td>
+<td style="text-align: center;">$U[0.025, 0.080]$</td>
+<td style="text-align: center;">$U[0.025, 0.080]$</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong><code>low_delta</code> ($\delta_{\text{BRCA+}}$)</strong></td>
+<td style="text-align: left;"><em>Primario (Inestabilidad BRCA1 activo)</em></td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">$U[0.060, 0.220]$</td>
+<td style="text-align: center;">$U[0.060, 0.220]$</td>
+<td style="text-align: center;">$U[0.060, 0.220]$</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong><code>high_delta</code> ($\delta_{\text{BRCA-}}$)</strong></td>
+<td style="text-align: left;"><em>Primario (Inestabilidad BRCA1 desactivado)</em></td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">$U[0.120, 0.600]$</td>
+<td style="text-align: center;">$U[0.120, 0.600]$</td>
+<td style="text-align: center;">$U[0.120, 0.600]$</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong><code>neoplastic_div_rate</code> ($d_{\text{neo}}$)</strong></td>
+<td style="text-align: left;"><em>Primario (Proliferación tumoral)</em></td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">$U[0.100, 0.240]$</td>
+<td style="text-align: center;">$U[0.100, 0.240]$</td>
+<td style="text-align: center;">$U[0.100, 0.240]$</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong><code>tp53_rate</code></strong></td>
+<td style="text-align: left;">Secundario (Tasa mutación TP53)</td>
+<td style="text-align: center;">$0.0030$</td>
+<td style="text-align: center;">$U[0.0027, 0.0033]$</td>
+<td style="text-align: center;">$U[0.00225, 0.00375]$</td>
+<td style="text-align: center;">$U[0.0015, 0.0045]$</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong><code>d1_threshold</code> ($\theta_{D\text{_intrinseca}}$)</strong></td>
+<td style="text-align: left;">Secundario (Barrera pre-neoplásica)</td>
+<td style="text-align: center;">$2.00$</td>
+<td style="text-align: center;">$U[1.80, 2.20]$</td>
+<td style="text-align: center;">$U[1.50, 2.50]$</td>
+<td style="text-align: center;">$U[1.00, 3.00]$</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong><code>d2_threshold</code> ($\theta_{D\text{_inmune}}$)</strong></td>
+<td style="text-align: left;">Secundario (Barrera evasión inmune)</td>
+<td style="text-align: center;">$5.00$</td>
+<td style="text-align: center;">$U[4.50, 5.50]$</td>
+<td style="text-align: center;">$U[3.75, 6.25]$</td>
+<td style="text-align: center;">$U[2.50, 7.50]$</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong><code>division_rate</code></strong></td>
+<td style="text-align: left;">Secundario (División basal del tejido)</td>
+<td style="text-align: center;">$0.0010$</td>
+<td style="text-align: center;">$U[0.0009, 0.0011]$</td>
+<td style="text-align: center;">$U[0.00075, 0.00125]$</td>
+<td style="text-align: center;">$U[0.0005, 0.0015]$</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong><code>tumor_threshold</code></strong></td>
+<td style="text-align: left;">Secundario (Fracción clínica inicio)</td>
+<td style="text-align: center;">$0.05$</td>
+<td style="text-align: center;">$U[0.045, 0.055]$</td>
+<td style="text-align: center;">$U[0.0375, 0.0625]$</td>
+<td style="text-align: center;">$U[0.025, 0.075]$</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🧬 <strong>Clarificación Biológica: Inestabilidad con BRCA1 Activo ($\delta_{\text{BRCA+}}$) vs. Desactivado ($\delta_{\text{BRCA-}}$):</strong>
+* <strong>Inestabilidad con $BRCA1$ Activo ($\delta_{\text{BRCA+}}$, antes $\delta_{low}$):</strong> Tasa basal anual de acumulación de daño genómico intrínseco ($D_{\text{intrínseca}}$) y evasión inmune ($D_{\text{inmune}}$) en células que conservan la función de reparación mediante un alelo funcional ($BRCA1^{+/-}$ o $TP53^{+/-}$). Aunque existe haplosuficiencia parcial, se acumulan microlesiones a ritmo moderado durante décadas.
+* <strong>Inestabilidad con $BRCA1$ Desactivado ($\delta_{\text{BRCA-}}$, antes $\delta_{high}$):</strong> Tasa acelerada de daño genómico masivo cuando la célula sufre la <strong>pérdida somática completa del segundo alelo (LOH)</strong> y pasa a estado nulo/deficiente ($BRCA1^{-/-}$ o $TP53^{-/-}$). En ausencia de la proteína supresora, la recombinación homóloga colapsa y la acumulación de anomalías cromosómicas se dispara. Por principio biofísico, el modelo impone la restricción $\delta_{\text{BRCA-}} &gt; \delta_{\text{BRCA+}}$.</p>
+</blockquote>
+<h4 id="protocolo-de-muestreo-computacional">Protocolo de Muestreo Computacional:</h4>
+<ul>
+<li><strong>Población por generación:</strong> $N = 200$ partículas vivas aceptadas bajo el umbral de distancia $\varepsilon_t$.</li>
+<li><strong>Evaluación Monte Carlo por partícula:</strong> $n_{\text{sim}} = 150$ réplicas estocásticas independientes de tejidos de 500 células seguidas durante 80 años clínicos.</li>
+<li><strong>Calendario de tolerancias adaptativo:</strong> $\varepsilon_{t+1} = Q_{\alpha=0.6}({\rho_i^{(t)}}_{i=1}^N)$ con perturbación gaussiana adaptada a la matriz de covarianza de la generación previa.</li>
+<li><strong>Convergencia:</strong> Ejecutado hasta la Generación 7 en cada uno de los 3 niveles, garantizando la estabilización del Effective Sample Size ($\text{ESS} &gt; 90\%$).</li>
+</ul>
+<hr />
+<hr />
+<h4 id="23-marco-matematico-canonico-de-la-inferencia-bayesiana">2.3 Marco Matemático Canónico de la Inferencia Bayesiana</h4>
+<p>De acuerdo con los fundamentos canónicos de la inferencia bayesiana en biología de sistemas (<em>Toni et al., 2009; Liepe et al., Nature Protocols 2014; Gelman et al., BDA3</em>), la caracterización de la incertidumbre y la identificabilidad del espacio de parámetros $\theta \in \mathbb{R}^9$ se define formalmente a través de la <strong>distribución a posteriori conjunta</strong>:</p>
+<p>$$p(\theta \mid \mathcal{D}) = \frac{p(\mathcal{D} \mid \theta) \, \pi(\theta)}{\int_{\Omega} p(\mathcal{D} \mid \theta) \, \pi(\theta) \, d\theta}$$</p>
+<p>donde $\mathcal{D}$ representa la cohorte epidemiológica observada (<em>Kuchenbaecker et al., JAMA 2017</em>), $\pi(\theta)$ es el prior uniforme multivariante en el hipervolumen $\Omega$, y la función de verosimilitud no analítica se aproxima mediante la densidad de partículas vivas aceptadas en la Generación 7 de ABC-SMC bajo el umbral de distancia $\rho(\mathbf{y}_{\text{sim}}, \mathcal{D}) \le \varepsilon_7$.</p>
+<h4 id="1-estimadores-puntuales-e-intervalos-de-credibilidad-al-95">1. Estimadores Puntuales e Intervalos de Credibilidad al 95%</h4>
+<p>Para cada parámetro individual $\theta_k$, el resumen cuantitativo canónico se obtiene integrando las variables restantes para calcular la distribución marginal $p(\theta_k \mid \mathcal{D})$:</p>
+<ul>
+<li><strong>Esperanza Condicional Posterior (Media):</strong> $\hat{\theta}_k = \mathbb{E}[\theta_k \mid \mathcal{D}] = \int \theta_k \, p(\theta_k \mid \mathcal{D}) \, d\theta_k$</li>
+<li><strong>Desviación Estándar Posterior:</strong> $\sigma_k = \sqrt{\text{Var}(\theta_k \mid \mathcal{D})}$</li>
+<li><strong>Intervalo de Credibilidad Bayesiano al 95% ($95\%\text{ CI}$):</strong> Delimitado por los percentiles exactos $2.5\%$ y $97.5\%$ de la distribución marginal:
+  $$P\left( q_{0.025}(\theta_k) \le \theta_k \le q_{0.975}(\theta_k) \;\middle|\; \mathcal{D} \right) = 0.95$$</li>
+</ul>
+<h4 id="2-matriz-de-covarianza-y-correlacion-multivariante-posterior">2. Matriz de Covarianza y Correlación Multivariante Posterior</h4>
+<p>La estructura de interdependencia y compensación biofísica entre pares de parámetros $(\theta_i, \theta_j)$ se cuantifica formalmente mediante la matriz de correlación empírica del ensamble ABC:</p>
+<p>$$R_{ij} = \frac{\text{Cov}(\theta_i, \theta_j \mid \mathcal{D})}{\sigma_i \, \sigma_j} \in [-1, 1]$$</p>
+<ul>
+<li><strong>Direcciones Rígidas (<em>Stiff Directions</em>):</strong> Parámetros con intervalos de credibilidad estrechamente contraídos respecto al prior ($\sigma_{\text{post}} \ll \sigma_{\text{prior}}$), indicando que el fenotipo clínico es altamente sensible a su valor exacto ($\beta_{BRCA1}, \delta_{\text{BRCA+}}$).</li>
+<li><strong>Variedades Neutras (<em>Sloppy Dimensions</em>):</strong> Parámetros con $95\%\text{ CI}$ que abarcan prácticamente todo el soporte del prior uniforme y correlaciones cruzadas nulas ($R_{ij} \approx 0$), demostrando matemáticamente que la función de coste epidemiológico es ortogonal e insensible a su modulación (<em>Gutenkunst et al., 2007; Transtrum et al., 2015</em>).</li>
+</ul>
+<hr />
+<h3 id="24-resumen-metodologico-del-flujo-experimental">2.4 Resumen Metodológico del Flujo Experimental</h3>
+<p>El protocolo de calibración y análisis de sensibilidad se ejecuta de forma paralela en clúster multihilo (12 workers OpenMP), evaluando 200 partículas por nivel y 150 réplicas estocásticas por partícula en cada una de las 7 generaciones del algoritmo ABC-SMC. La convergencia del ensamble se verifica mediante la estabilización del <em>Effective Sample Size</em> ($\text{ESS} &gt; 90\%$) y la contracción de los intervalos de credibilidad multivariantes.</p>
+<hr />
+<h2 id="3-resultados-cuantitativos-globales-y-evolucion-prior-to-posterior">3. Resultados Cuantitativos Globales y Evolución Prior-to-Posterior</h2>
+<h3 id="31-tabla-maestra-de-inferencia-bayesiana-canonica">3.1 Tabla Maestra de Inferencia Bayesiana Canónica</h3>
+<p>A continuación se presentan los estimadores canónicos de la distribución a posteriori conjunta (Media $\pm$ Desviación Estándar e Intervalos de Credibilidad al 95%) para los 9 parámetros del modelo a través de los tres regímenes de sensibilidad evaluados:</p>
+<h4 id="tabla-1-estimadores-posteriores-canonicos-y-rangos-de-credibilidad-95text-ci">📊 <strong>Tabla 1: Estimadores Posteriores Canónicos y Rangos de Credibilidad ($95\%\text{ CI}$)</strong></h4>
+<p><em>Población ABC-SMC Generación 7 ($N=200$ partículas por nivel)</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parámetro</th>
+<th style="text-align: center;">Rol Biológico</th>
+<th style="text-align: center;">Prior $\pi(\theta)$</th>
+<th style="text-align: center;">Nivel 1 ($\pm10\%$ Fisiológico)<br><strong>Media $\pm$ SD [$95\%\text{ CI}$]</strong></th>
+<th style="text-align: center;">Nivel 2 ($\pm25\%$ Moderado)<br><strong>Media $\pm$ SD [$95\%\text{ CI}$]</strong></th>
+<th style="text-align: center;">Nivel 3 ($\pm50\%$ Estrés)<br><strong>Media $\pm$ SD [$95\%\text{ CI}$]</strong></th>
+<th style="text-align: left;">Estado de Identificabilidad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>$\beta_{BRCA1}$ (<code>brca1_rate</code>)</strong></td>
+<td style="text-align: center;">Somático BRCA1</td>
+<td style="text-align: center;">$U[0.025, 0.080]$</td>
+<td style="text-align: center;"><strong>$0.0459 \pm 0.0041$</strong><br>$[0.0381, 0.0535]$</td>
+<td style="text-align: center;"><strong>$0.0444 \pm 0.0055$</strong><br>$[0.0353, 0.0547]$</td>
+<td style="text-align: center;"><strong>$0.0413 \pm 0.0080$</strong><br>$[0.0269, 0.0570]$</td>
+<td style="text-align: left;">🟢 <strong>Rígido (<em>Stiff</em>):</strong> Dial continuo de latencia clínica (contracción masiva).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>$\delta_{\text{BRCA+}}$ (<code>low_delta</code>)</strong></td>
+<td style="text-align: center;">Inestabilidad BRCA1+</td>
+<td style="text-align: center;">$U[0.060, 0.220]$</td>
+<td style="text-align: center;"><strong>$0.1067 \pm 0.0164$</strong><br>$[0.0795, 0.1403]$</td>
+<td style="text-align: center;"><strong>$0.1130 \pm 0.0269$</strong><br>$[0.0643, 0.1701]$</td>
+<td style="text-align: center;">$0.1334 \pm 0.0400$<br>$[0.0646, 0.2083]$</td>
+<td style="text-align: left;">🟢 <strong>Rígido (<em>Stiff</em>):</strong> Inestabilidad basal heterocigótica (acoplado a $d_{\text{neo}}$).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>$\delta_{\text{BRCA-}}$ (<code>high_delta</code>)</strong></td>
+<td style="text-align: center;">Inestabilidad LOH</td>
+<td style="text-align: center;">$U[0.120, 0.600]$</td>
+<td style="text-align: center;">$0.3533 \pm 0.1345$<br>$[0.1421, 0.5875]$</td>
+<td style="text-align: center;">$0.3705 \pm 0.1301$<br>$[0.1449, 0.5883]$</td>
+<td style="text-align: center;">$0.3709 \pm 0.1233$<br>$[0.1508, 0.5899]$</td>
+<td style="text-align: left;">⚪ <strong>Blando (<em>Sloppy</em>):</strong> Satura al cumplir $\delta_{\text{BRCA-}} &gt; \delta_{\text{BRCA+}}$.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>$d_{\text{neo}}$ (<code>neoplastic_div_rate</code>)</strong></td>
+<td style="text-align: center;">División tumoral</td>
+<td style="text-align: center;">$U[0.100, 0.240]$</td>
+<td style="text-align: center;">$0.1584 \pm 0.0386$<br>$[0.1036, 0.2349]$</td>
+<td style="text-align: center;">$0.1559 \pm 0.0376$<br>$[0.1023, 0.2360]$</td>
+<td style="text-align: center;">$0.1641 \pm 0.0362$<br>$[0.1033, 0.2313]$</td>
+<td style="text-align: left;">🟡 <strong>Bimodal:</strong> Eje proliferativo bifurcado en Fenotipos A y B.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>$\mu_{TP53}$ (<code>tp53_rate</code>)</strong></td>
+<td style="text-align: center;">Degradación TP53</td>
+<td style="text-align: center;">$U_{\pm \Delta}[0.0030]$</td>
+<td style="text-align: center;">$0.0030 \pm 0.0002$<br>$[0.0027, 0.0033]$</td>
+<td style="text-align: center;">$0.0029 \pm 0.0004$<br>$[0.0023, 0.0037]$</td>
+<td style="text-align: center;">$0.0027 \pm 0.0007$<br>$[0.0017, 0.0043]$</td>
+<td style="text-align: left;">⚪ <strong>Interruptor Fisiológico:</strong> Fija la meseta clínica de penetrancia (~70%).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>$\theta_{D\text{_intrinseca}}$ (<code>d1_threshold</code>)</strong></td>
+<td style="text-align: center;">Barrera celular</td>
+<td style="text-align: center;">$U_{\pm \Delta}[2.00]$</td>
+<td style="text-align: center;">$1.9952 \pm 0.1119$<br>$[1.8099, 2.1918]$</td>
+<td style="text-align: center;">$1.9970 \pm 0.2684$<br>$[1.5380, 2.4558]$</td>
+<td style="text-align: center;">$1.9533 \pm 0.5228$<br>$[1.0687, 2.8967]$</td>
+<td style="text-align: left;">⚪ <strong>Blando (<em>Sloppy</em>):</strong> Centroide invariante en $\theta_0=2.0$.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>$\theta_{D\text{_inmune}}$ (<code>d2_threshold</code>)</strong></td>
+<td style="text-align: center;">Barrera inmune</td>
+<td style="text-align: center;">$U_{\pm \Delta}[5.00]$</td>
+<td style="text-align: center;">$5.0187 \pm 0.2536$<br>$[4.5795, 5.4638]$</td>
+<td style="text-align: center;">$5.1537 \pm 0.6552$<br>$[3.9391, 6.1544]$</td>
+<td style="text-align: center;">$5.5671 \pm 1.0973$<br>$[3.4501, 7.2852]$</td>
+<td style="text-align: left;">⚪ <strong>Blando (<em>Sloppy</em>):</strong> Centroide invariante en $\theta_0=5.0$.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong><code>division_rate</code></strong></td>
+<td style="text-align: center;">División basal</td>
+<td style="text-align: center;">$U_{\pm \Delta}[0.0010]$</td>
+<td style="text-align: center;">$0.0010 \pm 0.0001$<br>$[0.0009, 0.0011]$</td>
+<td style="text-align: center;">$0.0010 \pm 0.0001$<br>$[0.0008, 0.0012]$</td>
+<td style="text-align: center;">$0.0010 \pm 0.0003$<br>$[0.0005, 0.0015]$</td>
+<td style="text-align: left;">⚪ <strong>Blando (<em>Sloppy</em>):</strong> Soporte plano idéntico al prior.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong><code>tumor_threshold</code></strong></td>
+<td style="text-align: center;">Masa crítica</td>
+<td style="text-align: center;">$U_{\pm \Delta}[0.050]$</td>
+<td style="text-align: center;">$0.0498 \pm 0.0028$<br>$[0.0453, 0.0548]$</td>
+<td style="text-align: center;">$0.0496 \pm 0.0068$<br>$[0.0384, 0.0616]$</td>
+<td style="text-align: center;">$0.0528 \pm 0.0135$<br>$[0.0284, 0.0736]$</td>
+<td style="text-align: left;">⚪ <strong>Blando (<em>Sloppy</em>):</strong> Soporte plano idéntico al prior.</td>
+</tr>
+</tbody>
+</table>
+<p><em>(Nota: Las matrices de correlación bivariada completas de 9 dimensiones para los tres niveles se presentan en las Figuras Suplementarias S1, S2 y S3).</em></p>
+<hr />
+<h3 id="32-visualizacion-de-la-topologia-posterior-conjunta-figura-1">3.2 Visualización de la Topología Posterior Conjunta (Figura 1)</h3>
+<p>Para desentrañar la arquitectura interna de la inferencia bayesiana y examinar las interdependencias funcionales entre parámetros, se construyó la matriz triangular de densidades a posteriori marginales (1D) y bivariadas conjuntas (2D) presentada en la <strong>Figura 1</strong>, adaptando rigurosamente el formato estándar propuesto por <em>Liepe et al. (Nature Protocols 2014, Fig. 6a)</em>.</p>
+<p>El análisis de la <strong>Figura 1</strong> permite extraer tres conceptos estructurales fundamentales:</p>
+<ol>
+<li><strong>Identificabilidad Asimétrica (<em>Stiff</em> vs. <em>Sloppy</em>):</strong></li>
+<li>En la <strong>diagonal principal (1D)</strong>, los parámetros rectores de la cinética somática ($\beta_{BRCA1}$ y $\delta_{\text{BRCA+}}$) exhiben distribuciones posteriores marcadamente leptocúrticas y concentradas, reflejando una intensa reducción de la varianza respecto al prior uniforme. El fenotipo clínico epidemiológico es sumamente sensible a estos parámetros (<em>direcciones rígidas</em> o <em>stiff</em>).</li>
+<li>
+<p>Por el contrario, $\mu_{TP53}$ y el parámetro de daño homozigoto $\delta_{\text{BRCA-}}$ retienen densidades marginales prácticamente planas y no restrictivas sobre la totalidad de su soporte, evidenciando su condición formal de dimensiones insensibles (<em>sloppy</em>) dentro del régimen fisiológico evaluado.</p>
+</li>
+<li>
+<p><strong>Compensación No-Lineal y Bifurcación Fenotípica ($d_{\text{neo}}$ vs. $\delta_{\text{BRCA+}}$):</strong></p>
+</li>
+<li>En las <strong>densidades conjuntas 2D (fuera de la diagonal)</strong>, destaca la geometría en forma de cresta (<em>banana-shaped ridge</em>) y la fuerte correlación inversa entre la inestabilidad basal $\delta_{\text{BRCA+}}$ y la tasa de división neoplásica $d_{\text{neo}}$.</li>
+<li>
+<p>Esta proyección bivariada pone de manifiesto la existencia de <strong>dos cuencas de atracción biológicas diferenciadas</strong>:</p>
+<ul>
+<li><strong>Fenotipo A (Escape Proliferativo Clonal):</strong> Caracterizado por una inestabilidad basal moderada ($\delta_{\text{BRCA+}} \approx 0.095$) compensada por una elevada tasa mitótica tumoral ($d_{\text{neo}} \approx 0.189$).</li>
+<li><strong>Fenotipo B (Contención Tisular / Basal-Resiliente):</strong> Definido por una inestabilidad basal más alta ($\delta_{\text{BRCA+}} \approx 0.116$) contrarrestada por una proliferación tumoral más lenta y contenida ($d_{\text{neo}} \approx 0.133$).</li>
+</ul>
+</li>
+<li>
+<p><strong>Ortogonalidad de las Variedades Neutras:</strong></p>
+</li>
+<li>Las proyecciones bivariadas que involucran a $\mu_{TP53}$ frente a $\beta_{BRCA1}$ o $d_{\text{neo}}$ exhiben contornos elípticos ortogonales e isotrópicos ($R_{ij} \approx 0$). Esto demuestra empíricamente que la calibración frente a la curva epidemiológica de <em>Kuchenbaecker et al. (2017)</em> no introduce artefactos de acoplamiento espurio entre la cinética de latencia y la tasa basal de $TP53$.</li>
+</ol>
+<div align="center">
+  <img src="figures/fig6a_liepe_posterior_matrix_5x5.png" alt="Figura 1: Distribuciones Posteriores Marginales (1D) y Conjuntas Bivariadas (2D) estilo Liepe et al. 2014" width="95%">
+  <p><em><strong>Figura 1:</strong> Distribuciones posteriores marginales (1D, diagonal) y conjuntas bivariadas (2D, paneles inferiores) inferidas mediante ABC-SMC (Nivel 1, &plusmn;10%), siguiendo la estructura de Liepe et al. (Nature Protocols 2014, Fig. 6a). Se aprecian la contracción de &beta;<sub>BRCA1</sub> y &delta;<sub>BRCA+</sub>, la bimodalidad en $d_{\rm neo}$ y el acoplamiento funcional que origina los Fenotipos A y B.</em></p>
+</div>
+
+<hr />
+<h3 id="33-estabilidad-fenotipica-y-decaimiento-del-gradiente-por-sobre-parametrizacion">3.3 Estabilidad Fenotípica y Decaimiento del Gradiente por Sobre-Parametrización</h3>
+<p>Al analizar la estructura conjunta del posterior en el plano $(\delta_{\text{BRCA+}}, d_{\text{neo}})$, se confirma la robustez de los dos subtipos tumorales emergentes en los niveles fisiológicos:</p>
+<ul>
+<li><strong>Nivel 1 ($\pm10\%$):</strong> Anticorrelación firme $r(\delta_{\text{BRCA+}}, d_{\text{neo}}) = -0.5212$ ($p &lt; 10^{-14}$). Bimodalidad nítida.</li>
+<li><strong>Nivel 2 ($\pm25\%$):</strong> Anticorrelación preservada $r(\delta_{\text{BRCA+}}, d_{\text{neo}}) = -0.3712$ ($p &lt; 10^{-7}$). Bimodalidad estable.</li>
+<li><strong>Nivel 3 ($\pm50\%$):</strong> Colapso de la anticorrelación a $r(\delta_{\text{BRCA+}}, d_{\text{neo}}) = -0.1538$ ($p = 0.030$).</li>
+</ul>
+<div align="center">
+  <img src="figures/fig3_bimodality_decay_across_levels.png" alt="Figura 2: Decaimiento de la Bimodalidad Fenotípica a través de los Niveles" width="95%">
+  <p><em><strong>Figura 2:</strong> Dispersión 2D en el espacio $(\delta_{\text{BRCA+}}, d_{\text{neo}})$ para el Fenotipo A (rojo) y Fenotipo B (azul). En Nivel 1 y 2 los clusters están perfectamente diferenciados; en Nivel 3 el exceso de grados de libertad introduce ruido blanco que difumina el gradiente homeostático.</em></p>
+</div>
+
+<h4 id="comparacion-de-resiliencia-tisular-mediante-tests-t-de-welch">Comparación de Resiliencia Tisular mediante Tests $t$ de Welch</h4>
+<p>Para certificar que el <strong>Fenotipo B (Contención Tisular)</strong> es biológicamente más resiliente que el <strong>Fenotipo A (Escape Proliferativo)</strong>, se evaluaron las diferencias entre subgrupos en cada nivel:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Nivel de Sensibilidad</th>
+<th style="text-align: left;">Métrica Evaluada</th>
+<th style="text-align: center;">Fenotipo A (Escape)</th>
+<th style="text-align: center;">Fenotipo B (Contención)</th>
+<th style="text-align: center;">Estadístico $t$</th>
+<th style="text-align: center;">$p$-valor</th>
+<th style="text-align: left;">Interpretación</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Nivel 1 ($\pm10\%$)</strong></td>
+<td style="text-align: left;"><strong>Barrera Inmune ($\theta_{D\text{_inmune}}$)</strong></td>
+<td style="text-align: center;">$4.946 \pm 0.24$</td>
+<td style="text-align: center;"><strong>$5.079 \pm 0.25$</strong></td>
+<td style="text-align: center;">$-3.81$</td>
+<td style="text-align: center;"><strong>$p = 1.87 \times 10^{-4}$</strong></td>
+<td style="text-align: left;">✅ Mayor contención en B</td>
+</tr>
+<tr>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"><strong>Saturación Tisular ($sat50$)</strong></td>
+<td style="text-align: center;">$55.84 \pm 2.75$ años</td>
+<td style="text-align: center;"><strong>$58.28 \pm 2.46$ años</strong></td>
+<td style="text-align: center;">$-6.52$</td>
+<td style="text-align: center;"><strong>$p = 7.0 \times 10^{-10}$</strong></td>
+<td style="text-align: left;">✅ Retraso de +2.44 años en B</td>
+</tr>
+<tr>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"><strong>Tasa Segundo Hit ($\beta_{BRCA1}$)</strong></td>
+<td style="text-align: center;">$0.0437 \pm 0.0036$</td>
+<td style="text-align: center;"><strong>$0.0477 \pm 0.0035$</strong></td>
+<td style="text-align: center;">$-7.96$</td>
+<td style="text-align: center;"><strong>$p = 1.5 \times 10^{-13}$</strong></td>
+<td style="text-align: left;">✅ Leve mayor mutación en B</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Nivel 2 ($\pm25\%$)</strong></td>
+<td style="text-align: left;"><strong>Barrera Inmune ($\theta_{D\text{_inmune}}$)</strong></td>
+<td style="text-align: center;">$5.031 \pm 0.67$</td>
+<td style="text-align: center;"><strong>$5.256 \pm 0.62$</strong></td>
+<td style="text-align: center;">$-2.43$</td>
+<td style="text-align: center;"><strong>$p = 0.0161$</strong></td>
+<td style="text-align: left;">✅ Mayor contención en B</td>
+</tr>
+<tr>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"><strong>Saturación Tisular ($sat50$)</strong></td>
+<td style="text-align: center;">$56.30 \pm 2.66$ años</td>
+<td style="text-align: center;"><strong>$58.98 \pm 2.53$ años</strong></td>
+<td style="text-align: center;">$-7.23$</td>
+<td style="text-align: center;"><strong>$p = 1.1 \times 10^{-11}$</strong></td>
+<td style="text-align: left;">✅ Retraso de +2.68 años en B</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Nivel 3 ($\pm50\%$)</strong></td>
+<td style="text-align: left;"><strong>Compensación $\text{TP53} \leftrightarrow D_{\text{inmune}}$</strong></td>
+<td style="text-align: center;">$0.00318 \pm 0.00068$</td>
+<td style="text-align: center;">$0.00230 \pm 0.00046$</td>
+<td style="text-align: center;">$+10.69$</td>
+<td style="text-align: center;"><strong>$p = 8.7 \times 10^{-21}$</strong></td>
+<td style="text-align: left;">⚠️ Artefacto por sobre-relajación</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong>Lección Metodológica Crucial:</strong> El colapso del gradiente en el Nivel 3 y la aparición de compensaciones cruzadas artificiales entre <code>tp53_rate</code> y $\theta_{D\text{_inmune}}$ demuestran que <strong>una calibración tradicional con 9 parámetros libres simultáneos hubiera sido inviable e inidentificable</strong>. Fijar los parámetros secundarios en sus valores fisiológicos no fue una limitación, sino la condición indispensable para revelar la verdadera física del sistema.</p>
+</blockquote>
+<hr />
+<h2 id="4-justificacion-detallada-parametro-a-parametro-y-dinamica-tp53-vs-brca1">4. Justificación Detallada Parámetro a Parámetro y Dinámica TP53 vs BRCA1</h2>
+<h3 id="41-analisis-individual-de-los-parametros-secundarios-por-que-no-evolucionan">4.1 Análisis Individual de los Parámetros Secundarios: Por Qué No Evolucionan</h3>
+<p>Para justificar de forma exhaustiva por qué es científica y biológicamente asumible que los parámetros secundarios no varíen en la calibración, se analiza cada uno de ellos a nivel mecanicista:</p>
+<pre><code>┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                    MATRIZ MECANICISTA DE PARÁMETROS SECUNDARIOS                             │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+1. θ_D_intr (2.0) y θ_D_inmune (5.0) ──&gt; Ratio 2.5: Fija la jerarquía daño/inmunoevasión.
+2. division_rate (0.0010)             ──&gt; Recambio tisular basal 150× inferior a proliferación (d_neo=0.159).
+3. tumor_threshold (0.05)             ──&gt; 5% celular ≈ 10⁹ células (límite de detección mamográfica).
+4. high_delta (0.35)                  ──&gt; Parámetro sloppy: cualquier δ_BRCA- &gt; δ_BRCA+ satura la tasa.
+5. tp53_rate (0.0030)                 ──&gt; Interruptor biológico On/Off: fija la meseta clínica de penetrancia (~70%).
+</code></pre>
+<h4 id="1-umbrales-de-dano-theta_dtext_intrinseca-20-y-theta_dtext_inmune-50-escalas-adimensionales-y-ratio-de-contencion">1. Umbrales de Daño $\theta_{D\text{_intrinseca}} = 2.0$ y $\theta_{D\text{_inmune}} = 5.0$ (Escalas Adimensionales y Ratio de Contención)</h4>
+<ul>
+<li><strong>Naturaleza Biofísica:</strong> Los acumuladores $D_{\text{intrínseca}}$ y $D_{\text{inmune}}$ son variables continuas adimensionales que representan daño macromolecular acumulado y remodelación antigénica. Sus valores numéricos absolutos actúan como factores de escala.</li>
+<li><strong>La Invarianza de la Ratio $\theta_{D\text{_inmune}}/\theta_{D\text{_intrinseca}} = 2.5$:</strong> Lo que gobierna la dinámica biológica no es el valor escalar aislado, sino la <strong>ratio de contención tisular ($5.0 / 2.0 = 2.5$)</strong>. Esta asimetría formaliza que neutralizar la vigilancia estromal e inmune ($\theta_{D\text{_inmune}}$) exige $2.5\times$ más acumulación biológica que sufrir inestabilidad genómica intrínseca inicial ($\theta_{D\text{_intrinseca}}$).</li>
+<li><strong>Efecto de su Variación:</strong> Dentro del margen biológicamente acoplado ($\pm10\%$ y $\pm25\%$), variar $\theta_{D\text{_intrinseca}}$ o $\theta_{D\text{_inmune}}$ modula levemente la velocidad de transición entre estados (<code>PRIMER</code> $\to$ <code>TUMORAL</code>), pero <strong>no altera la morfología sigmoidea ni la edad de inicio clínico</strong>. Por tanto, fijar $\theta_{D\text{_intrinseca}}=2.0$ y $\theta_{D\text{_inmune}}=5.0$ establece un sistema de coordenadas canónico sin restringir la generalidad del modelo.</li>
+</ul>
+<h4 id="2-tasa-de-division-basal-del-tejido-division_rate-00010-01-anual">2. Tasa de División Basal del Tejido (<code>division_rate</code> $= 0.0010$ / $0.1\%$ anual)</h4>
+<ul>
+<li><strong>Función Biológica:</strong> Representa la tasa de recambio mitótico homeostático del epitelio mamario en reposo. En un tejido adulto sano, la proliferación celular está fuertemente reprimida por inhibición por contacto y señalización paracrina.</li>
+<li><strong>Desacoplamiento Cinético:</strong> La expansión y el dominio del clon canceroso están impulsados exclusivamente por la <strong>tasa de proliferación neoplásica desregulada ($d_{\text{neo}} = 0.1591$)</strong>, que es <strong>$150\times$ superior</strong> a la división basal ($d_{\text{basal}} = 0.0010$). Pequeñas fluctuaciones en la división basal ($0.0009 - 0.0011$) son cinéticamente irrelevantes frente a la fuerza expansiva de $d_{\text{neo}}$.</li>
+</ul>
+<h4 id="3-umbral-de-inicio-clinico-tumor_threshold-005-5-de-celulas-tumorales">3. Umbral de Inicio Clínico (<code>tumor_threshold</code> $= 0.05$ / $5\%$ de Células Tumorales)</h4>
+<ul>
+<li><strong>Correspondencia Clínica y Oncológica:</strong> En un lóbulo o ducto mamario de $\sim 2 \times 10^{10}$ células, una fracción tumoral del $5\%$ equivale a una masa neoplásica de $\sim 10^9$ células (aproximadamente $1 \text{ cm}^3$ de tejido tumoral). Este tamaño corresponde con exactitud al <strong>límite físico de resolución diagnóstica de la mamografía digital y la palpación clínica</strong>.</li>
+<li><strong>Insensibilidad Paramétrica:</strong> Definir el <em>onset</em> al $4.5\%$ o al $5.5\%$ apenas introduce un desfase temporal de pocas semanas, el cual queda completamente diluido dentro de la escala de resolución anual (ticks de 1 año) de los datos epidemiológicos de JAMA 2017.</li>
+</ul>
+<h4 id="4-coeficiente-de-inestabilidad-con-brca1-desactivado-high_delta-delta_textbrca-035">4. Coeficiente de Inestabilidad con BRCA1 Desactivado (<code>high_delta</code> / $\delta_{\text{BRCA-}} = 0.35$)</h4>
+<ul>
+<li><strong>Mecanismo de Saturación Post-LOH:</strong> Cuando una célula experimenta la pérdida del segundo alelo ($BRCA1^{-/-}$ o $TP53^{-/-}$), el colapso de los mecanismos de recombinación homóloga o de control apoptótico es tan severo que la acumulación de aberraciones cromosómicas entra en régimen hipermutagénico.</li>
+<li><strong>Razón de su Naturaleza <em>Sloppy</em>:</strong> Una vez que se satisface la restricción biológica fundamental $\delta_{\text{BRCA-}} &gt; \delta_{\text{BRCA+}}$ (con $\delta_{\text{BRCA-}} \ge 0.25$), cualquier incremento adicional en $\delta_{\text{BRCA-}}$ hace que la célula cruce los umbrales en un intervalo de ticks prácticamente idéntico. El sistema se satura, haciendo que la varianza posterior sea indistinguible del prior ($\text{Var}_{ratio} \approx 1.0$).</li>
+</ul>
+<hr />
+<h3 id="42-deep-dive-fisiologico-por-que-brca1-es-un-dial-continuo-pero-tp53-es-un-interruptor-onoff">4.2 Deep Dive Fisiológico: ¿Por Qué BRCA1 es un Dial Continuo pero TP53 es un Interruptor On/Off?</h3>
+<p>Uno de los hallazgos conceptuales más profundos de la inferencia bayesiana en cellSim radica en la <strong>asimetría funcional entre $BRCA1$ y $TP53$</strong>:</p>
+<blockquote>
+<p>❓ <strong>La Asimetría Funcional:</strong> Si tanto $BRCA1$ como $TP53$ son genes supresores tumorales clásicos, ¿por qué la tasa de mutación somática de $BRCA1$ ($\beta_{BRCA1}$) se identifica como un <strong>parámetro continuo identificable con contracción del 95% CI</strong>, mientras que la tasa de $TP53$ ($\text{tp53_rate} = 0.0030$) se comporta como un <strong>interruptor rígido no estimable mediante gradientes continuos</strong>?</p>
+</blockquote>
+<pre><code>┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                 BRCA1 (DIAL CONTINUO) VS TP53 (INTERRUPTOR FISIOLÓGICO)                     │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  A) BRCA1 (Care-taker) ──&gt; DIAL ANALÓGICO CONTINUO DE LATENCIA
+     • Modula la tasa de mutación somática del segundo alelo (β_BRCA1: +/- ──&gt; -/-).
+     • Variar β desplaza suavemente la pendiente y la edad media de inicio (30 a 60 años).
+     • No altera la viabilidad basal del tejido.
+
+  B) TP53 (Gate-keeper) ──&gt; INTERRUPTOR BIOLÓGICO ON/OFF DE FRONTERA
+     • Gobierna la puerta de entrada de la apoptosis intrínseca (Fase 2).
+     • Fija la meseta clínica de penetrancia acumulada a los 80 años (~70%).
+     • tp53_rate = 0.0030  ──&gt; SSE = 53   (Ajuste óptimo con JAMA 2017)
+     • tp53_rate = 0.0035  ──&gt; SSE = 670  (+1200% de error; rompe la meseta clínica)
+</code></pre>
+<h4 id="1-jerarquia-biologica-caretaker-frente-a-gatekeeper">1. Jerarquía Biológica: <em>Caretaker</em> frente a <em>Gatekeeper</em></h4>
+<ul>
+<li><strong>$BRCA1$ como Gen de Mantenimiento (<em>Caretaker</em>):</strong> La mutación somática de $BRCA1$ ($+/- \to -/-$) genera defectos en la reparación del ADN, aumentando la probabilidad estocástica de inestabilidad. Su tasa $\beta_{BRCA1}$ actúa como un <strong>dial de velocidad de reloj</strong>: determina cuándo empieza a gestarse el daño en el tejido y modula la pendiente de la curva de incidencia.</li>
+<li><strong>$TP53$ como Guardián de Frontera (<em>Gatekeeper</em>):</strong> $TP53$ opera en el primer punto de control del ciclo celular (<code>AgenticCell::live()</code>, Fase 2). Si $TP53$ está sano ($+/+$ o $+/-$), cualquier célula que sufra la mutación de $BRCA1$ es detectada de inmediato y destruida por apoptosis intrínseca. <strong>$TP53$ es la barrera que decide si el daño genómico tiene permiso para existir o es aniquilado</strong>.</li>
+</ul>
+<h4 id="2-la-emergencia-de-la-meseta-clinica-de-penetrancia-70-a-los-80-anos">2. La Emergencia de la Meseta Clínica de Penetrancia (~70% a los 80 años)</h4>
+<p>En el estudio de referencia de <em>Kuchenbaecker et al. (JAMA 2017)</em>, la penetrancia acumulada observada a los 80 años converge en una asíntota del $\approx 70.0\%$ con un intervalo de confianza clínico del $95\%$ [$60.0\%-80.0\%$].</p>
+<p>En cellSim, esta meseta clínica <strong>no está programada de forma artificial ni impuesta por código</strong>:
+* Emerge de forma natural de la probabilidad estadística acumulada de que los clones celulares mantengan al menos una copia funcional de $TP53$ a lo largo de 80 años.
+* Con $\text{tp53_rate} = 0.0030$ (30 eventos por $10.000$ células-año), la cohorte simulada converge con fidelidad en el valor central de $70.0\%$ a los 80 años dentro de los intervalos de confianza empíricos.</p>
+<h4 id="3-analisis-comparativo-de-dinamicas-y-sensibilidad-a-escala-fisiologica">3. Análisis Comparativo de Dinámicas y Sensibilidad a Escala Fisiológica</h4>
+<p>Para contrastar rigurosamente ambos comportamientos, se evaluaron perturbaciones diferenciales simétricas ajustadas al orden de magnitud intrínseco de cada parámetro:
+* <strong>Diferencial para $BRCA1$:</strong> Dado que $\beta_{BRCA1}$ tiene un orden de magnitud de $10^{-2}$ (valor basal calibrado $0.045$), se aplicó un diferencial de <strong>$\pm 0.005$</strong> (barriendo el rango $[0.040, 0.045, 0.050]$, correspondiente a una variación relativa del $\pm 11.1\%$).
+* <strong>Diferencial para $TP53$:</strong> Dado que $\mu_{TP53}$ opera en un orden de magnitud de $10^{-3}$ (valor basal $0.0030$), se aplicó un diferencial proporcional de <strong>$\pm 0.0005$</strong> (barriendo el rango $[0.0025, 0.0030, 0.0035]$, correspondiente a una variación relativa del $\pm 16.7\%$).</p>
+<p>La proyección de las curvas de incidencia acumulada resultantes (20 a 80 años) en la <strong>Figura 3</strong> ilustra la profunda dicotomía mecanicista:</p>
+<ul>
+<li><strong>Comportamiento de Interruptor en $TP53$ (Figura 3A):</strong> Una fluctuación de apenas $\pm 0.0005$ en $\mu_{TP53}$ desencadena una bifurcación no-lineal en el destino del tejido. Al incrementar $\mu_{TP53}$ a $0.0035$ (rojo), la barrera apoptótica se degrada prematuramente y la curva de penetrancia se dispara hasta el $80.4\%$ a los 80 años, multiplicando el error cuadrático por un $+1200\%$ ($SSE$ pasa de 53 a 670) y quebrando la cota clínica superior de JAMA 2017. A la inversa, una reducción a $\mu_{TP53}=0.0025$ (morado) sobre-preserva la apoptosis tumoral, provocando el colapso de la penetrancia a un $58.0\%$ a los 80 años ($SSE=486$).</li>
+<li><strong>Comportamiento de Dial de Latencia en $BRCA1$ (Figura 3B):</strong> Por contraposición, la variación de $\pm 0.005$ en $\beta_{BRCA1}$ desplaza suave y continuamente la mediana de edad de diagnóstico ($T_{\text{onset}}$ varía en $\pm 2.0$ años) sin perturbar la morfología sigmoidea global ni alterar la asíntota clínica final a los 80 años ($70\%$), manteniendo un error perfectamente acotado ($SSE \le 70$).</li>
+</ul>
+<div align="center">
+  <img src="figures/fig4_tp53_threshold_behavior.png" alt="Figura 3: Curvas de Incidencia Clínica Acumulada — Interruptor de Umbral TP53 vs. Dial de Latencia BRCA1" width="95%">
+  <p><em><strong>Figura 3:</strong> Curvas de incidencia acumulada proyectadas frente a la edad clínica (20 a 80 años). Puntos negros y banda sombreada: datos observados e intervalo de confianza del 95% de la cohorte clínica (Kuchenbaecker et al., JAMA 2017). <strong>(A) Panel Izquierdo:</strong> Comportamiento de interruptor de frontera de &mu;<sub>TP53</sub> (&plusmn;0.0005). <strong>(B) Panel Derecho:</strong> Dial continuo de latencia temporal de &beta;<sub>BRCA1</sub> (&plusmn;0.005).</em></p>
+</div>
+
+<h4 id="conclusion-fisiologica">Conclusión Fisiológica</h4>
+<p>$\text{tp53_rate} = 0.0030$ no es un parámetro libre más sujeto a calibración continua por gradiente: <strong>es una constante biológica de frontera tisular de la especie humana</strong>. Fijarlo en $0.0030$ ancla la viabilidad apoptótica del modelo, permitiendo que $\beta_{BRCA1}$ y $\delta_{\text{BRCA+}}$ capturen la verdadera variabilidad biológica interindividual.</p>
+<hr />
+<h2 id="5-tabla-bibliografica-maestra-y-referencias-con-doi">5. Tabla Bibliográfica Maestra y Referencias con DOI</h2>
+<p>Para facilitar la verificación manual de las fuentes metodológicas, teóricas y epidemiológicas empleadas en este trabajo, a continuación se proporciona la tabla maestra con los datos completos de publicación y sus correspondientes identificadores DOI:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Referencia Clave</th>
+<th style="text-align: left;">Autores</th>
+<th style="text-align: center;">Año</th>
+<th style="text-align: left;">Título del Artículo</th>
+<th style="text-align: left;">Revista / Editorial</th>
+<th style="text-align: left;">DOI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Kuchenbaecker et al. (2017)</strong></td>
+<td style="text-align: left;">Kuchenbaecker KB, Hopper JL, Barnes DR, et al.</td>
+<td style="text-align: center;">2017</td>
+<td style="text-align: left;"><em>Risks of Breast, Ovarian, and Contralateral Breast Cancer for BRCA1 and BRCA2 Mutation Carriers</em></td>
+<td style="text-align: left;"><strong>JAMA</strong>, 317(23), 2402–2416</td>
+<td style="text-align: left;"><a href="https://doi.org/10.1001/jama.2017.7112">10.1001/jama.2017.7112</a></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Gutenkunst et al. (2007)</strong></td>
+<td style="text-align: left;">Gutenkunst RN, Waterfall JJ, Casey FP, Brown KS, Myers CR, Sethna JP</td>
+<td style="text-align: center;">2007</td>
+<td style="text-align: left;"><em>Universally Sloppy Parameter Sensitivities in Systems Biology Models</em></td>
+<td style="text-align: left;"><strong>PLoS Computational Biology</strong>, 3(10), e189</td>
+<td style="text-align: left;"><a href="https://doi.org/10.1371/journal.pcbi.0030189">10.1371/journal.pcbi.0030189</a></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Transtrum et al. (2015)</strong></td>
+<td style="text-align: left;">Transtrum MK, Machta BB, Brown KS, Daniels BC, Myers CR, Sethna JP</td>
+<td style="text-align: center;">2015</td>
+<td style="text-align: left;"><em>Perspective: Sloppiness and Emergent Theories in Physics, Biology, and Beyond</em></td>
+<td style="text-align: left;"><strong>The Journal of Chemical Physics</strong>, 143(1), 010901</td>
+<td style="text-align: left;"><a href="https://doi.org/10.1063/1.4923066">10.1063/1.4923066</a></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Liepe et al. (2014)</strong></td>
+<td style="text-align: left;">Liepe J, Kirk P, Filippi S, Toni T, Barnes CP, Stumpf MP</td>
+<td style="text-align: center;">2014</td>
+<td style="text-align: left;"><em>A framework for parameter estimation and model selection from experimental data in systems biology using approximate Bayesian computation</em></td>
+<td style="text-align: left;"><strong>Nature Protocols</strong>, 9(2), 439–473</td>
+<td style="text-align: left;"><a href="https://doi.org/10.1038/nprot.2014.025">10.1038/nprot.2014.025</a></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Toni et al. (2009)</strong></td>
+<td style="text-align: left;">Toni T, Welch D, Strelkowa N, Ipsen A, Stumpf MP</td>
+<td style="text-align: center;">2009</td>
+<td style="text-align: left;"><em>Approximate Bayesian computation scheme for parameter inference and model selection in dynamical systems</em></td>
+<td style="text-align: left;"><strong>Journal of the Royal Society Interface</strong>, 6(31), 187–202</td>
+<td style="text-align: left;"><a href="https://doi.org/10.1098/rsif.2008.0172">10.1098/rsif.2008.0172</a></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>SEER Cancer Statistics</strong></td>
+<td style="text-align: left;">National Cancer Institute / Surveillance, Epidemiology, and End Results</td>
+<td style="text-align: center;">2023</td>
+<td style="text-align: left;"><em>DevCan: Probability of Developing or Dying of Cancer Software (General Population Breast Cancer Risk)</em></td>
+<td style="text-align: left;"><strong>NCI SEER Database</strong> / CRUK</td>
+<td style="text-align: left;"><a href="https://surveillance.cancer.gov/devcan/">SEER DevCan Database</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-material-suplementario-distribuciones-posteriores-completas-9-times-9">6. Material Suplementario: Distribuciones Posteriores Completas ($9 \times 9$)</h2>
+<p>Para garantizar la máxima transparencia y reproducibilidad metodológica, a continuación se presentan las matrices conjuntas completas de 9 dimensiones inferidas por ABC-SMC (Generación 7) para cada uno de los tres regímenes de sensibilidad evaluados (81 paneles por matriz, formato <em>Liepe et al. 2014</em>):</p>
+<h3 id="61-figura-s1-nivel-1-pm10-rango-fisiologico-estricto">6.1 Figura S1: Nivel 1 ($\pm10\%$ — Rango Fisiológico Estricto)</h3>
+<div align="center">
+  <img src="figures/fig_supp_s1_posterior_matrix_9x9_level1.png" alt="Figura S1: Matriz Posterior Completa 9x9 - Nivel 1" width="95%">
+  <p><em><strong>Figura S1:</strong> Espacio posterior de 9 dimensiones bajo incertidumbre estrecha (&plusmn;10%). Nótese cómo los 5 parámetros secundarios exhiben distribuciones marginales planas (diagonal) y nubes bivariadas ortogonales isotrópicas (fuera de la diagonal), confirmando empíricamente su condición formal de parámetros sloppy no acoplados a la curva epidemiológica.</em></p>
+</div>
+
+<p><br></p>
+<h3 id="62-figura-s2-nivel-2-pm25-variabilidad-interindividual-moderada">6.2 Figura S2: Nivel 2 ($\pm25\%$ — Variabilidad Interindividual Moderada)</h3>
+<div align="center">
+  <img src="figures/fig_supp_s2_posterior_matrix_9x9_level2.png" alt="Figura S2: Matriz Posterior Completa 9x9 - Nivel 2" width="95%">
+  <p><em><strong>Figura S2:</strong> Espacio posterior de 9 dimensiones bajo variabilidad moderada (&plusmn;25%). Se confirma la robustez estructural y la invarianza del centroide (W<sub>1</sub> &approx; 0) en los 5 parámetros secundarios, así como la contracción persistente de &beta;<sub>BRCA1</sub> y &delta;<sub>BRCA+</sub>.</em></p>
+</div>
+
+<p><br></p>
+<h3 id="63-figura-s3-nivel-3-pm50-prueba-de-estres-de-frontera-y-colapso-por-sobre-parametrizacion">6.3 Figura S3: Nivel 3 ($\pm50\%$ — Prueba de Estrés de Frontera y Colapso por Sobre-Parametrización)</h3>
+<div align="center">
+  <img src="figures/fig_supp_s3_posterior_matrix_9x9_level3.png" alt="Figura S3: Matriz Posterior Completa 9x9 - Nivel 3" width="95%">
+  <p><em><strong>Figura S3:</strong> Espacio posterior de 9 dimensiones bajo relajación extrema (&plusmn;50%). Se hace visible la aparición de correlaciones espurias de compensación entre &mu;<sub>TP53</sub> y &theta;<sub>D_inmune</sub> (fila 7, columna 5), demostrando gráficamente por qué una calibración ciega de 9 parámetros simultáneos introduce artefactos numéricos indeseados.</em></p>
+</div>
+
+</body>
+</html>

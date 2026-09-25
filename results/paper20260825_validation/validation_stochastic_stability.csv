@@ -1,0 +1,9 @@
+phenotype,test,stat,pvalue,passed_p_gt_05
+Phenotype A,KS_Onset_Disc_vs_Val,0.027035330261136713,0.8915516154826616,True
+Phenotype A,Welch_Onset_Disc_vs_Val,-0.6520252414009234,0.5144979368315687,True
+Phenotype B,KS_Onset_Disc_vs_Val,0.02553575827243616,0.9329789458530555,True
+Phenotype B,Welch_Onset_Disc_vs_Val,0.31176241375543173,0.7552704998522046,True
+Phenotype A,SSE_Discovery_N1000,36.09000000000006,,True
+Phenotype A,SSE_Validation_N2000,19.127499999999998,,True
+Phenotype B,SSE_Discovery_N1000,51.45000000000004,,True
+Phenotype B,SSE_Validation_N2000,59.907500000000034,,True

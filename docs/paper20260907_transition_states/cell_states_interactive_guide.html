@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cellSim - Catálogo Interactivo de Estados Celulares y Transiciones</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b1120;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --border: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.15);
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --accent: #c084fc;
+            --tumor: #818cf8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 20px 20px 80px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* HEADER */
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 15px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* NAV PILLS */
+        .quick-nav {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 25px;
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+            background: rgba(11, 17, 32, 0.92);
+            backdrop-filter: blur(8px);
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(51, 65, 85, 0.8);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+
+        .quick-nav a {
+            color: var(--text-main);
+            text-decoration: none;
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .quick-nav a:hover {
+            background: var(--surface-hover);
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        /* FIGURES SECTION */
+        .figures-container {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .figure-card {
+            background: var(--surface);
+            border: 1px solid #0284c7;
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+
+        .figure-card h3 {
+            color: var(--primary);
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .figure-badge {
+            font-size: 12px;
+            font-family: "Fira Code", monospace;
+            padding: 3px 10px;
+            border-radius: 6px;
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--primary);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .figure-wrapper {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: transform 0.2s;
+        }
+
+        .figure-wrapper img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 6px;
+        }
+
+        .figure-caption {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-top: 14px;
+            line-height: 1.5;
+        }
+
+        /* MATH DEFINITIONS PANEL */
+        .formula-legend-box {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid #0284c7;
+            border-radius: 14px;
+            padding: 20px 24px;
+            margin-bottom: 30px;
+        }
+
+        .formula-legend-box h3 {
+            font-size: 15.5px;
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .formula-legend-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            font-family: "Fira Code", monospace;
+            font-size: 12.5px;
+        }
+
+        @media (max-width: 900px) {
+            .formula-legend-grid { grid-template-columns: 1fr; }
+        }
+
+        .formula-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+        }
+
+        .formula-card-title {
+            color: #94a3b8;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        /* STATE STREAM */
+        .state-stream {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            position: relative;
+        }
+
+        .state-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 26px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+            position: relative;
+            scroll-margin-top: 80px;
+            transition: border-color 0.2s;
+        }
+
+        .state-card:hover {
+            border-color: #475569;
+        }
+
+        .state-card.base-card { border-top: 4px solid var(--success); }
+        .state-card.st1-card { border-top: 4px solid var(--warning); }
+        .state-card.st2-card { border-top: 4px solid #f97316; }
+        .state-card.st3-card { border-top: 4px solid var(--accent); }
+        .state-card.primer-card { border-top: 4px solid #ec4899; }
+        .state-card.tumor-card { border-top: 4px solid var(--tumor); }
+        .state-card.death-card { border-top: 4px solid var(--danger); background: rgba(30, 20, 20, 0.4); }
+
+        .flow-connector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 0;
+            color: var(--primary);
+        }
+
+        .flow-connector .flow-line {
+            width: 2px;
+            height: 22px;
+            background: linear-gradient(to bottom, #38bdf8, #818cf8);
+        }
+
+        .flow-connector .flow-arrow {
+            font-size: 16px;
+            color: #818cf8;
+            margin-top: -4px;
+        }
+
+        .state-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-bottom: 18px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .state-title-grp h2 {
+            font-size: 21px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .genotype-badges {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .genotype-tag {
+            font-family: "Fira Code", monospace;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .tag-tp53-wt { background: #064e3b; color: #6ee7b7; border-color: #059669; }
+        .tag-tp53-het { background: #78350f; color: #fde68a; border-color: #d97706; }
+        .tag-tp53-null { background: #7f1d1d; color: #fca5a5; border-color: #dc2626; }
+        .tag-brca1-het { background: #1e3a8a; color: #93c5fd; border-color: #2563eb; }
+        .tag-brca1-null { background: #581c87; color: #d8b4fe; border-color: #9333ea; }
+        .tag-instability { background: rgba(236, 72, 153, 0.2); color: #f472b6; border-color: #ec4899; }
+        .tag-immortal { background: rgba(74, 222, 128, 0.2); color: #4ade80; border-color: #22c55e; }
+
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 850px) {
+            .grid-2col { grid-template-columns: 1fr; }
+        }
+
+        .section-box {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .section-box h3 {
+            font-size: 14.5px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .param-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.06);
+            font-size: 13px;
+        }
+
+        .param-row:last-child {
+            border-bottom: none;
+        }
+
+        .param-label {
+            color: var(--text-muted);
+        }
+
+        .param-value {
+            font-family: "Fira Code", monospace;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        /* TRANSITION ITEMS & INTERACTIVE LINKS */
+        .transition-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .transition-item {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            border-left: 4px solid var(--primary);
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            transition: all 0.2s ease;
+        }
+
+        .transition-item:hover {
+            transform: translateX(4px);
+            border-color: #64748b;
+            background: rgba(51, 65, 85, 0.7);
+        }
+
+        .transition-item.death {
+            border-left-color: var(--danger);
+            background: rgba(127, 29, 29, 0.15);
+        }
+
+        .transition-item.progression {
+            border-left-color: var(--warning);
+            background: rgba(180, 83, 9, 0.15);
+        }
+
+        .transition-item.primer {
+            border-left-color: #ec4899;
+            background: rgba(236, 72, 153, 0.12);
+        }
+
+        .transition-item.tumor {
+            border-left-color: var(--tumor);
+            background: rgba(129, 140, 248, 0.15);
+        }
+
+        .trans-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+            font-size: 13.5px;
+            margin-bottom: 4px;
+        }
+
+        .trans-link-arrow {
+            color: var(--primary);
+            font-size: 11.5px;
+            text-decoration: underline;
+        }
+
+        .trans-formula {
+            font-family: "Fira Code", monospace;
+            font-size: 11px;
+            color: #38bdf8;
+            background: rgba(0,0,0,0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .trans-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 3px;
+            line-height: 1.4;
+        }
+
+        .code-box {
+            font-family: "Fira Code", monospace;
+            font-size: 12px;
+            background: #090d16;
+            color: #a5f3fc;
+            padding: 12px 14px;
+            border-radius: 8px;
+            margin-top: 6px;
+            line-height: 1.6;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .eq-highlight {
+            color: #fde047;
+            font-weight: 600;
+        }
+
+        .note-box {
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: rgba(56, 189, 248, 0.08);
+            border-left: 3px solid var(--primary);
+            font-size: 12px;
+            color: #bae6fd;
+        }
+
+        /* CONCEPT TOOLTIP / LINKS */
+        a.concept-link {
+            color: var(--primary);
+            text-decoration: none;
+            border-bottom: 1px dashed var(--primary);
+            transition: all 0.2s;
+        }
+
+        a.concept-link:hover {
+            color: #bae6fd;
+            border-bottom-style: solid;
+        }
+
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+        }
+
+        /* TABLA RESUMEN COMPARATIVA */
+        .summary-table-card {
+            background: var(--surface);
+            border: 1px solid #0284c7;
+            border-radius: 16px;
+            padding: 26px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            margin-top: 10px;
+            scroll-margin-top: 80px;
+        }
+
+        .summary-table-card h2 {
+            font-size: 21px;
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .summary-table-card p.subtitle {
+            color: var(--text-muted);
+            font-size: 13.5px;
+            margin-bottom: 20px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+            background: rgba(15, 23, 42, 0.7);
+        }
+
+        .summary-table th, .summary-table td {
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+        }
+
+        .summary-table thead th {
+            background: #0f172a;
+            color: #f8fafc;
+            font-weight: 700;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .summary-table tbody tr:hover {
+            background: rgba(51, 65, 85, 0.4);
+        }
+
+        .summary-table td.param-name {
+            font-weight: 700;
+            color: #38bdf8;
+            background: rgba(15, 23, 42, 0.9);
+            white-space: nowrap;
+        }
+
+        .summary-table td.val-code {
+            font-family: "Fira Code", monospace;
+            font-weight: 600;
+        }
+
+        .badge-active {
+            background: #064e3b;
+            color: #6ee7b7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .badge-anulado {
+            background: #7f1d1d;
+            color: #fca5a5;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .badge-blindado {
+            background: #312e81;
+            color: #c7d2fe;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* DESPLEGABLE DE DOCUMENTACIÓN DETALLADA */
+        details.doc-accordion {
+            margin-top: 14px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        details.doc-accordion[open] {
+            border-color: #38bdf8;
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        details.doc-accordion summary {
+            padding: 10px 14px;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #38bdf8;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+        }
+
+        details.doc-accordion summary::-webkit-details-marker {
+            display: none;
+        }
+
+        details.doc-accordion summary::after {
+            content: "➕ Ver texto formal del modelo";
+            font-size: 11.5px;
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+        }
+
+        details.doc-accordion[open] summary::after {
+            content: "➖ Ocultar texto formal";
+            color: #38bdf8;
+        }
+
+        .doc-accordion-content {
+            padding: 14px;
+            border-top: 1px solid rgba(51, 65, 85, 0.6);
+            font-size: 13px;
+            line-height: 1.6;
+            color: #cbd5e1;
+        }
+
+        .doc-accordion-content p {
+            margin-bottom: 8px;
+        }
+
+        .doc-accordion-content ul {
+            margin-left: 20px;
+            margin-bottom: 8px;
+        }
+
+        .doc-accordion-content li {
+            margin-bottom: 4px;
+        }
+
+        .doc-accordion-content blockquote {
+            border-left: 3px solid #38bdf8;
+            padding-left: 10px;
+            margin: 8px 0;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        /* EXECUTIVE SUMMARY & INTRO */
+        .exec-summary-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+            border: 1px solid #38bdf8;
+            border-radius: 16px;
+            padding: 26px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 20px rgba(56, 189, 248, 0.1);
+            scroll-margin-top: 80px;
+        }
+
+        .exec-summary-card h2 {
+            font-size: 22px;
+            color: #38bdf8;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .exec-pills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 14px;
+            margin: 18px 0;
+        }
+
+        .exec-pill {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .exec-pill.accent-warning {
+            border-left-color: var(--warning);
+        }
+
+        .exec-pill.accent-danger {
+            border-left-color: var(--danger);
+        }
+
+        .exec-pill.accent-tumor {
+            border-left-color: var(--accent);
+        }
+
+        .exec-pill h4 {
+            font-size: 14px;
+            color: var(--text-main);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .exec-pill p {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* BOTÓN DE ESTADO ANTERIOR */
+        .prev-state-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 5px 10px;
+            color: var(--text-muted);
+            font-size: 12px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .prev-state-btn:hover {
+            color: #38bdf8;
+            border-color: #38bdf8;
+            background: rgba(56, 189, 248, 0.1);
+            transform: translateX(-2px);
+        }
+
+        .prev-nav-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- HEADER -->
+    <header>
+        <h1>Catálogo Formal de Estados Celulares y Transiciones</h1>
+        <p><b>cellSim Computational Platform</b> — Guía interactiva de estados ontológicos, parámetros cinéticos calibrados (&Delta;<sub>low</sub>=0.107, &Delta;<sub>high</sub>=0.214), compuerta instantánea de Primer y ecosistema tumoral.</p>
+    </header>
+
+    <!-- NAVEGACIÓN RÁPIDA / ANCLAS -->
+    <nav class="quick-nav">
+        <a href="#resumen-ejecutivo" style="border-color: #38bdf8; color: #38bdf8;">📌 Resumen Ejecutivo</a>
+        <a href="#figuras">🗺️ Figuras 2D</a>
+        <a href="#estado-base">🌱 1. BASE</a>
+        <a href="#estado-t1">⚠️ 2. T1</a>
+        <a href="#estado-t2">🔥 3. T2</a>
+        <a href="#estado-t3">⚡ 4. T3</a>
+        <a href="#estado-primer">🚨 5. PRIMER</a>
+        <a href="#estado-tumor">👑 6. TUMOR</a>
+        <a href="#estado-muerte">💀 Salidas Apoptosis</a>
+        <a href="#tabla-resumen" style="border-color: #38bdf8; color: #38bdf8;">📊 Tabla Resumen</a>
+    </nav>
+
+
+    <!-- RESUMEN EJECUTIVO E INTRODUCCIÓN -->
+    <section id="resumen-ejecutivo" class="exec-summary-card">
+        <h2>📌 Resumen Ejecutivo: Introducción al Modelo cellSim</h2>
+        
+        <!-- NOTA DE ALCANCE: NIVEL CELULAR VS NIVEL TISULAR -->
+        <div style="background: rgba(56, 189, 248, 0.1); border-left: 4px solid var(--primary); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;">
+            <p style="color: #e0f2fe; font-size: 13.5px; line-height: 1.5; margin: 0;">
+                🎯 <b>Alcance de este documento (Escala Celular):</b> Esta guía se centra exclusivamente en la <b>ontología, dinámica y reglas de evolución a nivel de células individuales</b>. En una fase posterior de la documentación se detallará la dinámica a escala tisular macroscópica (cómo un tejido completo transiciona de sano a tumoral).
+            </p>
+        </div>
+
+        <p style="color: #cbd5e1; font-size: 14.5px; line-height: 1.6; margin-bottom: 14px;">
+            <b>cellSim</b> es una plataforma computacional basada en agentes que simula la carcinogénesis en epitelios con mutación germinal hereditaria en <code>BRCA1<sup>+/-</sup></code>. A escala unicelular, el modelo describe la trayectoria biológica y matemática desde una célula sana y funcional hasta la emergencia, escape y ramificación clonal de un linaje maligno:
+        </p>
+
+        <ul style="margin-left: 24px; margin-bottom: 16px; color: #e2e8f0; font-size: 14px; line-height: 1.8;">
+            <li><b>Cooperación entre dos genes conductores:</b> <code>TP53</code> actúa como un <i>interruptor On/Off de apoptosis</i> (su pérdida anula los checkpoints de control del ADN), mientras que <code>BRCA1</code> modula la <i>estabilidad genómica y la latencia clínica</i> del tejido.</li>
+            <li><b>Letalidad sintética protectora:</b> Mientras <code>TP53</code> conserve al menos un alelo funcional (estados Baseline y T1), la pérdida del segundo alelo de BRCA1 es inviable: la célula detecta las roturas masivas de doble cadena de ADN y se autodestruye por apoptosis intrínseca (&Omega;<sub>int</sub>), impidiendo la carcinogénesis.</li>
+            <li><b>Permisividad oncogénica en T2:</b> Solo tras perder ambos alelos de TP53 (<code>TP53<sup>-/-</sup></code>), la célula tolera la deficiencia homóloga de BRCA1 sin morir, acumulando daño genético a velocidad acelerada.</li>
+            <li><b>Cuello de botella estocástico (Primer):</b> Transición obligatoria de un solo ciclo (conforme a la Navaja de Ockham para evitar sobreparametrizar). Se evalúa si el daño inmunológico supera la barrera tisular (&theta;<sub>inmune</sub> = 5.0) para escapar a tumor, o si es destruida de inmediato por inmunoedición tisular (&Omega;<sub>ext</sub>).</li>
+            <li><b>Ecosistema tumoral y heterogeneidad clonal:</b> El escape consolida el blindaje anti-apoptótico permanente (inmortalidad) y acelera la tasa mitótica (~158x, Big Bang), permitiendo la emergencia y coexistencia de subclones hipermutados con fenotipo <i>BRCAness</i>.</li>
+        </ul>
+
+        <!-- DISCLAIMER: REGLAS DE DETECCIÓN Y PARADA TISULAR -->
+        <div style="background: rgba(234, 179, 8, 0.08); border: 1px solid rgba(234, 179, 8, 0.3); border-left: 4px solid var(--warning); border-radius: 8px; padding: 14px 18px; margin: 16px 0;">
+            <div style="color: #fde047; font-size: 13.5px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                ⚠️ Disclaimer: Criterios de Detección Tisular, Saturación y Linajes Independientes
+            </div>
+            <p style="color: #fef08a; font-size: 13px; line-height: 1.6; margin-bottom: 6px;">
+                Aunque las reglas cinéticas aquí descritas rigen a cada célula individualmente, el paso a nivel de tejido completo sigue tres premisas fundamentales de detección y finalización:
+            </p>
+            <ul style="margin-left: 20px; font-size: 12.5px; color: #fef9c3; line-height: 1.6;">
+                <li><b>Umbral de detección clínica (&lt; 5% de células tumorales):</b> Si el tejido alberga menos del <b>5%</b> de células transformadas, <i>no se considera tejido tumoral</i>, ya que permanece por debajo del límite de resolución física y analítica para su detección diagnóstica.</li>
+                <li><b>Positivo por detección (&ge; 5% de células tumorales):</b> Al alcanzar el <b>5%</b>, se marca el evento de detección positiva (tejido formalmente tumorigénico). <i>La simulación continúa corriendo activamente</i> para observar la dinámica expansiva y el comportamiento competitivo de la masa neoplásica.</li>
+                <li><b>Criterio de parada por saturación tisular (&gt; 50% de células tumorales):</b> En el momento en que las células tumorales superan el <b>50%</b> de la población tisular total, <i>la simulación se detiene definitivamente</i> al asumirse la colonización crítica y saturación del nicho epitelial.</li>
+                <li><b>Multicentricidad y linajes independientes:</b> Como las mutaciones somáticas ocurren de forma probabilística e independiente en cada célula del epitelio, <b>múltiples linajes celulares pueden alcanzar el estado tumoral de manera simultánea e independiente</b>, modelando con rigor la multicentricidad clonal observada en pacientes portadoras de <code>BRCA1<sup>+/-</sup></code>.</li>
+            </ul>
+        </div>
+
+        <details class="doc-accordion">
+            <summary>📖 <b>Leer fundamentación teórica y ontología formal del modelo</b></summary>
+            <div class="doc-accordion-content">
+                <p><b>Naturaleza Ontológica de los Estados Celulares:</b> Los estados celulares son representaciones abstractas de las condiciones fisiológicas y genéticas de una célula en un momento dado. Son fundamentales para entender la respuesta celular a diferentes estímulos y perturbaciones genotóxicas.</p>
+                <p><b>Cooperación Funcional BRCA1 - TP53:</b> La interacción entre estos dos genes determina el comportamiento y destino del linaje:</p>
+                <ul>
+                    <li>Cuando <b>TP53 está presente y funcional</b>, la pérdida del alelo restante de BRCA1 conduce inexorablemente a la apoptosis por detección de roturas irresolubles de doble cadena de ADN.</li>
+                    <li>Cuando <b>TP53 está inactivado (-/-)</b>, la pérdida del alelo de BRCA1 no induce muerte, sino que desbloquea una tolerancia masiva a las mutaciones, catapultando a la célula hacia la carcinogénesis acelerada.</li>
+                </ul>
+                <p><b>Dos Motores de Acumulación de Daño:</b></p>
+                <ul>
+                    <li><b>Daño Intrínseco (D_intr o D1):</b> Estrés genotóxico y macromolecular interno gobernado por la disfunción de TP53 y la fricción del envejecimiento celular.</li>
+                    <li><b>Daño Inmunológico (D_inmune o D2):</b> Capacidad progresiva de eludir la vigilancia inmune y la degradación del microambiente circundante, alimentado sinérgicamente por TP53 y BRCA1.</li>
+                </ul>
+            </div>
+        </details>
+    </section>
+
+    <!-- SECCIÓN DE FIGURAS 2D -->
+    <section id="figuras" class="figures-container">
+        <div style="grid-column: 1 / -1; background: rgba(30, 41, 59, 0.5); border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: 12px; padding: 16px 20px; margin-bottom: 8px;">
+            <h3 style="color: var(--primary); font-size: 16px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                🗺️ Arquitectura Visual del Modelo (Workflows 2D Calibrados)
+            </h3>
+            <p style="color: #cbd5e1; font-size: 13.5px; line-height: 1.6;">
+                Las siguientes dos figuras cartografían de forma visual y continua el ciclo vital completo de la célula en <b>cellSim</b>. 
+                La <b>Figura 1</b> describe la fase pre-neoplásica (desde la homeostasis en <a href="#estado-base" class="concept-link">BASE</a> hasta el cuello de botella en <a href="#estado-primer" class="concept-link">PRIMER</a>), detallando cómo el guardián TP53 previene el cáncer mediante letalidad sintética (<a href="#estado-muerte" class="concept-link">&Omega;<sub>int</sub></a>). 
+                La <b>Figura 2</b> retoma el testigo en <a href="#estado-primer" class="concept-link">PRIMER</a> y modela la compuerta de escape inmune tisular de un solo ciclo, la activación simultánea del programa tumoral (Fases I & II) y la diversificación somática intra-tumoral en la Fase III.
+            </p>
+        </div>
+        <!-- FIGURA 1 -->
+        <div class="figure-card">
+            <h3>
+                <span>🗺️ Figura 1: Workflow 2D de Transición (BASE → PRIMER)</span>
+                <span class="figure-badge">Etapa Pre-Neoplásica</span>
+            </h3>
+            <div class="figure-wrapper">
+                <img src="figures/fig_workflow_2d_base_to_primer.png" alt="Workflow 2D de Estados Celulares: BASE a PRIMER">
+            </div>
+            <div class="figure-caption">
+                <b>Figura 1. Mapa de transiciones celulares pre-malignas y letalidad sintética.</b> Ilustra la progresión desde el estado inicial homeostático (<a href="#estado-base" class="concept-link">BASE</a>), activación de inestabilidad (<a href="#estado-t1" class="concept-link">T1</a>, k<sub>inest</sub>=0.107), pérdida total de checkpoint (<a href="#estado-t2" class="concept-link">T2</a>) y colapso de recombinación homóloga (<a href="#estado-t3" class="concept-link">T3</a>), culminando en el cuello de botella <a href="#estado-primer" class="concept-link">PRIMER</a> o en <a href="#estado-muerte" class="concept-link">Apoptosis Intrínseca (&Omega;<sub>int</sub>)</a>.
+            </div>
+        </div>
+
+        <!-- FIGURA 2 -->
+        <div class="figure-card">
+            <h3>
+                <span>👑 Figura 2: Workflow 2D de Transformación y Progresión (PRIMER → TUMOR)</span>
+                <span class="figure-badge">Evasión Inmune & Heterogeneidad</span>
+            </h3>
+            <div class="figure-wrapper">
+                <img src="figures/fig_workflow_2d_primer_to_tumor.png" alt="Workflow 2D: De PRIMER a Tumor y Heterogeneidad Clonal">
+            </div>
+            <div class="figure-caption">
+                <b>Figura 2. Evasión tisular, desacoplamiento mitótico y evolución clonal intra-tumoral.</b> Detalla la compuerta binaria de 1 solo ciclo en <a href="#estado-primer" class="concept-link">PRIMER</a>: aniquilación por <a href="#estado-muerte" class="concept-link">Inmunoedición Tisular (&Omega;<sub>ext</sub>)</a> si D<sub>inmune</sub> &le; 5.0, frente al escape e inmortalidad simultánea en <a href="#estado-tumor" class="concept-link">Transformación Tumoral (Fases I & II)</a> (d<sub>neo</sub>=0.1584), ramificando hacia la <b>Fase III (Heterogeneidad intra-tumoral)</b> con subclones portadores BRCA1<sup>+/-</sup> y subclones LOH BRCA1<sup>-/-</sup> (fenotipo <i>BRCAness</i>).
+            </div>
+        </div>
+    </section>
+
+    <!-- CUADRO DE DEFINICIONES GENERALES Y FÓRMULAS -->
+    <div class="formula-legend-box">
+        <h3>📐 Glosario y Definición Conceptual de Variables y Parámetros</h3>
+        <p style="color: var(--text-muted); font-size: 13.5px; margin-bottom: 16px;">
+            Significado biológico y computacional de cada parámetro del motor cinético (<code>GenomicInstabilityDeltaStrategy</code>) en <b>cellSim</b> organizado en bloques temáticos horizontales:
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- CAJA HORIZONTAL 1: DAÑO Y ENVEJECIMIENTO -->
+            <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: 10px; padding: 14px 18px;">
+                <div style="color: var(--primary); font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+                    1. Dinámica de Daño Celular y Envejecimiento Tisular
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 13px; line-height: 1.5; color: #cbd5e1;">
+                    <div>• <b style="color:#f8fafc;">D_intr (D1):</b> <i>Estrés en ADN.</i> Daño macromolecular interno; si supera 2.0 conduce forzosamente a Primer.</div>
+                    <div>• <b style="color:#f8fafc;">D_inmune (D2):</b> <i>Escape inmune.</i> Nivel de degradación y camuflaje antigénico frente al microambiente.</div>
+                    <div>• <b style="color:#f8fafc;">age_factor (edad &middot; 10<sup>-5</sup>):</b> <i>Fricción cronológica.</i> Aporte basal acumulativo por envejecimiento.</div>
+                    <div>• <b style="color:#f8fafc;">&delta;_D_intr / &delta;_D_inm:</b> Incrementos netos sumados en cada ciclo según el genotipo activo.</div>
+                </div>
+            </div>
+
+            <!-- CAJA HORIZONTAL 2: APORTES ALÉLICOS E INESTABILIDAD -->
+            <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid var(--border); border-left: 4px solid var(--warning); border-radius: 10px; padding: 14px 18px;">
+                <div style="color: var(--warning); font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+                    2. Aportes Alélicos por Genotipo y Penalización de Inestabilidad
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 13px; line-height: 1.5; color: #cbd5e1;">
+                    <div>• <b style="color:#f8fafc;">&Delta;(TP53):</b> <i>Ruptura del guardián.</i> +/+ &rarr; 0.000 | +/- &rarr; 0.107 (&Delta;<sub>low</sub>) | -/- &rarr; 0.214 (&Delta;<sub>high</sub>).</div>
+                    <div>• <b style="color:#f8fafc;">&Delta;(BRCA1):</b> <i>Deficiencia homóloga.</i> +/+ &rarr; 0.000 | +/- &rarr; 0.107 (&Delta;<sub>low</sub>) | -/- &rarr; 0.428 (2&middot;&Delta;<sub>high</sub>).</div>
+                    <div>• <b style="color:#f8fafc;">k_inestabilidad (0.107):</b> Sobrecoste mutacional aditivo activo tras perder al menos 1 alelo de TP53 (<code>isUnstable = true</code>).</div>
+                </div>
+            </div>
+
+            <!-- CAJA HORIZONTAL 3: TASAS MUTACIONALES, UMBRALES Y DIVISIÓN -->
+            <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 10px; padding: 14px 18px;">
+                <div style="color: var(--accent); font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+                    3. Tasas Mutacionales Basales, Umbrales de Decisión y Cinética de División
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 13px; line-height: 1.5; color: #cbd5e1;">
+                    <div>• <b style="color:#f8fafc;">&mu;_TP53 (0.0030 / año):</b> <i>Interruptor somático.</i> Tasa basal de mutación espontánea en el alelo de TP53.</div>
+                    <div>• <b style="color:#f8fafc;">&beta;_BRCA1 (0.0459 / año):</b> <i>Dial de latencia.</i> Tasa basal somática de pérdida del alelo heterocigoto de BRCA1.</div>
+                    <div>• <b style="color:#f8fafc;">&theta;_intr (2.0) y &theta;_inmune (5.0):</b> Barrera de entrada a Primer (&theta;<sub>intr</sub>) y umbral de escape tumoral (&theta;<sub>inmune</sub>).</div>
+                    <div>• <b style="color:#f8fafc;">d_basal (0.0010) vs d_neo (0.1584):</b> Tasa mitótica fisiológica frente al desacoplamiento proliferativo (~158&times;).</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="note-box" style="margin-top: 14px; background: rgba(251, 191, 36, 0.1); border-left: 3px solid var(--warning); color: #fde68a;">
+            ⚠️ <b>Nota sobre los valores numéricos:</b> Los valores numéricos expuestos en esta guía (&Delta;<sub>low</sub> = 0.107, &Delta;<sub>high</sub> = 0.214, &theta;<sub>intr</sub> = 2.0, &theta;<sub>inmune</sub> = 5.0, &mu;<sub>TP53</sub>, &beta;<sub>BRCA1</sub> y tasas de división) corresponden a una <b>calibración de referencia y ejemplo</b> utilizada para ilustrar el comportamiento dinámico y las transiciones del modelo en las simulaciones, pudiendo ajustarse o reparametrizarse según la cohorte experimental o tisular de estudio.
+        </div>
+    </div>
+
+    <!-- LISTADO DE ESTADOS CELULARES -->
+    <div class="state-stream">
+
+        <!-- ==================== ESTADO 1: BASE ==================== -->
+        <div id="estado-base" class="state-card base-card">
+            <div class="state-header">
+                <div class="state-title-grp">
+                    <h2>🌱 1. Estado BASE (BASELINE - Homeostasis Tisular)</h2>
+                    <div class="genotype-badges">
+                        <span class="genotype-tag tag-tp53-wt">TP53: +/+</span>
+                        <span class="genotype-tag tag-brca1-het">BRCA1: +/-</span>
+                        <span class="genotype-tag">isUnstable = false</span>
+                        <span class="genotype-tag">k_inest = 0</span>
+                    </div>
+                    <div class="prev-nav-box">
+                        <span>Origen: <b>Estado inicial germinal</b> (sin estado previo).</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2col">
+                <div class="section-box">
+                                                            <h3>📋 Parámetros del Estado</h3>
+                    <div class="param-row">
+                        <span class="param-label">&Delta;(TP53) [genotipo +/+]:</span>
+                        <span class="param-value">0.000</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">&Delta;(BRCA1) [genotipo +/-]:</span>
+                        <span class="param-value" style="color: #93c5fd;">0.107 (&Delta;_low)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Inestabilidad k_inest:</span>
+                        <span class="param-value">0.000 (isUnstable = false)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Checkpoint p53 (Apoptosis ADN):</span>
+                        <span class="param-value" style="color: #4ade80;">ACTIVO (Vigilancia Total)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Tasa Mitótica (d):</span>
+                        <span class="param-value">d_basal = 0.0010 / ciclo</span>
+                    </div>
+                </div>
+
+                <div class="section-box">
+                    <h3>🔀 Salidas y Transiciones Posibles</h3>
+                    <div class="transition-list">
+                        <a href="#estado-t1" class="transition-item progression">
+                            <div class="trans-header">
+                                <span>➡️ A Estado T1 (Inestabilidad Moderada)</span>
+                                <span class="trans-link-arrow">Ver T1 &rarr;</span>
+                            </div>
+                            <div class="trans-formula">P = &mu;_TP53 = 0.0030 / año</div>
+                            <div class="trans-desc">
+                                Mutación somática del 1er alelo de TP53 (+/+ &rarr; +/-). Activa k<sub>inestabilidad</sub>.
+                            </div>
+                        </a>
+
+                        <a href="#estado-muerte" class="transition-item death">
+                            <div class="trans-header">
+                                <span>💀 A Apoptosis Intrínseca (Letalidad Sintética)</span>
+                                <span class="trans-link-arrow">Ver Muerte &rarr;</span>
+                            </div>
+                            <div class="trans-formula">P = &beta;_BRCA1 = 0.0459 / año</div>
+                            <div class="trans-desc">
+                                Pérdida del 2º alelo de BRCA1 (+/- &rarr; -/-). Con TP53 intacto, la célula no tolera la deficiencia homóloga y se autodestruye.
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-box">
+                <div class="code-box">
+• <b>&delta;_D_intr</b> = &Delta;(TP53) + age_factor = 0.000 + (edad &middot; 10<sup>-5</sup>) = <span class="eq-highlight">edad &middot; 10<sup>-5</sup></span><br>
+• <b>&delta;_D_inm</b> = &Delta;(TP53) + &Delta;(BRCA1) + age_factor = 0.000 + 0.107 + (edad &middot; 10<sup>-5</sup>) = <span class="eq-highlight">0.107 + (edad &middot; 10<sup>-5</sup>)</span><br>
+• <b>Dinámica Homeostática:</b> Daño celular basal mínimo; estabilidad genómica gobernada por ambos alelos funcionales de TP53.
+                </div>
+            </div>
+            <details class="doc-accordion">
+                <summary>📖 <b>Descripción formal:</b> Baseline (BRCA1+/- / TP53+/+)</summary>
+                <div class="doc-accordion-content">
+                    <p>Este es el estado celular inicial, caracterizado por la estabilidad genómica y la funcionalidad normal. En este estado, la célula mantiene un equilibrio homeostático y es capaz de responder adecuadamente a señales externas e internas. La presencia de un alelo funcional de BRCA1 y TP53 permite la reparación eficiente del ADN y la regulación del ciclo celular. No obstante, estas células acumulan un daño genético reducido pero constante a lo largo del tiempo.</p>
+                    <p>En cuanto a la dinámica mutacional, dado que ambos alelos de TP53 están intactos, el genoma permanece estable (<code>isUnstable = false</code> y <code>k_inestabilidad = 0</code>). En consecuencia, tanto el alelo funcional restante de BRCA1 como los dos alelos de TP53 están sujetos únicamente a sus tasas basales espontáneas mínimas de mutación. La probabilidad de adquirir una nueva mutación en este estado es muy baja y sólo aumenta de forma casi imperceptible con la edad mediante el incremento lento de D_intr.</p>
+                    <p><b>Evolución del estado:</b></p>
+                    <ul>
+                        <li>Si la célula mantiene ambos genes funcionales, el daño acumulado es mínimo y la célula permanece en Baseline.</li>
+                        <li>Si la célula pierde un alelo de TP53, transiciona al estado T1, reflejando inestabilidad genómica moderada.</li>
+                        <li>Si la célula pierde el alelo de BRCA1 mientras TP53 sigue funcional, la célula entra en apoptosis intrínseca (&Omega;<sub>int</sub>) y no progresa a estados más inestables (muere).</li>
+                    </ul>
+                    <p>Esta célula también se puede dividir, y lo hace a una tasa fisiológica estándar (<i>d_basal = 0.0010</i>).</p>
+                </div>
+            </details>
+        </div>
+
+        <div class="flow-connector"><div class="flow-line"></div><div class="flow-arrow">▼</div></div>
+
+        <!-- ==================== ESTADO 2: T1 ==================== -->
+        <div id="estado-t1" class="state-card st1-card">
+            <div class="state-header">
+                <div class="state-title-grp">
+                    <h2>⚠️ 2. Estado T1 (Haploinsuficiencia de TP53)</h2>
+                    <div class="genotype-badges">
+                        <span class="genotype-tag tag-tp53-het">TP53: +/-</span>
+                        <span class="genotype-tag tag-brca1-het">BRCA1: +/-</span>
+                        <span class="genotype-tag tag-instability">isUnstable = true</span>
+                        <span class="genotype-tag">k_inest = 0.107</span>
+                    </div>
+                    <div class="prev-nav-box">
+                        <span>⬅️ Procede de:</span>
+                        <a href="#estado-base" class="prev-state-btn">🌱 Estado BASE (Baseline)</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2col">
+                <div class="section-box">
+                                                            <h3>📋 Parámetros del Estado</h3>
+                    <div class="param-row">
+                        <span class="param-label">&Delta;(TP53) [genotipo +/-]:</span>
+                        <span class="param-value" style="color: #fde68a;">0.107 (&Delta;_low)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">&Delta;(BRCA1) [genotipo +/-]:</span>
+                        <span class="param-value" style="color: #93c5fd;">0.107 (&Delta;_low)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Inestabilidad k_inest:</span>
+                        <span class="param-value" style="color: #f472b6;">0.107 (isUnstable = true)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Checkpoint p53 (Apoptosis ADN):</span>
+                        <span class="param-value" style="color: #fbbf24;">ACTIVO (1 alelo vigilante)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Tasa Mitótica (d):</span>
+                        <span class="param-value">d_basal = 0.0010 / ciclo</span>
+                    </div>
+                </div>
+
+                <div class="section-box">
+                    <h3>🔀 Salidas y Transiciones Posibles</h3>
+                    <div class="transition-list">
+                        <a href="#estado-t2" class="transition-item progression">
+                            <div class="trans-header">
+                                <span>➡️ A Estado T2 (Pérdida Completa de Checkpoint)</span>
+                                <span class="trans-link-arrow">Ver T2 &rarr;</span>
+                            </div>
+                            <div class="trans-formula">P = (&mu;_TP53 + k_inest) &middot; D_intr</div>
+                            <div class="trans-desc">
+                                Mutación somática del 2º alelo de TP53 (+/- &rarr; -/-). Inactiva el guardián del genoma.
+                            </div>
+                        </a>
+
+                        <a href="#estado-muerte" class="transition-item death">
+                            <div class="trans-header">
+                                <span>💀 A Apoptosis Intrínseca (Letalidad Sintética)</span>
+                                <span class="trans-link-arrow">Ver Muerte &rarr;</span>
+                            </div>
+                            <div class="trans-formula">P = (&beta;_BRCA1 + k_inest) &middot; D_intr</div>
+                            <div class="trans-desc">
+                                Pérdida de BRCA1 persistiendo 1 alelo de TP53 funcional &rarr; muerte celular inmediata.
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-box">
+                <div class="code-box">
+• <b>&delta;_D_intr</b> = &Delta;(TP53) + age_factor = 0.107 + (edad &middot; 10<sup>-5</sup>) = <span class="eq-highlight">0.107 + (edad &middot; 10<sup>-5</sup>)</span><br>
+• <b>&delta;_D_inm</b> = &Delta;(TP53) + &Delta;(BRCA1) + age_factor = 0.107 + 0.107 + (edad &middot; 10<sup>-5</sup>) = <span class="eq-highlight">0.214 + (edad &middot; 10<sup>-5</sup>)</span><br>
+• <b>Aceleración Mutacional:</b> El daño D<sub>intr</sub> crece más rápido, aumentando el factor de escala sobre las probabilidades de transición.
+                </div>
+            </div>
+            <details class="doc-accordion">
+                <summary>📖 <b>Descripción formal:</b> T1 (BRCA1+/- / TP53+/-)</summary>
+                <div class="doc-accordion-content">
+                    <p>Este estado representa el primer paso hacia la desestabilización genómica de la célula. Se produce cuando una célula en estado Baseline sufre la pérdida de un alelo de TP53 (haploinsuficiencia funcional). Aunque la célula sigue siendo viable y retiene un alelo funcional de cada gen que le permite mantener el control básico del ciclo celular, los mecanismos de detección y reparación de daños comienzan a deteriorarse. En consecuencia, el ritmo de acumulación de daño tanto intrínseco (D_intr) como inmunológico (D_inmune) se acelera respecto al estado inicial.</p>
+                    <p>En el plano mutacional, la pérdida del primer alelo de TP53 activa la condición de inestabilidad genómica (<code>isUnstable = true</code>). Esto provoca que se sume de inmediato la penalización <code>k_inestabilidad</code> a las probabilidades de mutación de todos los genes:</p>
+                    <ul>
+                        <li><b>Alelo restante de TP53:</b> Su tasa efectiva aumenta significativamente, haciendo mucho más probable el "segundo golpe" somático hacia la pérdida total de función (TP53-/-).</li>
+                        <li><b>Alelo restante de BRCA1:</b> La probabilidad de perderse también se eleva; si esto sucede en este estado, la célula activa la apoptosis intrínseca (&Omega;<sub>int</sub>) debido a la actividad residual de TP53.</li>
+                    </ul>
+                    <p>Dado que D_intr se acumula a un ritmo superior en T1, el factor multiplicador del umbral mutacional crece más rápido ciclo a ciclo, generando una aceleración progresiva en la probabilidad de sufrir mutaciones. La célula se divide a la tasa estándar (<i>d_basal = 0.0010</i>).</p>
+                </div>
+            </details>
+        </div>
+
+        <div class="flow-connector"><div class="flow-line"></div><div class="flow-arrow">▼</div></div>
+
+        <!-- ==================== ESTADO 3: T2 ==================== -->
+        <div id="estado-t2" class="state-card st2-card">
+            <div class="state-header">
+                <div class="state-title-grp">
+                    <h2>🔥 3. Estado T2 (Desprotección Genómica Crítica)</h2>
+                    <div class="genotype-badges">
+                        <span class="genotype-tag tag-tp53-null">TP53: -/-</span>
+                        <span class="genotype-tag tag-brca1-het">BRCA1: +/-</span>
+                        <span class="genotype-tag tag-instability">isUnstable = true</span>
+                        <span class="genotype-tag">Sin Checkpoints</span>
+                    </div>
+                    <div class="prev-nav-box">
+                        <span>⬅️ Procede de:</span>
+                        <a href="#estado-t1" class="prev-state-btn">⚠️ Estado T1 (TP53+/-)</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2col">
+                <div class="section-box">
+                                        <h3>📋 Parámetros del Estado</h3>
+                    <div class="param-row">
+                        <span class="param-label">&Delta;(TP53) [genotipo -/-]:</span>
+                        <span class="param-value" style="color: #f87171;">0.214 (&Delta;_high)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">&Delta;(BRCA1) [genotipo +/-]:</span>
+                        <span class="param-value" style="color: #93c5fd;">0.107 (&Delta;_low)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Inestabilidad k_inest:</span>
+                        <span class="param-value" style="color: #f472b6;">0.107 (isUnstable = true)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Checkpoint p53 (Apoptosis ADN):</span>
+                        <span class="param-value" style="color: #f87171;">ANULADO (Permisivo a daño)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Tasa Mitótica (d):</span>
+                        <span class="param-value">d_basal = 0.0010 / ciclo</span>
+                    </div>
+                </div>
+
+                <div class="section-box">
+                    <h3>🔀 Bifurcación Crítica hacia PRIMER</h3>
+                    <div class="transition-list">
+                        <a href="#estado-t3" class="transition-item progression">
+                            <div class="trans-header">
+                                <span>⚡ A Estado T3 (LOH Somático en BRCA1)</span>
+                                <span class="trans-link-arrow">Ver T3 &rarr;</span>
+                            </div>
+                            <div class="trans-formula">P = (&beta;_BRCA1 + k_inest) &middot; D_intr</div>
+                            <div class="trans-desc">
+                                Pérdida del 2º alelo de BRCA1. Al no haber p53, <b>la célula sobrevive</b> y adquiere fenotipo hipermutado (T3).
+                            </div>
+                        </a>
+
+                        <a href="#estado-primer" class="transition-item primer">
+                            <div class="trans-header">
+                                <span>🚨 A PRIMER Vía Directa (sin LOH)</span>
+                                <span class="trans-link-arrow">Ver PRIMER &rarr;</span>
+                            </div>
+                            <div class="trans-formula">Condición: D_intr > &theta;_intr = 2.0</div>
+                            <div class="trans-desc">
+                                Cruce del umbral intrínseco conservando BRCA1 (+/-). Tasa &delta;<sub>D_inm</sub>=0.321 (riesgo elevado de eliminación tisular).
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-box">
+                <div class="code-box">
+• <b>&delta;_D_intr</b> = &Delta;(TP53) + age_factor = 0.214 + (edad &middot; 10<sup>-5</sup>) = <span class="eq-highlight">0.214 + (edad &middot; 10<sup>-5</sup>)</span><br>
+• <b>&delta;_D_inm</b> = &Delta;(TP53) + &Delta;(BRCA1) + age_factor = 0.214 + 0.107 + (edad &middot; 10<sup>-5</sup>) = <span class="eq-highlight">0.321 + (edad &middot; 10<sup>-5</sup>)</span><br>
+• <b>Cinética a PRIMER:</b> Acumula daño a 0.214/ciclo. Llega al umbral 2.0 en ~9 ciclos si no muta BRCA1 antes.
+                </div>
+            </div>
+            <details class="doc-accordion">
+                <summary>📖 <b>Descripción formal:</b> T2 (BRCA1+/- / TP53-/-)</summary>
+                <div class="doc-accordion-content">
+                    <p>Este estado representa una fase de desprotección genómica crítica. Se alcanza cuando una célula en T1 sufre la pérdida del segundo alelo de TP53 (segundo golpe o pérdida de heterocigosidad). Al quedar completamente inactivado el "guardián del genoma", la célula pierde tanto los puntos de control del ciclo celular dependientes de TP53 como la capacidad de inducir apoptosis ante aberraciones genéticas severas. Mientras tanto, BRCA1 permanece en heterocigosis (+/-), proporcionando todavía una capacidad residual de reparación por recombinación homóloga.</p>
+                    <p><b>En el plano mutacional y cinético:</b></p>
+                    <ul>
+                        <li>La inestabilidad genómica es plena (<code>isUnstable = true</code>, con <code>k_inestabilidad</code> activo).</li>
+                        <li>El daño intrínseco (D_intr) se incrementa de forma acelerada debido a la ausencia total de TP53 (sumando &Delta;<sub>high</sub> = 0.214 en cada ciclo), disparando el factor del umbral de mutación.</li>
+                        <li>El daño inmunológico (D_inmune) acumula simultáneamente el impacto de ambos genes (0.214 + 0.107 = 0.321 por ciclo más la fricción de edad).</li>
+                        <li>Crucialmente, la pérdida del alelo restante de BRCA1 deja de ser letal: la célula ahora es genómicamente permisiva ante la deficiencia homóloga de BRCA1.</li>
+                    </ul>
+                    <p>Si D_intr cruza el umbral crítico (&theta;<sub>intr</sub> = 2.0) antes de mutar BRCA1, transiciona a Primer; si pierde antes el segundo alelo de BRCA1, pasa a T3 sin morir.</p>
+                </div>
+            </details>
+        </div>
+
+        <div class="flow-connector"><div class="flow-line"></div><div class="flow-arrow">▼</div></div>
+
+        <!-- ==================== ESTADO 4: T3 ==================== -->
+        <div id="estado-t3" class="state-card st3-card">
+            <div class="state-header">
+                <div class="state-title-grp">
+                    <h2>⚡ 4. Estado T3 (Colapso Homólogo y Máxima Inestabilidad)</h2>
+                    <div class="genotype-badges">
+                        <span class="genotype-tag tag-tp53-null">TP53: -/-</span>
+                        <span class="genotype-tag tag-brca1-null">BRCA1: -/- (LOH)</span>
+                        <span class="genotype-tag tag-instability">Doble Nulo</span>
+                        <span class="genotype-tag" style="background:#581c87; color:#d8b4fe;">BRCAness</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2col">
+                <div class="section-box">
+                                        <h3>📋 Parámetros del Estado</h3>
+                    <div class="param-row">
+                        <span class="param-label">&Delta;(TP53) [genotipo -/-]:</span>
+                        <span class="param-value" style="color: #f87171;">0.214 (&Delta;_high)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">&Delta;(BRCA1) [genotipo -/-]:</span>
+                        <span class="param-value" style="color: #d8b4fe;">0.428 (2 &middot; &Delta;_high)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Inestabilidad k_inest:</span>
+                        <span class="param-value" style="color: #f472b6;">0.107 (isUnstable = true)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Checkpoint p53 (Apoptosis ADN):</span>
+                        <span class="param-value" style="color: #f87171;">ANULADO (Permisivo a daño)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Tasa Mitótica (d):</span>
+                        <span class="param-value">d_basal = 0.0010 / ciclo</span>
+                    </div>
+                </div>
+
+                <div class="section-box">
+                    <h3>🔀 Salida Inexorable hacia PRIMER</h3>
+                    <div class="transition-list">
+                        <a href="#estado-primer" class="transition-item primer">
+                            <div class="trans-header">
+                                <span>🚨 A PRIMER (Vía Hipermutada T3)</span>
+                                <span class="trans-link-arrow">Ver PRIMER &rarr;</span>
+                            </div>
+                            <div class="trans-formula">Condición: D_intr > &theta;_intr = 2.0</div>
+                            <div class="trans-desc">
+                                Al acumular &delta;<sub>D_inm</sub>=0.642 por ciclo, cruza el umbral de escape &theta;<sub>inmune</sub>=5.0 casi con total certeza.
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-box">
+                <div class="code-box">
+• <b>&delta;_D_intr</b> = &Delta;(TP53) + age_factor = 0.214 + (edad &middot; 10<sup>-5</sup>) = <span class="eq-highlight">0.214 + (edad &middot; 10<sup>-5</sup>)</span><br>
+• <b>&delta;_D_inm</b> = &Delta;(TP53) + &Delta;(BRCA1) + age_factor = 0.214 + 0.428 + (edad &middot; 10<sup>-5</sup>) = <span class="eq-highlight">0.642 + (edad &middot; 10<sup>-5</sup>)</span><br>
+• <b>Ventaja Neoplásica:</b> Su hipermutabilidad masiva satura la capacidad inmunológica antes de que el tejido pueda reaccionar.
+                </div>
+            </div>
+            <details class="doc-accordion">
+                <summary>📖 <b>Descripción formal:</b> T3 (BRCA1-/- / TP53-/-)</summary>
+                <div class="doc-accordion-content">
+                    <p>Este estado representa la máxima inestabilidad genómica y degradación celular del modelo pre-neoplásico. Se alcanza exclusivamente desde T2, cuando una célula que ya ha perdido ambos alelos de TP53 sufre la pérdida del alelo restante de BRCA1. Al carecer totalmente de BRCA1, la célula pierde la capacidad de reparar roturas de doble cadena de ADN por recombinación homóloga; no obstante, al no contar con TP53 funcional para censurar este daño catastrófico, la célula sobrevive y continúa proliferando, acumulando aberraciones cromosómicas masivas.</p>
+                    <p><b>En el plano mutacional y cinético:</b></p>
+                    <ul>
+                        <li>La inestabilidad genómica es total (<code>isUnstable = true</code>).</li>
+                        <li>D_intr se acumula a la tasa acelerada de TP53-/- (0.214 por ciclo más fricción de edad).</li>
+                        <li>D_inmune alcanza su <b>tasa máxima de acumulación</b> en el modelo: sumando 2&middot;&Delta;<sub>high</sub> de BRCA1 + &Delta;<sub>high</sub> de TP53 = 0.428 + 0.214 = 0.642 por ciclo.</li>
+                    </ul>
+                    <p>Con ambos genes conductores ya completamente inactivados (doble nulo), el destino principal de la célula es el avance inexorable hacia el estado Primer en cuanto D_intr &gt; 2.0.</p>
+                </div>
+            </details>
+        </div>
+
+        <div class="flow-connector"><div class="flow-line"></div><div class="flow-arrow">▼</div></div>
+
+        <!-- ==================== ESTADO 5: PRIMER ==================== -->
+        <div id="estado-primer" class="state-card primer-card">
+            <div class="state-header">
+                <div class="state-title-grp">
+                    <h2>🚨 5. Estado PRIMER (Cuello de Botella Pre-Tumoral)</h2>
+                    <div class="genotype-badges">
+                        <span class="genotype-tag tag-tp53-null">TP53: -/-</span>
+                        <span class="genotype-tag tag-brca1-het">Desde T2 (BRCA1+/-)</span>
+                        <span class="genotype-tag tag-brca1-null">Desde T3 (BRCA1-/-)</span>
+                        <span class="genotype-tag" style="background:#be185d; color:#fce7f3;">1 Solo Ciclo (Instantáneo)</span>
+                    </div>
+                    <div class="prev-nav-box">
+                        <span>⬅️ Procede alternativamente de:</span>
+                        <a href="#estado-t2" class="prev-state-btn">🔥 Estado T2 (BRCA1+/-)</a>
+                        <a href="#estado-t3" class="prev-state-btn">⚡ Estado T3 (BRCA1-/-)</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2col">
+                <div class="section-box">
+                    <h3>📋 Parámetros del Estado</h3>
+                    <div class="param-row">
+                        <span class="param-label">&Delta;(TP53) [genotipo -/-]:</span>
+                        <span class="param-value" style="color: #f87171;">0.214 (&Delta;_high)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">&Delta;(BRCA1) [T2 vs T3]:</span>
+                        <span class="param-value" style="color: #d8b4fe;">0.107 (si T2) | 0.428 (si T3)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Inestabilidad k_inest:</span>
+                        <span class="param-value" style="color: #f472b6;">0.107 (isUnstable = true)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Checkpoint p53 (Apoptosis ADN):</span>
+                        <span class="param-value" style="color: #f87171;">ANULADO (Permisivo a daño)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Tasa Mitótica (d):</span>
+                        <span class="param-value" style="color: #ec4899;">0.0000 (1 ciclo sin división)</span>
+                    </div>
+                </div>
+
+                <div class="section-box">
+                    <h3>🔀 Resolución Binaria Inmediata</h3>
+                    <div class="transition-list">
+                        <a href="#estado-muerte" class="transition-item death">
+                            <div class="trans-header">
+                                <span>💀 Inmunoedición Tisular (&Omega;_ext)</span>
+                                <span class="trans-link-arrow">Ver Muerte &rarr;</span>
+                            </div>
+                            <div class="trans-formula">Condición: D_inmune &le; 5.0</div>
+                            <div class="trans-desc">
+                                El microambiente tisular destruye de inmediato la célula pre-maligna (frecuente si procede de T2).
+                            </div>
+                        </a>
+
+                        <a href="#estado-tumor" class="transition-item tumor">
+                            <div class="trans-header">
+                                <span>👑 Escape Neoplásico &rarr; ESTADO TUMORAL</span>
+                                <span class="trans-link-arrow">Ver Tumor &rarr;</span>
+                            </div>
+                            <div class="trans-formula">Condición: D_inmune > 5.0</div>
+                            <div class="trans-desc">
+                                La célula supera la barrera, activa <code>develop_neoplasm()</code> e inicia mitosis acelerada.
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-box">
+                <div class="code-box">
+• <b>Células originadas en T2 (BRCA1 +/-):</b> &delta;<sub>D_inm</sub> = 0.321. Si cruzaron D<sub>intr</sub> > 2.0 deprisa, es frecuente que D<sub>inmune</sub> &le; 5.0, siendo aniquiladas por <a href="#estado-muerte" class="concept-link">Apoptosis Extrínseca (&Omega;<sub>ext</sub>)</a>.<br>
+• <b>Células originadas en T3 (BRCA1 -/-):</b> &delta;<sub>D_inm</sub> = 0.642. Al duplicar la velocidad inmunosupresora, llegan con D<sub>inmune</sub> > 5.0 y consuman con éxito la <a href="#estado-tumor" class="concept-link">Transformación Tumoral</a>.
+                </div>
+            </div>
+
+            <div class="note-box">
+                <b>Nota de diseño:</b> En la clínica las lesiones pre-malignas pueden exhibir latencia tisular prolongada. Sin embargo, para evitar sobreparametrización no comprobable, Primer se modela como una compuerta instantánea de un solo ciclo (Principio de Parsimonia).
+            </div>
+            <details class="doc-accordion">
+                <summary>📖 <b>Descripción formal:</b> Estado Primer (Pre-tumoral transitorio)</summary>
+                <div class="doc-accordion-content">
+                    <p>El estado "Primer" representa el cuello de botella evolutivo más crítico del modelo: es la condición transitoria obligatoria que debe alcanzar toda célula antes de convertirse en tumoral. No se alcanza mediante una mutación puntual directa, sino por la combinación de una base genética desprotegida (TP53-/-) y la superación de un umbral cuantitativo de daño genotóxico: el daño intrínseco acumulado debe superar el umbral crítico (D_intr &gt; 2.0). A este estado pueden llegar tanto células procedentes de T2 (BRCA1+/-) como de T3 (BRCA1-/-).</p>
+                    <p>A diferencia de los estados anteriores, Primer es un estado de <b>un solo ciclo</b>: la célula no permanece en él dividiéndose ni acumulando daño a lo largo del tiempo. Se enfrenta a una resolución binaria inmediata gobernada por D_inmune:</p>
+                    <ul>
+                        <li><b>Escape inmune y transformación tumoral (D_inmune &gt; 5.0):</b> La célula elude la respuesta del tejido, activa <code>develop_neoplasm()</code>, transiciona a Tumoral y adquiere resistencia total a apoptosis.</li>
+                        <li><b>Eliminación por inmunoedición tisular (D_inmune &le; 5.0):</b> El sistema inmunitario del tejido detecta a la célula pre-maligna y la destruye de inmediato mediante apoptosis extrínseca (&Omega;<sub>ext</sub>).</li>
+                    </ul>
+                    <blockquote><b>Justificación metodológica (Parsimonia):</b> En la clínica las lesiones pre-malignas pueden presentar ventanas de latencia indeterminadas. Para no sobreparametrizar innecesariamente el modelo computacional con grados de libertad difíciles de contrastar, se formaliza Primer como una compuerta estocástica binaria e instantánea de un solo ciclo (Navaja de Ockham).</blockquote>
+                </div>
+            </details>
+        </div>
+
+        <div class="flow-connector"><div class="flow-line"></div><div class="flow-arrow">▼</div></div>
+
+        <!-- ==================== ESTADO 6: TUMORAL ==================== -->
+        <div id="estado-tumor" class="state-card tumor-card">
+            <div class="state-header">
+                <div class="state-title-grp">
+                    <h2>👑 6. Estado TUMORAL (Ecosistema Dinámico y Evolución Clonal)</h2>
+                    <div class="genotype-badges">
+                        <span class="genotype-tag tag-immortal">has_evaded_apoptosis_ = true</span>
+                        <span class="genotype-tag" style="background:#312e81; color:#c7d2fe;">is_neoplastic_ = true</span>
+                        <span class="genotype-tag tag-instability">Mitosis d_neo = 0.1584</span>
+                    </div>
+                    <div class="prev-nav-box">
+                        <span>⬅️ Procede exclusivamente de:</span>
+                        <a href="#estado-primer" class="prev-state-btn">🚨 Estado PRIMER (Escape D_inmune &gt; 5.0)</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2col">
+                <div class="section-box">
+                    <h3>📋 Parámetros del Estado</h3>
+                    <div class="param-row">
+                        <span class="param-label">&Delta;(TP53) [genotipo -/-]:</span>
+                        <span class="param-value" style="color: #f87171;">0.214 (&Delta;_high)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">&Delta;(BRCA1) [Portador vs LOH]:</span>
+                        <span class="param-value" style="color: #d8b4fe;">0.107 (+/-) | 0.428 (-/-)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Inestabilidad k_inest:</span>
+                        <span class="param-value" style="color: #f472b6;">0.107 (Hipermutación activa)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Checkpoint p53 (Apoptosis ADN):</span>
+                        <span class="param-value" style="color: #4ade80;">BLINDADO (has_evaded_apoptosis)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Tasa Mitótica (d):</span>
+                        <span class="param-value" style="color: #38bdf8;">d_neo = 0.1584 / ciclo (~158x)</span>
+                    </div>
+                </div>
+
+                <div class="section-box">
+                    <h3>🧬 Fase III: Heterogeneidad Intra-tumoral</h3>
+                    <div class="transition-list">
+                        <div class="transition-item progression">
+                            <div class="trans-header">
+                                <span>Subclón Portador (BRCA1+/-)</span>
+                                <span class="trans-formula">&delta;_D_inm = 0.321 + age_factor</span>
+                            </div>
+                            <div class="trans-desc">
+                                Conserva recombinación homóloga parcial y plasticidad somática.
+                            </div>
+                        </div>
+
+                        <div class="transition-item" style="border-left-color: #a855f7; background: rgba(168, 85, 247, 0.15);">
+                            <div class="trans-header">
+                                <span>Subclón LOH Doble Nulo (BRCA1-/-)</span>
+                                <span class="trans-formula">&delta;_D_inm = 0.642 + age_factor</span>
+                            </div>
+                            <div class="trans-desc">
+                                Fenotipo <i>BRCAness</i>, inestabilidad genómica severa y resistencia farmacológica.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-box">
+                <div class="code-box">
+• <b>Mutación Somática Post-Transformación:</b> Un clon portador (BRCA1<sup>+/-</sup>) puede perder su segundo alelo somático:<br>
+&nbsp;&nbsp;<span class="eq-highlight">P(LOH) = (&beta;_BRCA1 + k_inest) &middot; D_intr</span><br>
+• <b>Sin Letalidad Sintética:</b> A diferencia de Baseline o T1, el clon no muere porque ya adquirió <code>has_evaded_apoptosis_ = true</code>.<br>
+• <b>Consecuencia Oncológica:</b> Coexistencia intra-tumoral de subclones sensibles y resistentes, acelerando la agresividad del tumor.
+                </div>
+            </div>
+
+            <div class="note-box">
+                <b>Aclaración conceptual:</b> La división entre Fase I y Fase II es analítica para distinguir el evento biológico del cinético. En el código <code>cellSim</code> se activan de manera unificada en el mismo instante de escape tisular.
+            </div>
+            <details class="doc-accordion">
+                <summary>📖 <b>Descripción formal:</b> Estado Tumoral (Neoplásico y Heterogeneidad Clonal)</summary>
+                <div class="doc-accordion-content">
+                    <p>La transformación neoplásica en cellSim no constituye un estado final estático o monolítico, sino un ecosistema biológico dinámico formado por un conjunto de subestados con su propia evolución tumoral interna. Emerge de dos motores concurrentes: la degradación continua y acelerada y la mutabilidad somática activa en cada ciclo mitótico.</p>
+                    <p><b>Las Tres Fases Dinámicas del Desarrollo Tumoral:</b></p>
+                    <ul>
+                        <li><b>Fase I (Identidad Neoplásica):</b> La célula supera D_inmune &gt; 5.0, activa <code>develop_neoplasm()</code> y consolida <code>has_evaded_apoptosis_ = true</code>, volviéndose inmortal ante daños genotóxicos y señales citotóxicas.</li>
+                        <li><b>Fase II (Desacoplamiento Proliferativo / Big Bang):</b> Desacoplamiento de la inhibición por contacto y adopción de la tasa mitótica clonal neoplásica (<i>d_neo = 0.1584</i>, ~158x superior al ritmo basal).<br>
+                        <i>*Nota metodológica: Fase I y Fase II son conceptualmente distinguibles pero biológica y computacionalmente simultáneas en el mismo ciclo.</i></li>
+                        <li><b>Fase III (Heterogeneidad Intra-tumoral):</b> Coexistencia y ramificación somática. Un clon fundador portador (BRCA1+/-) puede sufrir el segundo golpe (LOH) y transicionar a doble nulo (BRCA1-/-). Al haber evadido la apoptosis, no muere, dando lugar a subclones resistentes con fenotipo <i>BRCAness</i> dentro de la misma masa tumoral.</li>
+                    </ul>
+                </div>
+            </details>
+        </div>
+
+        <div class="flow-connector"><div class="flow-line"></div><div class="flow-arrow">▼</div></div>
+
+        <!-- ==================== SALIDAS: APOPTOSIS ==================== -->
+        <div id="estado-muerte" class="state-card death-card">
+            <div class="state-header">
+                <div class="state-title-grp">
+                    <h2>💀 Vías de Salida por Apoptosis (Aclaramiento Celular)</h2>
+                    <div class="genotype-badges">
+                        <span class="genotype-tag tag-tp53-null">Omega: Célula Muerta</span>
+                        <span class="genotype-tag">Sin Retorno</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2col">
+                <div class="section-box">
+                    <h3>⚡ Apoptosis Intrínseca (&Omega;_int)</h3>
+                    <div class="param-row">
+                        <span class="param-label">Mecanismo:</span>
+                        <span class="param-value">Letalidad Sintética por Checkpoint</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Estados de Origen:</span>
+                        <span class="param-value"><a href="#estado-base" class="concept-link">BASE</a> y <a href="#estado-t1" class="concept-link">T1</a></span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Desencadenante:</span>
+                        <span class="param-value">Pérdida de BRCA1 con TP53 intacto/activo</span>
+                    </div>
+                    <div class="trans-desc" style="margin-top: 8px;">
+                        El sensor p53 detecta la rotura irresoluble del ADN y activa la cascada de caspasas, evitando la progresión tumoral temprana.
+                    </div>
+                </div>
+
+                <div class="section-box">
+                    <h3>🛡️ Apoptosis Extrínseca (&Omega;_ext)</h3>
+                    <div class="param-row">
+                        <span class="param-label">Mecanismo:</span>
+                        <span class="param-value">Inmunoedición y Vigilancia Tisular</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Estado de Origen:</span>
+                        <span class="param-value">Exclusivo desde <a href="#estado-primer" class="concept-link">PRIMER</a></span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Condición Matemática:</span>
+                        <span class="param-value" style="color: #f87171;">D_inmune &le; &theta;_inmune (5.0)</span>
+                    </div>
+                    <div class="trans-desc" style="margin-top: 8px;">
+                        La célula pre-tumoral no acumuló suficiente camuflaje o daño inmunitario para eludir a los linfocitos y células NK tisulares.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ==================== TABLA RESUMEN COMPARATIVA ==================== -->
+        <div id="tabla-resumen" class="summary-table-card">
+            <h2>📊 Matriz Resumen Comparativa: Estados Celulares Canónicos</h2>
+            <p class="subtitle">Visión panorámica de la evolución fenotípica, cinética y de inestabilidad genómica a través de los 6 estados de <b>cellSim</b>.</p>
+            
+            <div class="table-responsive">
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>Parámetro Fijo</th>
+                            <th>🌱 1. BASE</th>
+                            <th>⚠️ 2. T1</th>
+                            <th>🔥 3. T2</th>
+                            <th>⚡ 4. T3</th>
+                            <th>🚨 5. PRIMER</th>
+                            <th>👑 6. TUMOR</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="param-name">Genotipo Guía</td>
+                            <td>TP53<sup>+/+</sup><br>BRCA1<sup>+/-</sup></td>
+                            <td>TP53<sup>+/-</sup><br>BRCA1<sup>+/-</sup></td>
+                            <td>TP53<sup>-/-</sup><br>BRCA1<sup>+/-</sup></td>
+                            <td>TP53<sup>-/-</sup><br>BRCA1<sup>-/-</sup></td>
+                            <td>TP53<sup>-/-</sup><br>BRCA1<sup>+/- ó -/-</sup></td>
+                            <td>TP53<sup>-/-</sup><br>Subclones Coexistentes</td>
+                        </tr>
+                        <tr>
+                            <td class="param-name">&Delta;(TP53) (Daño ADN)</td>
+                            <td class="val-code">0.000</td>
+                            <td class="val-code" style="color: #fde68a;">0.107 (&Delta;<sub>low</sub>)</td>
+                            <td class="val-code" style="color: #f87171;">0.214 (&Delta;<sub>high</sub>)</td>
+                            <td class="val-code" style="color: #f87171;">0.214 (&Delta;<sub>high</sub>)</td>
+                            <td class="val-code" style="color: #f87171;">0.214 (&Delta;<sub>high</sub>)</td>
+                            <td class="val-code" style="color: #f87171;">0.214 (&Delta;<sub>high</sub>)</td>
+                        </tr>
+                        <tr>
+                            <td class="param-name">&Delta;(BRCA1) (Inmune)</td>
+                            <td class="val-code" style="color: #93c5fd;">0.107 (&Delta;<sub>low</sub>)</td>
+                            <td class="val-code" style="color: #93c5fd;">0.107 (&Delta;<sub>low</sub>)</td>
+                            <td class="val-code" style="color: #93c5fd;">0.107 (&Delta;<sub>low</sub>)</td>
+                            <td class="val-code" style="color: #d8b4fe;">0.428 (2&middot;&Delta;<sub>high</sub>)</td>
+                            <td class="val-code" style="color: #d8b4fe;">0.107 (T2) | 0.428 (T3)</td>
+                            <td class="val-code" style="color: #d8b4fe;">0.107 (+/-) | 0.428 (-/-)</td>
+                        </tr>
+                        <tr>
+                            <td class="param-name">Inestabilidad k<sub>inest</sub></td>
+                            <td class="val-code">0.000 (false)</td>
+                            <td class="val-code" style="color: #f472b6;">0.107 (true)</td>
+                            <td class="val-code" style="color: #f472b6;">0.107 (true)</td>
+                            <td class="val-code" style="color: #f472b6;">0.107 (true)</td>
+                            <td class="val-code" style="color: #f472b6;">0.107 (true)</td>
+                            <td class="val-code" style="color: #f472b6;">0.107 (Hipermutado)</td>
+                        </tr>
+                        <tr>
+                            <td class="param-name">Checkpoint p53</td>
+                            <td><span class="badge-active">ACTIVO</span><br><small style="color:var(--text-muted);">Vigilancia 100%</small></td>
+                            <td><span class="badge-active" style="background:#78350f; color:#fde68a;">ACTIVO</span><br><small style="color:var(--text-muted);">1 alelo residual</small></td>
+                            <td><span class="badge-anulado">ANULADO</span><br><small style="color:var(--text-muted);">Permisivo a daño</small></td>
+                            <td><span class="badge-anulado">ANULADO</span><br><small style="color:var(--text-muted);">Permisivo a daño</small></td>
+                            <td><span class="badge-anulado">ANULADO</span><br><small style="color:var(--text-muted);">Compuerta inmune</small></td>
+                            <td><span class="badge-blindado">BLINDADO</span><br><small style="color:var(--text-muted);">Inmortal permanente</small></td>
+                        </tr>
+                        <tr>
+                            <td class="param-name">Tasa Mitótica (d)</td>
+                            <td class="val-code">d<sub>basal</sub> = 0.0010</td>
+                            <td class="val-code">d<sub>basal</sub> = 0.0010</td>
+                            <td class="val-code">d<sub>basal</sub> = 0.0010</td>
+                            <td class="val-code">d<sub>basal</sub> = 0.0010</td>
+                            <td class="val-code" style="color:#ec4899;">d = 0.0000<br><small>(1 ciclo transitorio)</small></td>
+                            <td class="val-code" style="color:#38bdf8;">d<sub>neo</sub> = 0.1584<br><small>(~158x proliferación)</small></td>
+                        </tr>
+                        <tr>
+                            <td class="param-name">Destinos de Salida</td>
+                            <td>• A <a href="#estado-t1" class="concept-link">T1</a> (&mu;<sub>TP53</sub>)<br>• <a href="#estado-muerte" class="concept-link">&Omega;<sub>int</sub></a> (&beta;<sub>BRCA1</sub>)</td>
+                            <td>• A <a href="#estado-t2" class="concept-link">T2</a> (&mu;<sub>TP53</sub>)<br>• <a href="#estado-muerte" class="concept-link">&Omega;<sub>int</sub></a> (&beta;<sub>BRCA1</sub>)</td>
+                            <td>• A <a href="#estado-t3" class="concept-link">T3</a> (&beta;<sub>BRCA1</sub>)<br>• A <a href="#estado-primer" class="concept-link">PRIMER</a> (D<sub>intr</sub>>2)</td>
+                            <td>• A <a href="#estado-primer" class="concept-link">PRIMER</a> (D<sub>intr</sub>>2)</td>
+                            <td>• <a href="#estado-muerte" class="concept-link">&Omega;<sub>ext</sub></a> (D<sub>inm</sub>&le;5)<br>• A <a href="#estado-tumor" class="concept-link">TUMOR</a> (D<sub>inm</sub>>5)</td>
+                            <td>• Expansión tumoral<br>• Ramificación somática</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+        <p><b>cellSim Documentation System</b> — Documento formal de referencia: <code>estados_celulares.md</code>. Código fuente: <code>AgenticCell.cpp</code> y <code>GenomicInstabilityDeltaStrategy.cpp</code>.</p>
+    </footer>
+</div>
+
+</body>
+</html>
