@@ -17,25 +17,31 @@ implemented_by:
     version: "3.8 Flash"
     reasoning_effort: "low"
 
-last_implementation_at: "2026-09-28T18:16:30+02:00"
+last_implementation_at: "2026-09-28T18:48:00+02:00"
 has_completed_all_phases: false
 ---
 
 # 🎯 Goal
 
-Audit and clean the `cellSim` codebase by establishing exact traceability with the manuscript sentences ([`MANUSCRIPT_SENTENCES.md`](file:///home/luis/Escritorio/abms/v2_BRCA1-ONSET_Ms_092426/MANUSCRIPT_SENTENCES.md)), isolating unused legacy modules, and creating standalone executable ABC-SMC calibration scripts for three specific paper experimental scenarios (canonical 4-parameter, extended all-parameter, and tumoral-division-locked ablation) with dry-run capabilities, dedicated outcome summaries in `results/20260928_draft_map/`, and reproducibility verification against prior manuscript results.
+Audit and clean the `cellSim` codebase by establishing exact traceability with the manuscript sentences ([`MANUSCRIPT_SENTENCES.md`](file:///home/luis/Escritorio/abms/v2_BRCA1-ONSET_Ms_092426/MANUSCRIPT_SENTENCES.md)), isolating unused legacy modules, and creating modular, standalone executable experiment scripts structured across the 4 key experimental pillars of the paper:
+1. **ABC-SMC Parameter Calibration**: General calibration across all free parameters (with continuous expansion rate $\nu$) and baseline support script without accelerated division.
+2. **Bootstrapping**: Robustness, emergent parameter relationships, and tumor feature generation.
+3. **Attenuation / Interception**: Tissue-level restraint and dynamic interception scenarios.
+4. **Cell Scaling**: Scale-invariance and tissue size sensitivity experiments.
+
+Every experiment script supports `--dry-run`, saves structured outputs in `results/20260928_draft_map/<experiment_id>/`, generates diagnostic tables, manifests, and minimal verification plots.
 
 # 👀 Context
 
 - **Manuscript sentences audit source**: [`/home/luis/Escritorio/abms/v2_BRCA1-ONSET_Ms_092426/MANUSCRIPT_SENTENCES.md`](file:///home/luis/Escritorio/abms/v2_BRCA1-ONSET_Ms_092426/MANUSCRIPT_SENTENCES.md).
 - **Core C++ Monte Carlo Engine**: [`app/run_bootstrapping.cpp`](file:///home/luis/CLionProjects/cellSim/app/run_bootstrapping.cpp) and [`src/application/bootstrapping/BootstrappingMetrics.cpp`](file:///home/luis/CLionProjects/cellSim/src/application/bootstrapping/BootstrappingMetrics.cpp).
 - **Cell Lifecycle and Genomic Dynamics**: [`src/domain/cell/AgenticCell.cpp`](file:///home/luis/CLionProjects/cellSim/src/domain/cell/AgenticCell.cpp), [`src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.cpp`](file:///home/luis/CLionProjects/cellSim/src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.cpp), and [`src/domain/cell/strategies/GenomicViabilityStrategy.cpp`](file:///home/luis/CLionProjects/cellSim/src/domain/cell/strategies/GenomicViabilityStrategy.cpp).
-- **Existing ABC Implementations & Paper Scripts**:
-  - Legacy ABC script: [`scripts/abc_final_v4.py`](file:///home/luis/CLionProjects/cellSim/scripts/abc_final_v4.py).
-  - Frozen manuscript reproducibility scripts: [`/home/luis/Escritorio/abms/v2_BRCA1-ONSET_Ms_092426/BRCA1_ONSET_reproducibility/paper/scripts/`](file:///home/luis/Escritorio/abms/v2_BRCA1-ONSET_Ms_092426/BRCA1_ONSET_reproducibility/paper/scripts/).
-- **Architectural & Agent Guidelines**:
-  - [`.copilot-instructions.md`](file:///home/luis/CLionProjects/cellSim/.copilot-instructions.md): Master instructions defining the 3-layer architecture, 6 cell stages, dual accumulators ($D_1, D_2$), and ADR summaries.
-  - [`.github/copilot/agent_roles.md`](file:///home/luis/CLionProjects/cellSim/.github/copilot/agent_roles.md): Agent matrix for Tissue, AgenticCell, Genome, and Gene.
+- **Manuscript Sections & Experiments Mapping**:
+  - *Result 1*: "BRCA1-ONSET: A stochastic agent-based model..." (Conceptual architecture).
+  - *Result 2*: "Bayesian calibration establishes the requirement for accelerated tumoral-cell expansion and reproduces clinical penetrance" -> ABC-SMC calibration (`exp_01_abc_smc_global.py` & support `exp_01_abc_smc_locked_division.py`).
+  - *Result 3*: "Emergent parameter relationships and tumor features in BRCA1-ONSET" -> Bootstrapping (`exp_02_bootstrapping_features.py`).
+  - *Result 4*: "BRCA1-ONSET tissue-level control provides substantial interception benefit" -> Attenuation/Interception (`exp_03_attenuation_interception.py`).
+  - *Support / Sensitivity*: Tissue cell scaling (`exp_04_cell_scaling.py`).
 - **Verification Commands**:
   - Build command: `cmake --build build` or `make rebuild`
   - Test command: `./build/tests/unit_tests` or `make test`
@@ -90,82 +96,81 @@ Enhance [`app/run_bootstrapping.cpp`](file:///home/luis/CLionProjects/cellSim/ap
 
 ---
 
-## Phase 3: Standalone Executable ABC-SMC Scripts with Dry-Run Mode
+## Phase 3: Standalone Executable ABC-SMC Calibration Scripts (Pillar 1)
 
 ### Description
-Implement a new series of standalone executable Python scripts in `scripts/experiments/`. Each script corresponds to a concrete manuscript experimentation stage, supports an instant `--dry-run` verification mode, and saves structured outputs into `results/20260928_draft_map/<experiment_id>/`.
+Implement the ABC-SMC calibration infrastructure in `scripts/experiments/` with an adaptive sequential Monte Carlo engine, supporting the unified Bayesian calibration covering all variables (canonical & extended) and the unaccelerated baseline support script. Every script supports instant `--dry-run` and outputs structured diagnostics and summary statistics to `results/20260928_draft_map/`.
+
+### Public Contracts
+- **Scripts**:
+  - `scripts/experiments/exp_01_abc_smc_global.py`: Unified Bayesian calibration estimating parameters ($\beta, \delta_{\text{low}}, \delta_{\text{high}}, \nu, \mu_{\text{TP53}}, \dots$) reproducing clinical penetrance while showing posterior exclusion of basal proliferation.
+  - `scripts/experiments/exp_01_abc_smc_locked_division.py`: Methodological support script evaluating the model without accelerated neoplastic expansion ($\nu = d$).
+  - `scripts/experiments/abc_smc_framework.py`: Reusable ABC-SMC core (adaptive tolerance $Q_{0.75}$, Beaumont/Toni weighted covariance perturbation, SIS weights, weighted SSE distance against clinical penetrance, OpenMP concurrency).
+- **Execution CLI Flags**:
+  - `--dry-run`: Runs an instant smoke test (2 particles, 2 generations, 5 bootstrap simulations per particle).
+  - `--output-dir <path>`: Output destination defaulting to `results/20260928_draft_map/<experiment_id>/`.
+  - `--workers <int>`: Concurrency worker thread count.
+- **Unit Tests**:
+  - Add `tests/test_experiment_scripts.py` verifying `--dry-run` execution for both scripts.
+
+### To-do actions list
+- [x] Create `scripts/experiments/abc_smc_framework.py` with adaptive tolerance, Gaussian perturbation kernel, SIS weight computation, and biological constraints ($\delta_{\text{high}} > \delta_{\text{low}}$).
+- [x] Implement `scripts/experiments/exp_01_abc_smc_global.py` with standalone CLI, all free parameters predicted without fixed params, and `--dry-run` flag.
+- [x] Implement `scripts/experiments/exp_01_abc_smc_locked_division.py` predicting all free parameters without `--big-bang` flag.
+- [x] Implement `tests/test_experiment_scripts.py` verifying dry-run runs across ABC calibration scripts.
+- [x] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make test` and `python3 tests/test_experiment_scripts.py`). Fix issues if any.
+- [x] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
+
+---
+
+## Phase 4: Bootstrapping, Attenuation, and Cell Scaling Experiment Scripts (Pillars 2, 3, 4)
+
+### Description
+Implement standalone experiment runners for the remaining 3 manuscript pillars:
+1. **Bootstrapping** (`exp_02_bootstrapping_features.py`): Runs Monte Carlo cohorts using calibrated parameters, extracts emergent parameter relationships and tumor features (age at onset, cell counts, stage distributions).
+2. **Attenuation / Interception** (`exp_03_attenuation_interception.py`): Evaluates tissue-level restraint and pharmacological/interception interventions (attenuation factors, delay of onset).
+3. **Cell Scaling** (`exp_04_cell_scaling.py`): Evaluates tissue size scaling and incomplete penetrance dynamics across cell population sizes.
+All scripts generate structured CSVs, JSON manifests, and minimal verification plots (`penetrance_curve.png`, `correlation_matrix.png`, etc.) directly into `results/20260928_draft_map/`.
 
 ### Public Contracts
 - **New Scripts**:
-  - `scripts/experiments/01_abc_canonical_4p.py`: Calibrates 4 canonical parameters ($\beta, \delta_{\text{low}}, \delta_{\text{high}}, \nu$) with priors matching Figure 3a.
-  - `scripts/experiments/02_abc_extended_all.py`: Calibrates full parameter set from sensitivity/structural validations ($\beta, \delta_{\text{low}}, \delta_{\text{high}}, \nu, \mu_{\text{TP53}}, \theta_{D1}, \theta_{D2}, \kappa_{\text{BRCA1}}$).
-  - `scripts/experiments/03_abc_locked_tumoral_division.py`: Calibrates full parameter set with tumoral division forced to healthy basal rate ($\nu = d = 0.001$).
-- **Shared Module**:
-  - `scripts/experiments/abc_smc_framework.py`: Core adaptive ABC-SMC engine (prior sampling, Beaumont/Toni weighted covariance perturbation, SIS weights, weighted SSE distance, OpenMP worker orchestration).
-- **Execution CLI Flags**:
-  - `--dry-run`: Runs a fast pipeline smoke test (2 particles, 2 generations, 5 bootstrap simulations per particle).
-  - `--workers <int>`: Concurrency worker thread count.
-  - `--output-dir <path>`: Defaults to `results/20260928_draft_map/<experiment_id>/`.
-- **Unit Tests**:
-  - Add test script `tests/test_experiment_scripts.py` verifying `--dry-run` execution for all three experiment scripts.
+  - `scripts/experiments/exp_02_bootstrapping_features.py`: Generates cohort synthetic penetrance and emergent parameter correlations.
+  - `scripts/experiments/exp_03_attenuation_interception.py`: Tests tissue restraint and intervention regimens.
+  - `scripts/experiments/exp_04_cell_scaling.py`: Tests cohort behavior across tissue scale variations.
+- **Verification Tests**:
+  - Update `tests/test_experiment_scripts.py` to cover `--dry-run` across all 5 experiment scripts.
 
 ### To-do actions list
-- [ ] Create `scripts/experiments/abc_smc_framework.py` with adaptive tolerance ($Q_{0.75}$), Gaussian perturbation kernel with optimal variance, SIS weight computation, and biological constraints ($\delta_{\text{high}} > \delta_{\text{low}}$).
-- [ ] Implement `scripts/experiments/exp_01_01_abc_canonical_4p.py` with standalone CLI and `--dry-run` flag.
-- [ ] Implement `scripts/experiments/exp_01_02_abc_extended_all.py` with expanded priors and standalone CLI.
-- [ ] Implement `scripts/experiments/exp_01_03_abc_locked_tumoral_division.py` passing `--lock-tumoral-division` to `run_bootstrapping`.
-- [ ] Implement `tests/test_experiment_scripts.py` to test dry-run runs across all three scripts.
-- [ ] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make test` and `python3 tests/test_experiment_scripts.py`). Fix issues if any.
-- [ ] STOP. Present the changes to the user for review and suggest commit messages (or pull request titles, when the phases are implemented through pull requests). Do NOT proceed to the next phase until the user explicitly asks.
+- [ ] Implement `scripts/experiments/exp_02_bootstrapping_features.py` with `--dry-run` support and automated summary metrics generation.
+- [ ] Implement `scripts/experiments/exp_03_attenuation_interception.py` with interception scenario parameters and summary metrics.
+- [ ] Implement `scripts/experiments/exp_04_cell_scaling.py` with cell scaling sweep and penetrance evaluation.
+- [ ] Add minimal figure rendering utilities (penetrance curves, parameter distributions, trade-off matrices) in each script.
+- [ ] Update `tests/test_experiment_scripts.py` to assert dry-run execution on all 5 experiment scripts.
+- [ ] Verify using `make test` and `python3 tests/test_experiment_scripts.py`. Fix issues if any.
+- [ ] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
 
 ---
 
-## Phase 4: Experiment Execution & Outcome Logging Pipeline
+## Phase 5: Verification, Benchmarking Against Frozen Results & Outcome Reports
 
 ### Description
-Execute the experiment runs and establish structured outcome logging for each individual experiment under `results/20260928_draft_map/`. Each outcome contains pass-by-pass statistics, rejection counts, error scoring ($SSE_w$ percentiles), and parameter estimation summaries (median, MAP, 95% CIs), with metadata prepared for future figure generation without plotting marginal densities at this time.
-
-### Public Contracts
-- **Output Artifacts Schema** in `results/20260928_draft_map/<experiment_id>/`:
-  - `generation_XX.csv`: Particle values, weights, and distances for generation `XX`.
-  - `diagnostics.csv`: Generation-by-generation acceptance rate, epsilon threshold, effective sample size (ESS), and elapsed time.
-  - `parameter_estimation_summary.json`: Parameter median, MAP, and 95% credible intervals.
-  - `summary_report.md`: Human-readable summary detailing pass-by-pass error scoring, convergence statistics, and parameter estimations.
-  - `run_manifest.json`: Full environment, git commit, seed, and CLI parameter configuration for reproducibility.
-
-### To-do actions list
-- [ ] Validate dry-run execution and directory creation under `results/20260928_draft_map/`.
-- [ ] Add outcome reporting generator in `scripts/experiments/abc_smc_framework.py` to automatically produce `summary_report.md` and `parameter_estimation_summary.json`.
-- [ ] Execute the production runs (or user-defined particle/generation profiles) for:
-  - `exp_01_01_abc_canonical_4p`
-  - `exp_01_02_abc_extended_all`
-  - `exp_01_03_abc_locked_tumoral_division`
-- [ ] Verify that all outcome directories contain the required diagnostic tables, manifests, and error scoring summaries.
-- [ ] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make test`). Fix issues if any.
-- [ ] STOP. Present the changes to the user for review and suggest commit messages (or pull request titles, when the phases are implemented through pull requests). Do NOT proceed to the next phase until the user explicitly asks.
-
----
-
-## Phase 5: Canonical 4-Parameter ABC Verification Against Prior Paper Results
-
-### Description
-Verify that the freshly calibrated 4-parameter ABC-SMC results (`results/20260928_draft_map/canonical_4p/`) closely match the previous paper frozen results. Perform automated discrepancy checking and generate a verification report.
+Verify that newly calibrated ABC-SMC and bootstrapping results reproduce the reference penetrance curves and parameter posterior ranges from the manuscript frozen data (`paper/results/` or `results/abc_final_v4/`). Generate comprehensive discrepancy and outcome reports in `results/20260928_draft_map/`.
 
 ### Public Contracts
 - **Verification Script**:
-  - `scripts/experiments/verify_canonical_consistency.py`: CLI script comparing newly generated `canonical_4p` posteriors against the reference posterior file in the paper repository (`paper/results/` or `results/abc_final_v4/`).
-- **Discrepancy Report**:
-  - `results/20260928_draft_map/canonical_4p/canonical_reproducibility_report.md`: Table comparing parameter medians, 95% CIs, and minimum $SSE_w$ between previous and new runs.
+  - `scripts/experiments/verify_canonical_consistency.py`: CLI script comparing newly generated posteriors and penetrance metrics against manuscript reference values.
+- **Reporting**:
+  - `results/20260928_draft_map/reproducibility_benchmark_report.md`: Comparative table of parameters, penetrance SSE, and KS test statistics.
 
 ### To-do actions list
-- [ ] Implement `scripts/experiments/verify_canonical_consistency.py` to compare parameter distributions (median, 2.5%, 97.5% quantiles) and distance distributions.
-- [ ] Run consistency verification comparing `results/20260928_draft_map/canonical_4p/` against the reference posterior.
-- [ ] Generate `results/20260928_draft_map/canonical_4p/canonical_reproducibility_report.md` summarizing the consistency check.
-- [ ] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make test`). Fix issues if any.
-- [ ] STOP. Present the changes to the user for review and suggest commit messages (or pull request titles, when the phases are implemented through pull requests). Do NOT proceed to the next phase until the user explicitly asks.
+- [ ] Implement `scripts/experiments/verify_canonical_consistency.py`.
+- [ ] Run benchmark verification comparing `results/20260928_draft_map/` against frozen manuscript data.
+- [ ] Produce `results/20260928_draft_map/reproducibility_benchmark_report.md`.
+- [ ] Verify the changes using the project's verification command (`make test`). Fix issues if any.
+- [ ] STOP. Present the final status to the user for review and suggest commit messages.
 
 # ⏭️ Next step
 
-The next step is to implement **Phase 3: Standalone Executable ABC-SMC Scripts with Dry-Run Mode** by creating `scripts/experiments/` (`01_abc_canonical_4p.py`, `02_abc_extended_all.py`, `03_abc_locked_tumoral_division.py`, `abc_smc_framework.py`) with `--dry-run` support.
+The next step is to implement **Phase 4: Bootstrapping, Attenuation, and Cell Scaling Experiment Scripts (Pillars 2, 3, 4)** (`scripts/experiments/exp_02_bootstrapping_features.py`, `scripts/experiments/exp_03_attenuation_interception.py`, `scripts/experiments/exp_04_cell_scaling.py`) with `--dry-run` modes, output artifacts, and minimal figure generation.
 
-Contracts expanded and calibrated thanks to [Codely](https://codely.com) tooling 🐢 💨 🔍 📜 🔬 🚀.
+Contracts expanded and calibrated thanks to [Codely](https://codely.com) tooling 🐢 💨 🔍 📜 🔬 🚀 🧬 🧪.
