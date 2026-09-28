@@ -17,7 +17,7 @@ implemented_by:
     version: "3.8 Flash"
     reasoning_effort: "low"
 
-last_implementation_at: "2026-09-28T18:00:00+02:00"
+last_implementation_at: "2026-09-28T18:16:30+02:00"
 has_completed_all_phases: false
 ---
 
@@ -65,26 +65,28 @@ Map every relevant simulation statement in [`MANUSCRIPT_SENTENCES.md`](file:///h
 ## Phase 2: Enhanced C++ CLI Contracts for Extended & Constrained Division Simulations
 
 ### Description
-Enhance [`app/run_bootstrapping.cpp`](file:///home/luis/CLionProjects/cellSim/app/run_bootstrapping.cpp) and [`src/application/config/SimulationConfig.h`](file:///home/luis/CLionProjects/cellSim/src/application/config/SimulationConfig.h) to expose all parameters explored during sensitivity/structural validations, and add a flag to force tumoral cell reproduction rate to the healthy cell division rate ($\nu = d = 0.001$).
+Enhance [`app/run_bootstrapping.cpp`](file:///home/luis/CLionProjects/cellSim/app/run_bootstrapping.cpp) and domain configuration to expose all parameters explored during sensitivity/structural validations (`--kappa-brca1`, `--age-drift`, and `--division-rate`), and use the native `--big-bang` flag directly to control whether neoplastic cells divide at accelerated rate $\nu$ (`--big-bang` present) or at normal tissue division rate $d$ (`--big-bang` omitted).
 
 ### Public Contracts
 - **CLI Options in `run_bootstrapping`**:
+  - `--division-rate <double>`: Normal cell division rate per tick (default: 0.001).
   - `--kappa-brca1 <double>`: BRCA1 D2 accumulation structural multiplier (default: 2.0).
   - `--age-drift <double>`: Cellular aging drift coefficient per tick (default: 1e-5).
-  - `--lock-tumoral-division`: Boolean flag forcing tumoral cell division rate to match normal tissue division rate (`neoplastic_div_rate = division_rate = 0.001`).
+  - `--big-bang`: When omitted/false, forces neoplastic cell division rate to match normal tissue division rate (`division_rate`).
 - **C++ Methods / Structs**:
-  - Update `application::SimulationConfig` with `kappa_brca1`, `age_drift`, and `lock_tumoral_division`.
-  - Update `runOnce` and `runBatch` signatures in [`app/run_bootstrapping.cpp`](file:///home/luis/CLionProjects/cellSim/app/run_bootstrapping.cpp) to accept these parameters while preserving default values for backwards compatibility.
+  - Update `domain::InstabilityConfig` and `domain::CellConfig` with `kappa_brca1` and `age_drift`.
+  - Update `CellFactory::createCustomCell` to accept and pass `division_rate`, `kappa_brca1`, and `age_drift`.
+  - Update `runOnce` and `runBatch` in [`app/run_bootstrapping.cpp`](file:///home/luis/CLionProjects/cellSim/app/run_bootstrapping.cpp) to accept and forward these parameters while preserving defaults.
 - **Unit Tests**:
-  - Add test cases in [`tests/RunBootstrappingTest.cpp`](file:///home/luis/CLionProjects/cellSim/tests/RunBootstrappingTest.cpp) verifying parameter passing and checking that `--lock-tumoral-division` strictly maintains equal division rates.
+  - Add test cases in [`tests/RunBootstrappingTest.cpp`](file:///home/luis/CLionProjects/cellSim/tests/RunBootstrappingTest.cpp) verifying kappa scaling, age drift, and big bang division control.
 
 ### To-do actions list
-- [ ] Add `--kappa-brca1`, `--age-drift`, and `--lock-tumoral-division` flags to [`app/run_bootstrapping.cpp`](file:///home/luis/CLionProjects/cellSim/app/run_bootstrapping.cpp).
-- [ ] Update `runOnce` and `runBatch` in `run_bootstrapping.cpp` to forward the new parameters to `CellFactory::createCustomCell`.
-- [ ] Implement the division rate lock logic: when `lock_tumoral_division` is enabled, enforce `neoplastic_div_rate = division_rate`.
-- [ ] Add unit test assertions in [`tests/RunBootstrappingTest.cpp`](file:///home/luis/CLionProjects/cellSim/tests/RunBootstrappingTest.cpp) to verify default invariance and division lock.
-- [ ] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make test` or `./build/tests/unit_tests`). Fix issues if any.
-- [ ] STOP. Present the changes to the user for review and suggest commit messages (or pull request titles, when the phases are implemented through pull requests). Do NOT proceed to the next phase until the user explicitly asks.
+- [x] Add `--kappa-brca1`, `--age-drift`, and `--division-rate` flags to [`app/run_bootstrapping.cpp`](file:///home/luis/CLionProjects/cellSim/app/run_bootstrapping.cpp).
+- [x] Update `runOnce` and `runBatch` in `run_bootstrapping.cpp` to forward the new parameters to `CellFactory::createCustomCell`.
+- [x] Use `--big-bang` mode switch directly to control accelerated neoplastic division vs. equal division rate matching normal cells.
+- [x] Add unit test assertions in [`tests/RunBootstrappingTest.cpp`](file:///home/luis/CLionProjects/cellSim/tests/RunBootstrappingTest.cpp) to verify default invariance, kappa scaling, age drift, and big bang mode division control (141/141 passed).
+- [x] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make test` passed 141/141 tests). Fix issues if any.
+- [x] STOP. Present the changes to the user for review and suggest commit messages (or pull request titles, when the phases are implemented through pull requests). Do NOT proceed to the next phase until the user explicitly asks.
 
 ---
 
@@ -164,6 +166,6 @@ Verify that the freshly calibrated 4-parameter ABC-SMC results (`results/2026092
 
 # ⏭️ Next step
 
-The next step is to implement **Phase 2: Enhanced C++ CLI Contracts for Extended & Constrained Division Simulations** by adding `--kappa-brca1`, `--age-drift`, and `--lock-tumoral-division` to `app/run_bootstrapping.cpp` and verifying with unit tests.
+The next step is to implement **Phase 3: Standalone Executable ABC-SMC Scripts with Dry-Run Mode** by creating `scripts/experiments/` (`01_abc_canonical_4p.py`, `02_abc_extended_all.py`, `03_abc_locked_tumoral_division.py`, `abc_smc_framework.py`) with `--dry-run` support.
 
-Audited and catalogued thanks to [Codely](https://codely.com) tooling 🐢 💨 🔍 📜.
+Contracts expanded and calibrated thanks to [Codely](https://codely.com) tooling 🐢 💨 🔍 📜 🔬 🚀.

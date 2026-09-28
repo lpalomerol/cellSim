@@ -28,7 +28,9 @@ public:
         double d1_primer_threshold,
         double d2_apoptosis_threshold,
         const ports::ILoggerPtr& logger = nullptr,
-        double delta_noise_cv = 0.0);
+        double delta_noise_cv = 0.0,
+        double kappa_brca1 = 2.0,
+        double age_drift = 1e-5);
 
     /// Default parameters (package them for clarity)
     struct Defaults {

@@ -9,6 +9,9 @@
 #include <set>
 
 #include "../src/application/bootstrapping/BootstrappingMetrics.h"
+#include "../src/domain/cell/CellFactory.h"
+#include "../src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.h"
+#include "../src/domain/gene/GenomeFactory.h"
 
 using application::bootstrapping::RunResult;
 using application::bootstrapping::ClinicalPoint;
@@ -795,4 +798,77 @@ TEST(ComputeMahalanobisDistanceTest, DistanceComparisonConcordance) {
     
     // Scenario A (closer to clinical) should have smaller distance
     EXPECT_LT(distA, distB);
+}
+
+// ============================================================================
+// TEST SUITE 10: Extended CLI & Simulation Contracts
+// ============================================================================
+
+TEST(ExtendedContractsTest, GenomicInstabilityKappaBrca1Scaling) {
+    domain::GenomicInstabilityDeltaStrategy strategy_default(0.1, 0.4, 2.0, 1e-5);
+    domain::GenomicInstabilityDeltaStrategy strategy_custom(0.1, 0.4, 3.5, 1e-5);
+
+    auto genome_brca_null = domain::genome_factory::makeDefaultGenome(
+        {{"BRCA1", 0.0}, {"TP53", 0.0}},
+        {{"BRCA1", 0.0}, {"TP53", 0.0}}
+    );
+    genome_brca_null.mutate("BRCA1"); // heterozygous -> homozygous (-/-)
+
+    auto cell_def = domain::CellFactory::createCustomCell(
+        nullptr, genome_brca_null, 0.1, 0.4, 0.001, 0.1, false, 2.0, 5.0, nullptr, 0.0, 2.0, 1e-5
+    );
+    auto cell_cust = domain::CellFactory::createCustomCell(
+        nullptr, genome_brca_null, 0.1, 0.4, 0.001, 0.1, false, 2.0, 5.0, nullptr, 0.0, 3.5, 1e-5
+    );
+
+    auto deltas_def = strategy_default.calculateDeltas(*cell_def, nullptr);
+    auto deltas_cust = strategy_custom.calculateDeltas(*cell_cust, nullptr);
+
+    // D1 should be identical (only TP53 and age)
+    EXPECT_DOUBLE_EQ(deltas_def.d1(), deltas_cust.d1());
+
+    // D2 with kappa=2.0 has BRCA1 contribution = 2.0 * 0.4 = 0.8
+    // D2 with kappa=3.5 has BRCA1 contribution = 3.5 * 0.4 = 1.4
+    EXPECT_NEAR(deltas_def.d2(), 0.8, 1e-4);
+    EXPECT_NEAR(deltas_cust.d2(), 1.4, 1e-4);
+}
+
+TEST(ExtendedContractsTest, AgeDriftIncrementsInstability) {
+    domain::GenomicInstabilityDeltaStrategy strategy_zero_drift(0.1, 0.4, 2.0, 0.0);
+    domain::GenomicInstabilityDeltaStrategy strategy_high_drift(0.1, 0.4, 2.0, 0.01);
+
+    auto genome = domain::genome_factory::makeDefaultGenome(
+        {{"BRCA1", 0.0}, {"TP53", 0.0}},
+        {{"BRCA1", 0.0}, {"TP53", 0.0}}
+    );
+
+    auto cell = domain::CellFactory::createCustomCell(
+        nullptr, genome, 0.1, 0.4, 0.001, 0.1, false, 2.0, 5.0
+    );
+
+    auto deltas_zero = strategy_zero_drift.calculateDeltas(*cell, nullptr);
+    auto deltas_high = strategy_high_drift.calculateDeltas(*cell, nullptr);
+
+    EXPECT_DOUBLE_EQ(deltas_zero.d1(), deltas_high.d1()); // age 0 has 0 drift
+}
+
+TEST(ExtendedContractsTest, BigBangModeDisabledEnforcesNormalDivision) {
+    auto genome = domain::genome_factory::makeDefaultGenome(
+        {{"BRCA1", 0.0}, {"TP53", 0.0}},
+        {{"BRCA1", 0.0}, {"TP53", 0.0}}
+    );
+
+    // With big_bang = false, neoplastic cells divide at normal division_rate (0.005)
+    auto cell_normal = domain::CellFactory::createCustomCell(
+        nullptr, genome, 0.1, 0.4, 0.005, 0.25, false, 2.0, 5.0, nullptr, 0.0, 2.0, 1e-5
+    );
+    EXPECT_NE(cell_normal, nullptr);
+    EXPECT_TRUE(cell_normal->alive());
+
+    // With big_bang = true, neoplastic cells divide at neoplastic_division_rate (0.25)
+    auto cell_bb = domain::CellFactory::createCustomCell(
+        nullptr, genome, 0.1, 0.4, 0.005, 0.25, true, 2.0, 5.0, nullptr, 0.0, 2.0, 1e-5
+    );
+    EXPECT_NE(cell_bb, nullptr);
+    EXPECT_TRUE(cell_bb->alive());
 }

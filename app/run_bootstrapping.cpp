@@ -86,7 +86,10 @@ RunResult runOnce(int seed, int n_cells, int max_t,
                   double d1_threshold, double d2_threshold,
                   double tumor_threshold,
                   bool big_bang = false,
-                  double neoplastic_div_rate = 0.1)
+                  double neoplastic_div_rate = 0.1,
+                  double division_rate = 0.001,
+                  double kappa_brca1 = 2.0,
+                  double age_drift = 1e-5)
 {
     auto logger = std::make_shared<domain::adapters::NullLogger>();
     application::Simulation sim(max_t);
@@ -106,12 +109,14 @@ RunResult runOnce(int seed, int n_cells, int max_t,
         auto cell = domain::CellFactory::createCustomCell(
             std::move(noise), genome,
             low_delta, high_delta,
-            0.001,                  // division_rate (normal)
-            neoplastic_div_rate,    // neoplastic_division_rate
-            big_bang,               // big_bang_mode
+            division_rate,          // division_rate (normal)
+            neoplastic_div_rate,    // neoplastic_division_rate (used when big_bang is on)
+            big_bang,               // big_bang_mode (when off, neoplastic divides at division_rate)
             d1_threshold, d2_threshold,
             logger,
-            0.0                     // delta_noise_cv
+            0.0,                    // delta_noise_cv
+            kappa_brca1,
+            age_drift
         );
         sim.addCell(std::move(cell));
     }
@@ -143,7 +148,10 @@ std::vector<RunResult> runBatch(int n_runs, int n_cells, int max_t,
                                 double tumor_threshold,
                                 bool big_bang = false,
                                 double neoplastic_div_rate = 0.1,
-                                int seed_offset = 0)
+                                int seed_offset = 0,
+                                double division_rate = 0.001,
+                                double kappa_brca1 = 2.0,
+                                double age_drift = 1e-5)
 {
     std::vector<RunResult> results(n_runs, {-1, -1, 0.0});
 #ifdef BOOTSTRAPPING_USE_OMP
@@ -155,7 +163,9 @@ std::vector<RunResult> runBatch(int n_runs, int n_cells, int max_t,
                              brca1_rate, tp53_rate,
                              d1_threshold, d2_threshold,
                              tumor_threshold,
-                             big_bang, neoplastic_div_rate);
+                             big_bang, neoplastic_div_rate,
+                             division_rate,
+                             kappa_brca1, age_drift);
     return results;
 }
 
@@ -338,8 +348,14 @@ int main(int argc, char* argv[]) {
         ("weighted-sse",     "Use weighted SSE (1/σᵢ²) for calibration — σᵢ from Kuchenbaecker 95% CI")
         ("mahalanobis",      "Use Mahalanobis distance with full covariance (clinical + simulation)")
         ("big-bang",        "Enable big bang mode (neoplastic cells divide faster)")
+        ("division-rate",   "Normal cell division rate per tick",
+            cxxopts::value<double>()->default_value("0.001"))
         ("neoplastic-div-rate", "Neoplastic division rate when big bang is on",
             cxxopts::value<double>()->default_value("0.1"))
+        ("kappa-brca1",     "BRCA1 D2 accumulation structural multiplier",
+            cxxopts::value<double>()->default_value("2.0"))
+        ("age-drift",       "Annual age drift added to D1 and D2 per year",
+            cxxopts::value<double>()->default_value("0.00001"))
         ("seed-offset",     "Seed offset for bootstrap runs (supports replicated evaluations)",
             cxxopts::value<int>()->default_value("0"))
         ("verbose,v",       "Print per-seed progress")
@@ -358,6 +374,9 @@ int main(int argc, char* argv[]) {
     const double tp53_rate       = args["tp53-rate"].as<double>();
     const double d1_threshold    = args["d1-threshold"].as<double>();
     const double d2_threshold    = args["d2-threshold"].as<double>();
+    const double division_rate   = args["division-rate"].as<double>();
+    const double kappa_brca1     = args["kappa-brca1"].as<double>();
+    const double age_drift       = args["age-drift"].as<double>();
     const std::string output     = args["output"].as<std::string>();
     const bool verbose           = args.count("verbose") > 0;
     const bool sweep_mode        = args.count("sweep") > 0;
@@ -405,7 +424,11 @@ int main(int argc, char* argv[]) {
               << "  brca1_rate=" << brca1_rate
               << "  tp53_rate=" << tp53_rate << "\n";
     std::cout << "  d1_threshold=" << d1_threshold
-              << "  d2_threshold=" << d2_threshold << "\n\n";
+              << "  d2_threshold=" << d2_threshold
+              << "  division_rate=" << division_rate
+              << "  kappa_brca1=" << kappa_brca1
+              << "  age_drift=" << age_drift
+              << "  big_bang=" << (big_bang ? "true" : "false") << "\n\n";
 
     // --- Bootstrap loop ---
     auto results = runBatch(n_runs, n_cells, max_t,
@@ -413,7 +436,8 @@ int main(int argc, char* argv[]) {
                             brca1_rate, tp53_rate,
                             d1_threshold, d2_threshold,
                             tumor_threshold,
-                            big_bang, neoplastic_div_rate, seed_offset);
+                            big_bang, neoplastic_div_rate, seed_offset,
+                            division_rate, kappa_brca1, age_drift);
 
     if (verbose) std::cout << "  done.\n";
 

@@ -15,12 +15,12 @@ namespace domain {
         if (brca1 == "+/-") {
             delta_brca1 = low_delta_;
         } else if (brca1 == "-/-") {
-            delta_brca1 = 2 * high_delta_;
+            delta_brca1 = kappa_brca1_ * high_delta_;
         }
 
         // D1 (DNA damage)      = Δ(TP53) + small age factor
         // D2 (Immunosuppression) = Δ(TP53) + Δ(BRCA1) + small age factor
-        double age_factor = age * 0.00001;
+        double age_factor = age * age_drift_;
         double delta_d1 = delta_tp53  + age_factor;
         double delta_d2 = delta_tp53 + delta_brca1 + age_factor;
 

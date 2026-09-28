@@ -136,6 +136,12 @@ namespace domain {
         /// 0.0 = deterministic. Noise is applied per-tick in phase4.
         double delta_noise_cv_ = 0.0;
 
+        /// Structural multiplier for BRCA1-/- contribution to D2
+        double kappa_brca1_ = 2.0;
+
+        /// Annual aging drift per year of cell age
+        double age_drift_ = 1e-5;
+
         // === Instability delta calculation strategy ===
         std::unique_ptr<IInstabilityDeltaStrategy> delta_strategy_;
 

@@ -23,6 +23,14 @@ namespace domain {
         /// 0.0 = deterministic (default). Values ~0.3–0.8 add biologically
         /// plausible cell-to-cell variability and prevent population synchrony.
         double noise_cv = 0.0;
+
+        /// Structural multiplier for BRCA1-/- contribution to D2
+        /// Default 2.0 (manuscript baseline)
+        double kappa_brca1 = 2.0;
+
+        /// Annual aging drift per year of cell age added to D1 and D2
+        /// Default 1e-5 (manuscript baseline)
+        double age_drift = 1e-5;
     };
 
     /// Configuration for cell division rates

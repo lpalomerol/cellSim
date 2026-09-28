@@ -37,9 +37,12 @@ namespace domain {
           max_d1_(instability.max_d1),
           max_d2_(instability.max_d2),
           delta_noise_cv_(instability.noise_cv),
+          kappa_brca1_(instability.kappa_brca1),
+          age_drift_(instability.age_drift),
           delta_strategy_([&]() -> std::unique_ptr<IInstabilityDeltaStrategy> {
               auto base = std::make_unique<GenomicInstabilityDeltaStrategy>(
-                  instability.low_delta, instability.high_delta);
+                  instability.low_delta, instability.high_delta,
+                  instability.kappa_brca1, instability.age_drift);
               if (instability.noise_cv > 0.0) {
                   return std::make_unique<LognormalNoiseInstabilityStrategy>(
                       std::move(base), instability.noise_cv);
@@ -312,7 +315,7 @@ namespace domain {
         unsigned daughter_seed = static_cast<unsigned>(seed_ + age_ + cell_id_);
 
         // Build configuration objects from current cell state
-        InstabilityConfig instability{low_delta_instability_, high_delta_instability_, max_d1_, max_d2_, delta_noise_cv_};
+        InstabilityConfig instability{low_delta_instability_, high_delta_instability_, max_d1_, max_d2_, delta_noise_cv_, kappa_brca1_, age_drift_};
         DivisionConfig division{division_rate_, neoplastic_division_rate_, enable_big_bang_mode_};
         ThresholdConfig thresholds{d1_primer_threshold_, d2_apoptosis_threshold_};
 

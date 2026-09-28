@@ -24,14 +24,20 @@ namespace domain {
         /// Constructor
         /// @param low_delta Delta increment for heterozygous state (default 0.001)
         /// @param high_delta Delta increment for homozygous recessive state (default 0.003)
-        GenomicInstabilityDeltaStrategy(double low_delta, double high_delta)
-            : low_delta_(low_delta), high_delta_(high_delta) {}
+        /// @param kappa_brca1 BRCA1 D2 accumulation structural multiplier (default 2.0)
+        /// @param age_drift Annual age drift added to D1 and D2 per year of cell age (default 1e-5)
+        GenomicInstabilityDeltaStrategy(double low_delta, double high_delta,
+                                        double kappa_brca1 = 2.0, double age_drift = 1e-5)
+            : low_delta_(low_delta), high_delta_(high_delta),
+              kappa_brca1_(kappa_brca1), age_drift_(age_drift) {}
 
         [[nodiscard]] InstabilityDeltas calculateDeltas(const ICell& cell, INoiseSource* noise) const override;
 
     private:
         double low_delta_;
         double high_delta_;
+        double kappa_brca1_;
+        double age_drift_;
 
         /// Helper: calculate delta for a gene given its string status ("+/+", "+/-", "-/-")
         [[nodiscard]] double deltaForStatus(const std::string& status) const;
