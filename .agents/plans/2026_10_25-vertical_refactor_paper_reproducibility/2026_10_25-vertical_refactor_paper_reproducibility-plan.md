@@ -9,6 +9,16 @@ created_by:
     name: "Gemini"
     version: "3.8 Flash (Low)"
     reasoning_effort: "low"
+
+implemented_by:
+  tool: "Antigravity CLI"
+  model:
+    name: "Gemini"
+    version: "3.8 Flash (Medium)"
+    reasoning_effort: "medium"
+
+last_implementation_at: "2026-10-25T17:55:00Z"
+has_completed_all_phases: false
 ---
 
 # 🎯 Goal
@@ -107,13 +117,13 @@ cellSim/
 ### Phase 0: Critical Plan Review & Mathematical Cross-Check
 *(Recommended model: Gemini 3.8 Thinking Middle or High)*
 **Description:** Deep-reasoning verification pass across manuscript equations, parameter priors, confidence intervals, and C++ runner interfaces to preempt any scientific regressions before file operations begin.
-- [ ] Ask and confirm with the user that the recommended model (Gemini 3.8 Middle or High) is active.
-- [ ] Cross-check parameter bounds ($\beta, \delta_{\text{low}}, \delta_{\text{high}}, \nu, \mu$) in `run_bootstrapping.cpp` and `exp_01_abc_smc_global.py` against text lines 112–136 of `Palomero_BRCA1_102126.txt`.
-- [ ] Confirm alignment of $SSE_w$ formula: $\sum \left(\frac{R_{\text{sim}}(a) - R_{\text{obs}}(a)}{\sigma_a}\right)^2$ with Kuchenbaecker 2017 CI weights.
-- [ ] Audit `run_paper_features.cpp` and `run_paper_interventions.cpp` to verify exact signature match with `src/domain/` interfaces.
-- [ ] Verify that all 6 main figures and 7 supplementary figures have a dedicated, identified generation path.
-- [ ] Verify the presence of all pre-calibrated data files so full ABC runs are never required to generate figures.
-- [ ] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
+- [x] Ask and confirm with the user that the recommended model (Gemini 3.8 Middle or High) is active.
+- [x] Cross-check parameter bounds ($\beta, \delta_{\text{low}}, \delta_{\text{high}}, \nu, \mu$) in `run_bootstrapping.cpp` and `exp_01_abc_smc_global.py` against text lines 112–136 of `Palomero_BRCA1_102126.txt`.
+- [x] Confirm alignment of $SSE_w$ formula: $\sum \left(\frac{R_{\text{sim}}(a) - R_{\text{obs}}(a)}{\sigma_a}\right)^2$ with Kuchenbaecker 2017 CI weights.
+- [x] Audit `run_paper_features.cpp` and `run_paper_interventions.cpp` to verify exact signature match with `src/domain/` interfaces.
+- [x] Verify that all 6 main figures and 7 supplementary figures have a dedicated, identified generation path.
+- [x] Verify the presence of all pre-calibrated data files so full ABC runs are never required to generate figures.
+- [x] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
 
 ### Phase 1: Quarantine Backup & Repository Restructuring
 *(Recommended model: Gemini 3.8 Flash Low)*
@@ -214,6 +224,6 @@ cellSim/
 
 # ⏭️ Next Step
 
-The next step is to ask the user to confirm the model for **Phase 0: Critical Plan Review & Mathematical Cross-Check** (recommending Gemini 3.8 Middle or High) and proceed with the cross-check audit.
+The next step is to execute **Phase 1: Quarantine Backup & Repository Restructuring** (using Gemini 3.8 Flash Low) to create `archive_backup/`, isolate legacy code, and decouple the active code into `cell_scale/`.
 
-Plan created by 🐢 💨 (Turbotuga™, [Codely](https://codely.com)’s mascot).
+Plan verified and guided by 🐢 💨 (Turbotuga™, [Codely](https://codely.com)’s mascot) 🔍 ✨.
