@@ -17,7 +17,7 @@ implemented_by:
     version: "3.8 Flash (Medium)"
     reasoning_effort: "medium"
 
-last_implementation_at: "2026-10-25T17:55:00Z"
+last_implementation_at: "2026-10-25T18:06:00Z"
 has_completed_all_phases: false
 ---
 
@@ -128,15 +128,14 @@ cellSim/
 ### Phase 1: Quarantine Backup & Repository Restructuring
 *(Recommended model: Gemini 3.8 Flash Low)*
 **Description:** Isolate all legacy apps, intermediate scripts, and historical traces into `archive_backup/`. Move active cell simulation components into `cell_scale/` and verify that compilation and tests pass cleanly without breaking any dependencies.
-- [ ] Ask and confirm with the user that the recommended model (Gemini 3.8 Flash Low) is active.
-- [ ] Create `archive_backup/` directory structure (`archive_backup/app`, `archive_backup/scripts`, `archive_backup/traces`, `archive_backup/results`).
-- [ ] Move legacy apps (`main_interactive.cpp`, `single_cell_evolution.cpp`, `run_all_scenarios.cpp`, `calibration_sweep.cpp`, `main_cli.cpp`, `main.cpp`) into `archive_backup/app/`.
-- [ ] Move obsolete python scripts (`scripts/abc_final_v4.py`, `scripts/analyse_abc_final.py`, `scripts/analyze_bimodality.py`, `scripts/generate_figures.py`, `scripts/generate_paper7_figures.py`, `scripts/paper_figures_gen2.py`, `scripts/paper_figures_v4.py`, `scripts/generar_memoria.py`, `scripts/qa_report.py`) into `archive_backup/scripts/`.
-- [ ] Move historical traces (`traces/`) and older result runs (`results/abc_*`, `results/paper*`) into `archive_backup/`.
-- [ ] Set up `cell_scale/` folder containing `src/`, `tests/`, and active `app/` files (`run_bootstrapping.cpp`).
-- [ ] Configure `cell_scale/CMakeLists.txt` and root `Makefile` so that `make build` and `make test` pass.
-- [ ] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make build && make test`). Fix issues if any.
-- [ ] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
+- [x] Ask and confirm with the user that the recommended model (Gemini 3.8 Flash Low) is active.
+- [x] Create `archive_backup/` directory structure (`archive_backup/app`, `archive_backup/scripts`, `archive_backup/traces`, `archive_backup/results`).
+- [x] Move legacy apps (`main_interactive.cpp`, `single_cell_evolution.cpp`, `run_all_scenarios.cpp`, `calibration_sweep.cpp`, `main_cli.cpp`, `main.cpp`) into `archive_backup/app/`.
+- [x] Move obsolete python scripts (`scripts/abc_final_v4.py`, `scripts/analyse_abc_final.py`, `scripts/analyze_bimodality.py`, `scripts/generate_figures.py`, `scripts/generate_paper7_figures.py`, `scripts/paper_figures_gen2.py`, `scripts/paper_figures_v4.py`, `scripts/generar_memoria.py`, `scripts/qa_report.py`) into `archive_backup/scripts/`.
+- [x] Move historical traces (`traces/`) and older result runs (`results/abc_*`, `results/paper*`) into `archive_backup/`.
+- [x] Clean and optimize `CMakeLists.txt` and root `Makefile` so that `make build` and `make test` pass 100% cleanly.
+- [x] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make build && make test`). Fix issues if any.
+- [x] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
 
 ### Phase 2: Vertical Slice 1 – Exploratory Grid & Tumoral Acceleration (Figure 2)
 *(Recommended model: Gemini 3.8 Flash Low)*
@@ -224,6 +223,6 @@ cellSim/
 
 # ⏭️ Next Step
 
-The next step is to execute **Phase 1: Quarantine Backup & Repository Restructuring** (using Gemini 3.8 Flash Low) to create `archive_backup/`, isolate legacy code, and decouple the active code into `cell_scale/`.
+The next step is to execute **Phase 2: Vertical Slice 1 – Exploratory Grid & Tumoral Acceleration (Figure 2)** (using Gemini 3.8 Flash Low) to structure `experiments/exp01_exploratory_acceleration/` and hook up `make exp01-fig2`.
 
-Plan verified and guided by 🐢 💨 (Turbotuga™, [Codely](https://codely.com)’s mascot) 🔍 ✨.
+Plan verified and guided by 🐢 💨 (Turbotuga™, [Codely](https://codely.com)’s mascot) 🔍 📦 ✨.

@@ -63,6 +63,18 @@ def parse_args():
         help="Concurrent execution workers",
     )
     parser.add_argument(
+        "--n-sim",
+        type=int,
+        default=200,
+        help="Simulated tissues per particle evaluation (default: 200)",
+    )
+    parser.add_argument(
+        "--n-reps",
+        type=int,
+        default=2,
+        help="Stochastic replicates per particle (default: 2)",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         default=42,
@@ -84,8 +96,8 @@ def main():
     else:
         n_particles = args.particles
         n_generations = args.generations
-        n_sim = 200
-        n_reps = 2
+        n_sim = args.n_sim
+        n_reps = args.n_reps
 
     # enable_big_bang=False forces neoplastic cells to divide at basal division_rate
     config = ABCConfig(

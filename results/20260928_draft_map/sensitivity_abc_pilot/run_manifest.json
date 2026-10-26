@@ -1,0 +1,55 @@
+{
+  "timestamp_utc": "2026-09-29T07:15:05.447196+00:00",
+  "git_commit": "b1977326979b338e5187f9db92ef30227db0f99c",
+  "platform": "Linux-7.0.0-34-generic-x86_64-with-glibc2.39",
+  "config": {
+    "n_particles": 50,
+    "n_generations": 4,
+    "n_sim": 100,
+    "n_reps": 1,
+    "alpha_quantile": 0.75,
+    "enable_big_bang": true,
+    "seed": 42,
+    "priors": {
+      "brca1_rate": [
+        0.01,
+        0.08
+      ],
+      "low_delta": [
+        0.05,
+        0.25
+      ],
+      "high_delta": [
+        0.12,
+        0.6
+      ],
+      "neoplastic_div_rate": [
+        0.001,
+        0.25
+      ],
+      "tp53_rate": [
+        0.001,
+        0.01
+      ],
+      "d1_threshold": [
+        1.0,
+        4.0
+      ],
+      "d2_threshold": [
+        3.0,
+        8.0
+      ],
+      "division_rate": [
+        0.0005,
+        0.005
+      ],
+      "kappa_brca1": [
+        1.0,
+        4.0
+      ]
+    },
+    "fixed_params": {}
+  },
+  "total_elapsed_seconds": 90.17891311645508,
+  "best_particle_distance": 35.46
+}

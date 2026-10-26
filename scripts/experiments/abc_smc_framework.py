@@ -72,6 +72,7 @@ class ABCConfig:
     binary_path: str = "./build/run_bootstrapping"
     workers: int = 4
     seed: int = 42
+    max_proposals_per_gen: int = 25000
     fixed_params: Dict[str, float] = field(default_factory=dict)
     custom_constraints: Optional[Callable[[Dict[str, float]], bool]] = None
 
@@ -301,9 +302,27 @@ class ABCSMCEngine:
                                   f"(dist={dist:.4f}, props={proposals_count})")
 
                         # Spawn more if needed
-                        if len(accepted_particles) + len(pending_futures) < self.config.n_particles:
+                        if (
+                            len(accepted_particles) + len(pending_futures) < self.config.n_particles
+                            and proposals_count < self.config.max_proposals_per_gen
+                        ):
                             proposals_count += 1
                             submit_task(self.rng.integers(1, 10_000_000))
+
+                    if (
+                        proposals_count >= self.config.max_proposals_per_gen
+                        and not pending_futures
+                        and len(accepted_particles) < self.config.n_particles
+                    ):
+                        print(
+                            f"\n[WARNING] Generation {gen} reached max proposals ({self.config.max_proposals_per_gen}). "
+                            f"Accepted {len(accepted_particles)}/{self.config.n_particles}. Stopping SMC early."
+                        )
+                        break
+
+            if len(accepted_particles) < 2:
+                print(f"[ERROR] Insufficient particles accepted in generation {gen}. Finalizing with current state.")
+                break
 
             particles_arr = np.array(accepted_particles)
             distances_arr = np.array(accepted_distances)
