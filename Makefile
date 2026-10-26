@@ -2,7 +2,7 @@
 # Makefile: BRCA1-ONSET / CellSim Simulation Pipeline
 # ============================================================
 
-.PHONY: build rebuild test clean calibration-paper calibration-pilot calibration-dry-run sensitivity-global-lhs sensitivity-unaccelerated
+.PHONY: build rebuild test clean bootstrap-quick bootstrap-paper calibration-paper calibration-pilot calibration-dry-run sensitivity-global-lhs sensitivity-unaccelerated
 
 # Compilación limpia y construcción con soporte OpenMP y tests
 rebuild:
@@ -18,6 +18,38 @@ test:
 
 clean:
 	rm -rf build
+
+# ============================================================
+# Targets Directos de Bootstrapping (C++ Monte Carlo)
+# ============================================================
+
+# Simulación rápida (N=50 tejidos virtuales, ~1-2 segundos) con los parámetros del paper
+bootstrap-quick: build
+	@echo "🧬 Ejecutando simulación rápida de bootstrapping (N=50 tejidos, modo acelerado)..."
+	./build/run_bootstrapping \
+		--n-runs 50 \
+		--n-cells 500 \
+		--brca1-rate 0.0457 \
+		--low-delta 0.104 \
+		--high-delta 0.392 \
+		--neoplastic-div-rate 0.159 \
+		--big-bang \
+		--weighted-sse \
+		--verbose
+
+# Simulación canónica (N=1,000 tejidos virtuales, evaluación posterior de penetrancia)
+bootstrap-paper: build
+	@echo "🧬 Ejecutando evaluación completa de penetrancia (N=1,000 tejidos, parámetros posteriores)..."
+	./build/run_bootstrapping \
+		--n-runs 1000 \
+		--n-cells 500 \
+		--brca1-rate 0.0457 \
+		--low-delta 0.104 \
+		--high-delta 0.392 \
+		--neoplastic-div-rate 0.159 \
+		--big-bang \
+		--weighted-sse \
+		--output bootstrapping_results.csv
 
 # ============================================================
 # Targets de Calibración y Sensibilidad Activos

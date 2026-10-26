@@ -105,6 +105,8 @@ cellSim/
 - Root targets:
   - `make build`: Compiles `cell_scale` and `tissue_scale`.
   - `make test`: Runs `cell_scale` unit tests and `tissue_scale` sanity test.
+  - `make bootstrap-quick`: Fast Monte Carlo test ($N=50$ tissues, ~1s) evaluating penetrance vs Kuchenbaecker.
+  - `make bootstrap-paper`: Canonical Monte Carlo evaluation ($N=1,000$ tissues) with posterior parameters.
   - `make exp01-fig2` ... `make exp06-sfig2-3`: Generates figures using pre-computed calibrated data (instant).
   - `make exp07-fig6-tissue`: Generates tissue-scale figures from precomputed validation traces (instant).
   - `make smoke-tests`: Fast execution check of all binaries and scripts ($< 30$ seconds total).
