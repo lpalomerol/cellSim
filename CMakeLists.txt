@@ -73,6 +73,52 @@ else()
     message(WARNING "OpenMP not found — run_bootstrapping will run single-threaded")
 endif()
 
+# Paper-only emergent-feature executable
+add_executable(run_paper_features app/run_paper_features.cpp
+        src/application/bootstrapping/BootstrappingMetrics.h
+        src/application/bootstrapping/BootstrappingMetrics.cpp
+        src/application/simulation/Simulation.cpp
+        src/application/simulation/Simulation.h
+        src/application/simulation/PopulationTracker.cpp
+        src/application/simulation/PopulationTracker.h
+        ${COMMON_SOURCES}
+        src/domain/tissue/Tissue.cpp
+        src/domain/tissue/Tissue.h
+        src/domain/cell/CellFactory.cpp
+        src/domain/cell/CellFactory.h
+        src/domain/cell/AgenticCell.cpp
+        src/domain/cell/AgenticCell.h)
+
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(run_paper_features PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts OpenMP::OpenMP_CXX)
+    target_compile_definitions(run_paper_features PRIVATE BOOTSTRAPPING_USE_OMP)
+else()
+    target_link_libraries(run_paper_features PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts)
+endif()
+
+# Paper-only matched interception executable
+add_executable(run_paper_interventions app/run_paper_interventions.cpp
+        src/application/bootstrapping/BootstrappingMetrics.h
+        src/application/bootstrapping/BootstrappingMetrics.cpp
+        src/application/simulation/Simulation.cpp
+        src/application/simulation/Simulation.h
+        src/application/simulation/PopulationTracker.cpp
+        src/application/simulation/PopulationTracker.h
+        ${COMMON_SOURCES}
+        src/domain/tissue/Tissue.cpp
+        src/domain/tissue/Tissue.h
+        src/domain/cell/CellFactory.cpp
+        src/domain/cell/CellFactory.h
+        src/domain/cell/AgenticCell.cpp
+        src/domain/cell/AgenticCell.h)
+
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(run_paper_interventions PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts OpenMP::OpenMP_CXX)
+    target_compile_definitions(run_paper_interventions PRIVATE BOOTSTRAPPING_USE_OMP)
+else()
+    target_link_libraries(run_paper_interventions PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts)
+endif()
+
 # Añadir tests solo si BUILD_TESTS=ON
 if (BUILD_TESTS)
     enable_testing()

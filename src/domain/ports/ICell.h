@@ -27,6 +27,15 @@ namespace domain {
         [[nodiscard]] virtual double getD1() const = 0;
         [[nodiscard]] virtual double getD2() const = 0;
 
+        // Effective values allow paper interception analyses to attenuate the
+        // consequences of accumulated D1/D2 without resetting their raw state.
+        [[nodiscard]] virtual double getEffectiveD1() const { return getD1(); }
+        [[nodiscard]] virtual double getEffectiveD2() const { return getD2(); }
+        virtual void setAttenuation(double /*r_d1*/, double /*r_d2*/) {}
+
+        // 0 means that no independent Primed->Tumoral founder has been assigned.
+        [[nodiscard]] virtual std::uint64_t getFounderLineageId() const { return 0; }
+
         // === Cell Stage ===
         [[nodiscard]] virtual CellLifeStage getCurrentCellLifeStage() const = 0;
 

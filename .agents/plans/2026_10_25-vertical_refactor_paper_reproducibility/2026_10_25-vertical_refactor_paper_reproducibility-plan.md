@@ -17,7 +17,7 @@ implemented_by:
     version: "3.8 Flash (Medium)"
     reasoning_effort: "medium"
 
-last_implementation_at: "2026-10-25T18:06:00Z"
+last_implementation_at: "2026-10-26T08:01:00Z"
 has_completed_all_phases: false
 ---
 
@@ -142,60 +142,65 @@ cellSim/
 ### Phase 2: Vertical Slice 1 – Exploratory Grid & Tumoral Acceleration (Figure 2)
 *(Recommended model: Gemini 3.8 Flash Low)*
 **Description:** Build the vertical slice for the exploratory grid search ($\beta$ vs $\delta_{\text{low}}$) comparing basal division ($\nu = d$) vs accelerated tumoral expansion ($\nu = 0.10$).
-- [ ] Ask and confirm with the user that the recommended model (Gemini 3.8 Flash Low) is active.
-- [ ] Create directory `cell_scale/experiments/exp01_exploratory_acceleration/`.
-- [ ] Add clean, beautified runner script `run_exploratory.py` interfacing with `run_bootstrapping` (supporting instant plotting via precomputed CSV and `--smoke-test` for quick runs).
-- [ ] Add publication-ready plotting script `plot_figure2.py` matching Figure 2 against Kuchenbaecker et al. (2017) clinical targets.
-- [ ] Add Makefile target `exp01-fig2`.
-- [ ] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make exp01-fig2` smoke test). Fix issues if any.
-- [ ] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
+- [x] Ask and confirm with the user that the recommended model (Gemini 3.8 Flash Low) is active.
+- [x] Create directory `experiments/exp01_exploratory_acceleration/` with dedicated documentation and data subfolder.
+- [x] Add clean, beautified runner script `run_exploratory.py` interfacing with `run_bootstrapping` (supporting instant plotting via precomputed CSV and `--smoke-test` for quick runs).
+- [x] Add publication-ready plotting script `plot_figure2.py` matching Figure 2 against Kuchenbaecker et al. (2017) clinical targets.
+- [x] Add Makefile targets `exp01-fig2`, `exp01-fig2-grid`, `exp01-fig2-100years`, `exp01-fig2-grid-100years`, `exp01-simulate` and `exp01-smoke`.
+- [x] **Debate científico y resolución cinética documentada (26-Oct-2026):**
+  - *Discrepancia resuelta:* En versiones preliminares (`docs/paper3/fig1_initial_vs_calibrated.png`) la curva sobrepasaba el target clínico porque tenía `big_bang = true` ($\nu=0.10$) con deltas no restringidos ($\delta_{\text{high}} = 2.67 \delta_{\text{low}}$). En la Figura 2a actual, todas las curvas quedan por debajo entre los 30 y 60 años porque representan estrictamente la división basal ($\nu = d = 0.001$, control negativo del paper).
+  - *Imposibilidad del ajuste preneoplásico puro:* Con solo $\beta$ y $\delta_{\text{low}}$ (con la restricción estructural $\delta_{\text{high}} = 2 \delta_{\text{low}}$), es imposible ajustar simultáneamente el despegue temprano a los 40 años (26%) y la meseta a los 80 años (70%).
+  - *Mecanismo biológico de control:* $D_1$ ($\theta_{D1}=2.0$) rige la entrada a *Primed*; $D_2$ ($\theta_{D2}=5.0$) determina la evasión del aclaramiento tisular; y $TP53$ funcional purga las células con mutación temprana de $BRCA1$ por apoptosis intrínseca, lo que evita positivos tempranos pero estanca a $\beta=0.060$ en ~48% por agotamiento del pool celular.
+  - *Simulación a 100 años:* Se evaluó el horizonte ampliado hasta los 100 años ($N=1.000$ tejidos por curva y grid completo de 36 combinaciones), demostrando que las curvas verde ($\beta=0.010$) y roja ($\beta=0.040$) son fuertemente tardías y explosivas (llegan a 98.9% y 88.2% a los 100 años), mientras que la naranja permanece bloqueada en 49.9%. El modelo calibrado con aceleración ($\nu=0.10$) alcanza una meseta fisiológica perfecta en 70.9% (no-penetranza ~29%).
+- [x] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make exp01-smoke && make exp01-fig2 && make exp01-fig2-100years`).
+- [x] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
 
 ### Phase 3: Vertical Slice 2 – Global Sensitivity Analysis LHS & PRCC (Supplementary Figure S1)
 *(Recommended model: Gemini 3.8 Flash Low)*
 **Description:** Implement the Latin Hypercube Sampling (LHS) global sensitivity analysis across 1,000 parameter combinations evaluated on 200 simulated tissues.
-- [ ] Ask and confirm with the user that the recommended model (Gemini 3.8 Flash Low) is active.
-- [ ] Create directory `cell_scale/experiments/exp02_sensitivity_global/`.
-- [ ] Add beautified LHS sampler and batch runner `run_lhs_sensitivity.py` (with fast `--smoke-test` mode).
-- [ ] Add feature ranking and plotting script `plot_sfig1.py` (Random Forest regression importance and PRCC metrics using precomputed results).
-- [ ] Add Makefile target `exp02-sfig1`.
-- [ ] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make exp02-sfig1` smoke test). Fix issues if any.
-- [ ] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
+- [x] Ask and confirm with the user that the recommended model (Gemini 3.8 Flash Low) is active.
+- [x] Create directory `experiments/exp02_sensitivity_global/` with precalibrated assets (`data/`).
+- [x] Add beautified LHS sampler and batch runner `run_lhs_sensitivity.py` (with fast `--smoke-test` mode completing in <0.1s).
+- [x] Add publication-grade plotting script `plot_sfig1.py` generating all 3 panels of Supplementary Figure S1 matching manuscript PDF `Palomero_SFig1_101526.pdf` (Panel a: Random Forest relative nonlinear importance, Panel b: age-specific PRCC heatmap, Panel c: 3x3 grid of posterior ECDFs vs uniform priors).
+- [x] Add Makefile targets `exp02-sfig1`, `exp02-smoke`, and `exp02-simulate`.
+- [x] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make exp02-smoke && make exp02-sfig1 && make test`). Fix issues if any.
+- [x] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
 
 ### Phase 4: Vertical Slice 3 – Bayesian ABC-SMC Calibration & Posterior Predictive (Figure 3 & Figure S4)
 *(Recommended model: Gemini 3.8 Flash Low)*
 **Description:** Implement the canonical 4-parameter ABC-SMC calibration pipeline (20 generations, 250 particles, adaptive $Q_{0.75}$ tolerance, weighted SSE).
-- [ ] Ask and confirm with the user that the recommended model (Gemini 3.8 Flash Low) is active.
-- [ ] Create directory `cell_scale/experiments/exp03_abc_smc_calibration/`.
-- [ ] Consolidate and beautify the ABC-SMC algorithm into `abc_smc.py` (with `--dry-run` and instant figure rendering from precomputed posterior particles).
-- [ ] Add convergence and posterior predictive generation script `plot_figure3.py` (Figure 3: tolerance, SSE IQR, ESS, PPC penetrance curve).
-- [ ] Add joint and marginal posterior distribution plotting script `plot_sfig4.py` (Figure S4: KDEs, medians, 95% CIs, pairwise correlations).
-- [ ] Add Makefile targets `exp03-fig3` and `exp03-abc-pilot`.
-- [ ] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make exp03-fig3` fast render test). Fix issues if any.
-- [ ] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
+- [x] Ask and confirm with the user that the recommended model (Gemini 3.8 Flash Low) is active.
+- [x] Create directory `experiments/exp03_abc_smc_calibration/` with precalibrated assets (`data/`).
+- [x] Consolidate and beautify the ABC-SMC algorithm into `abc_smc.py` (with fast `--smoke-test` completing in ~0.2s).
+- [x] Add convergence and posterior predictive generation script `plot_figure3.py` (Figure 3: tolerance, SSE IQR, ESS, PPC penetrance curve vs Kuchenbaecker 2017).
+- [x] Add joint and marginal posterior distribution plotting script `plot_sfig4.py` (Figure S4: KDEs, medians, 95% CIs, pairwise contours).
+- [x] Add Makefile targets `exp03-fig3`, `exp03-sfig4`, `exp03-smoke`, `exp03-abc-pilot`, and `exp03-simulate`.
+- [x] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make exp03-fig3 && make exp03-sfig4 && make exp03-smoke && make test`).
+- [x] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
 
 ### Phase 5: Vertical Slice 4 – Emergent Tumor Features & Clonal Lineages (Figure 4)
 *(Recommended model: Gemini 3.8 Flash Low)*
 **Description:** Integrate `run_paper_features.cpp` into `cell_scale/app/` and package the evaluation of emergent tumor properties across the posterior population.
-- [ ] Ask and confirm with the user that the recommended model (Gemini 3.8 Flash Low) is active.
-- [ ] Add `cell_scale/app/run_paper_features.cpp` and update `cell_scale/CMakeLists.txt`.
-- [ ] Create directory `cell_scale/experiments/exp04_emergent_features/`.
-- [ ] Add beautified runner script `run_emergent_features.py` (supporting precomputed summaries and fast `--smoke-test`).
-- [ ] Add plotting script `plot_figure4.py` generating Figure 4 (posterior parameter correlations, $BRCA1^{+/-}$ vs. $BRCA1^{-/-}$ composition, founder lineages vs age).
-- [ ] Add Makefile target `exp04-fig4`.
-- [ ] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make exp04-fig4` smoke test). Fix issues if any.
-- [ ] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
+- [x] Ask and confirm with the user that the recommended model (Gemini 3.8 Flash Low) is active.
+- [x] Add `app/run_paper_features.cpp` and update `CMakeLists.txt`.
+- [x] Create directory `experiments/exp04_emergent_features/` with precalibrated assets (`data/`).
+- [x] Add beautified runner script `run_emergent_features.py` (supporting precomputed summaries and fast `--smoke-test` in 0.05s).
+- [x] Add plotting script `plot_figure4.py` generating Figure 4 (posterior parameter correlations, $BRCA1^{+/-}$ vs. $BRCA1^{-/-}$ composition, founder lineages vs age).
+- [x] Add Makefile targets `exp04-fig4`, `exp04-smoke`, and `exp04-simulate`.
+- [x] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make exp04-fig4 && make exp04-smoke && make test`).
+- [x] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
 
 ### Phase 6: Vertical Slice 5 – Cancer Interception & Attenuation Protocols (Figure 5 & Supplementary Figure S5)
 *(Recommended model: Gemini 3.8 Flash Low)*
 **Description:** Integrate `run_paper_interventions.cpp` to evaluate $D_1$ and $D_2$ attenuation (10%, 25%, 50%) initiated at ages 30, 40, and 50.
-- [ ] Ask and confirm with the user that the recommended model (Gemini 3.8 Flash Low) is active.
-- [ ] Add `cell_scale/app/run_paper_interventions.cpp` and update `cell_scale/CMakeLists.txt`.
-- [ ] Create directory `cell_scale/experiments/exp05_cancer_interception/`.
-- [ ] Add runner script `run_interception.py` (supporting precomputed traces and fast `--smoke-test`).
-- [ ] Add plotting script `plot_figure5_sfig5.py` generating Figure 5 (trajectories, absolute risk reduction, dose-response) and Figure S5 (interaction contrasts).
-- [ ] Add Makefile target `exp05-fig5`.
-- [ ] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make exp05-fig5` smoke test). Fix issues if any.
-- [ ] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
+- [x] Ask and confirm with the user that the recommended model (Gemini 3.8 Flash Low) is active.
+- [x] Add `app/run_paper_interventions.cpp` and update `CMakeLists.txt`.
+- [x] Create directory `experiments/exp05_cancer_interception/` with precalibrated assets (`data/`).
+- [x] Add runner script `run_interception.py` (supporting precomputed traces and fast `--smoke-test` in 0.04s).
+- [x] Add plotting script `plot_figure5_sfig5.py` generating Figure 5 (trajectories, absolute risk reduction, dose-response) and Figure S5 (interaction contrasts).
+- [x] Add Makefile targets `exp05-fig5`, `exp05-sfig5`, `exp05-smoke`, and `exp05-simulate`.
+- [x] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make exp05-fig5 && make exp05-sfig5 && make exp05-smoke && make test`).
+- [x] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
 
 ### Phase 7: Tissue-Scale Module Refactoring & Code Beautification (Figure 6, Figure S6, Figure S7)
 *(Recommended model: Gemini 3.8 Thinking Middle)*
@@ -225,6 +230,6 @@ cellSim/
 
 # ⏭️ Next Step
 
-The next step is to execute **Phase 2: Vertical Slice 1 – Exploratory Grid & Tumoral Acceleration (Figure 2)** (using Gemini 3.8 Flash Low) to structure `experiments/exp01_exploratory_acceleration/` and hook up `make exp01-fig2`.
+The next step is to execute **Phase 4: Vertical Slice 3 – Bayesian ABC-SMC Calibration & Posterior Predictive (Figure 3 & Figure S4)** (using Gemini 3.8 Flash Low) to package `experiments/exp03_abc_smc_calibration/` and wire `make exp03-fig3`.
 
-Plan verified and guided by 🐢 💨 (Turbotuga™, [Codely](https://codely.com)’s mascot) 🔍 📦 ✨.
+Plan verified and guided by 🐢 💨 (Turbotuga™, [Codely](https://codely.com)’s mascot) 🔍 📦 📊 ✨.

@@ -96,6 +96,19 @@ namespace domain {
         return cell_id_;
     }
 
+    double AgenticCell::getEffectiveD1() const {
+        return 1.0 + (d1_dna_damage_ - 1.0) * (1.0 - d1_attenuation_);
+    }
+
+    double AgenticCell::getEffectiveD2() const {
+        return 1.0 + (d2_immunosuppression_ - 1.0) * (1.0 - d2_attenuation_);
+    }
+
+    void AgenticCell::setAttenuation(double r_d1, double r_d2) {
+        d1_attenuation_ = std::clamp(r_d1, 0.0, 1.0);
+        d2_attenuation_ = std::clamp(r_d2, 0.0, 1.0);
+    }
+
     // ===== Details and Logging =====
 
     void AgenticCell::details() const {
@@ -195,7 +208,7 @@ namespace domain {
         }
 
         if (tp53->getStatus().isDisabled()) {
-            if (d1_dna_damage_ > d1_primer_threshold_) {
+            if (getEffectiveD1() > d1_primer_threshold_) {
                 return CellLifeStage::PRIMER;
             }
             return CellLifeStage::UNPROTECTED;
@@ -225,7 +238,7 @@ namespace domain {
             if (!signal) continue;
 
             if (signal->type() == ISignal::Type::Apoptosis) {
-                if (d2_immunosuppression_ > d2_apoptosis_threshold_) {
+                if (getEffectiveD2() > d2_apoptosis_threshold_) {
                     logger_->logCell("[Apoptosis] Extrinsic blocked (immune evasion): D2=" +
                                    std::to_string(d2_immunosuppression_));
                     CellLifeStage current_stage = getCurrentCellLifeStage();
@@ -243,7 +256,7 @@ namespace domain {
 
     void AgenticCell::phase3_NuclearDynamics() {
         // Drive genome evolution using D1 (DNA damage) as genomic instability factor
-        genome_.liveAllGenes(d1_dna_damage_);
+        genome_.liveAllGenes(getEffectiveD1());
     }
 
     void AgenticCell::phase4_CytoplasmicRemodeling() {
@@ -258,7 +271,7 @@ namespace domain {
                            " D1=" + std::to_string(d1_dna_damage_) +
                            " D2=" + std::to_string(d2_immunosuppression_));
 
-            if (d2_immunosuppression_ > d2_apoptosis_threshold_) {
+            if (getEffectiveD2() > d2_apoptosis_threshold_) {
                 develop_neoplasm();
             } else {
                 logger_->logCell("[Phase4] Cell eliminated by immune surveillance");
@@ -281,6 +294,8 @@ namespace domain {
     void AgenticCell::develop_neoplasm() {
         is_neoplastic_ = true;
         has_evaded_apoptosis_ = true;
+        if (founder_lineage_id_ == 0)
+            founder_lineage_id_ = cell_id_;
         logger_->logCell("[Transform] Cell became NEOPLASTIC (is_neoplastic_=true, immortal)");
     }
 
@@ -330,6 +345,9 @@ namespace domain {
 
         daughter->d1_dna_damage_ = d1_dna_damage_;
         daughter->d2_immunosuppression_ = d2_immunosuppression_;
+        daughter->d1_attenuation_ = d1_attenuation_;
+        daughter->d2_attenuation_ = d2_attenuation_;
+        daughter->founder_lineage_id_ = founder_lineage_id_;
 
         if (is_neoplastic_) {
             daughter->is_neoplastic_ = true;

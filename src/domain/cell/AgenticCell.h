@@ -63,6 +63,11 @@ namespace domain {
         [[nodiscard]] double getD1() const override { return d1_dna_damage_; }
         [[nodiscard]] double getD2() const override { return d2_immunosuppression_; }
 
+        [[nodiscard]] double getEffectiveD1() const override;
+        [[nodiscard]] double getEffectiveD2() const override;
+        void setAttenuation(double r_d1, double r_d2) override;
+        [[nodiscard]] std::uint64_t getFounderLineageId() const override { return founder_lineage_id_; }
+
         // === ICell: Cell stage (derived on-the-fly from genetics + D1 + D2) ===
         [[nodiscard]] CellLifeStage getCurrentCellLifeStage() const override;
 
@@ -141,6 +146,12 @@ namespace domain {
 
         /// Annual aging drift per year of cell age
         double age_drift_ = 1e-5;
+
+        // Sustained intervention fractions applied to the accumulated deviation
+        // from the D1/D2 baseline value of 1.
+        double d1_attenuation_ = 0.0;
+        double d2_attenuation_ = 0.0;
+        std::uint64_t founder_lineage_id_ = 0;
 
         // === Instability delta calculation strategy ===
         std::unique_ptr<IInstabilityDeltaStrategy> delta_strategy_;

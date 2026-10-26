@@ -19,3 +19,14 @@ ci_build/
 # Paper drafts and bibliography references
 docs/paper/
 docs/paper2/
+
+# Python caches and bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Local artifacts and temporary traces
+/bootstrapping_results.csv
+*intervention_design.csv
+.claude/
+archive_backup/
