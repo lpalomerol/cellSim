@@ -76,6 +76,7 @@ add_executable(unit_tests
         SimulationTissueV2IntegrationTest.cpp
         LognormalNoiseInstabilityStrategyTest.cpp
         RunBootstrappingTest.cpp
+        TissueScaleSimulatorTest.cpp
 )
 
 # Ajusta estos targets a los tuyos reales

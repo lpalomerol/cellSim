@@ -205,14 +205,14 @@ cellSim/
 ### Phase 7: Tissue-Scale Module Refactoring & Code Beautification (Figure 6, Figure S6, Figure S7)
 *(Recommended model: Gemini 3.8 Thinking Middle)*
 **Description:** Import `tissue-scale` into `tissue_scale/`, completely refactor and beautify `tissue_scale_sim.cpp` for high readability, and package Figures 6, S6, and S7 using precomputed 10k validation results.
-- [ ] Ask and confirm with the user that the recommended model (Gemini 3.8 Thinking Middle) is active.
-- [ ] Create directory structure `tissue_scale/` (`src/`, `scripts/`, `data/`, `results/`).
-- [ ] Refactor and beautify `tissue_scale/src/tissue_scale_sim.cpp`: expand compressed variable names into explicit domain names, format with clean C++20 conventions, and add formula documentation referencing Methods.
-- [ ] Add dedicated `tissue_scale/Makefile` for compiling `tissue_scale_sim` with OpenMP optimization.
-- [ ] Import and beautify python scripts: `make_figures.py` (Figure 6 & S6), `make_sfig5.py` (Figure S7), and `run_validation.py` (using precomputed `final_multiobjective_validation_10000.csv` for instantaneous figure generation).
-- [ ] Add root Makefile targets `exp07-fig6-tissue` and `tissue-scale-test`.
-- [ ] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make exp07-fig6-tissue` validation run). Fix issues if any.
-- [ ] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
+- [x] Ask and confirm with the user that the recommended model (Gemini 3.8 Thinking Middle) is active.
+- [x] Create directory structure `tissue_scale/` (`src/`, `scripts/`, `data/`, `results/`).
+- [x] Refactor and beautify `tissue_scale/src/tissue_scale_sim.cpp`: expand compressed variable names into explicit domain names, format with clean C++20 conventions, and add formula documentation referencing Methods.
+- [x] Add dedicated `tissue_scale/Makefile` for compiling `tissue_scale_sim` with OpenMP optimization.
+- [x] Import and beautify python scripts: `make_figures.py` (Figure 6 & S6), `make_sfig5.py` (Figure S7), and `run_validation.py` (using precomputed `final_multiobjective_validation_10000.csv` for instantaneous figure generation).
+- [x] Add root Makefile targets `exp06-fig6`, `exp06-sfig7`, `exp06-smoke` and `exp06-validate`.
+- [x] Verify the changes in terms of typechecking, linting and tests using the project's verification command (`make exp06-fig6 && make exp06-sfig7 && make exp06-smoke && make exp06-validate && make test`).
+- [x] STOP. Present the changes to the user for review and suggest commit messages. Do NOT proceed to the next phase until the user explicitly asks.
 
 ### Phase 8: End-to-End Validation, Backup Purge & Git History Recipe
 *(Recommended model: Gemini 3.8 Thinking Middle for validation, Flash Low for cleanup)*

@@ -1,0 +1,20 @@
+{
+  "name": "homogeneous_tissue_scale_reference",
+  "N0": 10000000,
+  "max_age": 80,
+  "tumor_positive_cells": 500000,
+  "mu_TP53": 6.9023205373e-06,
+  "beta_BRCA1": 2.56367895444e-08,
+  "delta_low": 0.0167671176536,
+  "delta_high": 0.619646864576,
+  "theta_D1": 4.06307588328,
+  "theta_D2_mean": 4.59812390922,
+  "tau_T_years": 0.159404704264,
+  "sigma_thetaD2": 0.0,
+  "preneoplastic_division_probability": 0.001,
+  "age_drift": 1e-05,
+  "kappa_BRCA1": 2.0,
+  "validation_n": 3000,
+  "suggested_seed": 20260923,
+  "note": "This parameterization is the best-overall homogeneous search solution used as the tissue-scale reference; manuscript exact validation values are stored in data/homogeneous_validation_3000.csv."
+}

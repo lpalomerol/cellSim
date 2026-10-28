@@ -2,7 +2,7 @@
 # Makefile: BRCA1-ONSET / CellSim Simulation Pipeline
 # ============================================================
 
-.PHONY: build rebuild test clean bootstrap-quick bootstrap-paper calibration-paper calibration-pilot calibration-dry-run sensitivity-global-lhs sensitivity-unaccelerated exp01-fig2 exp01-fig2-grid exp01-fig2-100years exp01-fig2-grid-100years exp01-fig2-paper exp01-simulate exp01-smoke exp02-sfig1 exp02-smoke exp02-simulate
+.PHONY: build rebuild test clean bootstrap-quick bootstrap-paper calibration-paper calibration-pilot calibration-dry-run sensitivity-global-lhs sensitivity-unaccelerated exp01-fig2 exp01-fig2-grid exp01-fig2-100years exp01-fig2-grid-100years exp01-fig2-paper exp01-simulate exp01-smoke exp02-sfig1 exp02-smoke exp02-simulate exp06-fig6 exp06-sfig7 exp06-smoke exp06-validate tissue-scale-build
 
 # Compilación limpia y construcción con soporte OpenMP y tests
 rebuild:
@@ -132,6 +132,31 @@ exp05-smoke: build
 exp05-simulate: build
 	@echo "🔬 Ejecutando simulación de cohortes de intercepción..."
 	python3 experiments/exp05_cancer_interception/run_interception.py
+
+# ============================================================
+# Experimento 06: Modelo a Escala de Tejido (10^7 Células, Figuras 6 y S7)
+# ============================================================
+
+tissue-scale-build:
+	@echo "🔨 Compilando simulador C++20 de escala de tejido (tissue_scale_sim)..."
+	@$(MAKE) -C tissue_scale
+
+exp06-fig6:
+	@echo "📊 Generando Figura 6 (Penetrancia, Estado BRCA1 y Linajes Fundadores)..."
+	python3 tissue_scale/scripts/make_figure6_sfig6.py --output-dir tissue_scale/results
+
+exp06-sfig7:
+	@echo "📊 Generando Figura Suplementaria S7 (Ajuste y Trade-off de Modelo Homogéneo)..."
+	python3 tissue_scale/scripts/make_sfig7.py --output-dir tissue_scale/results
+
+exp06-smoke: tissue-scale-build
+	@echo "🧪 Ejecutando smoke test rápido del simulador a escala de tejido (N=10)..."
+	python3 tissue_scale/scripts/run_validation.py --smoke-test --output tissue_scale/results/smoke.csv
+	python3 tissue_scale/scripts/summarize_validation.py --input tissue_scale/results/smoke.csv
+
+exp06-validate:
+	@echo "📋 Resumiendo métricas del dataset congelado de 10.000 tejidos..."
+	python3 tissue_scale/scripts/summarize_validation.py --input tissue_scale/data/final_multiobjective_validation_10000.csv
 
 
 # ============================================================
