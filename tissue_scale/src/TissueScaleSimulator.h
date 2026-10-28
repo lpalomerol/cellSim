@@ -1,7 +1,8 @@
 /**
  * @file TissueScaleSimulator.h
  * @brief Domain models, math functions, and stochastic simulation engine for
- * the tissue-scale BRCA1-ONSET model (10^7 cells, heterogeneous tissue restraint).
+ * the tissue-scale BRCA1-ONSET model (10^7 cells, heterogeneous tissue restraint,
+ * and somatic driver checkpoint relaxation).
  */
 
 #pragma once
@@ -27,6 +28,8 @@ namespace tissue_scale {
 struct CellCohortKey {
     uint8_t brca1_loss = 0;   ///< Somatic BRCA1 loss: 0 (wildtype/heterozygous carrier), 1 (homozygous null)
     uint8_t tp53_hits = 0;    ///< Somatic TP53 hits: 0, 1 (heterozygous), or 2 (biallelic hit)
+    uint8_t driver_hit = 0;   ///< Somatic permissive driver (PTEN-like): 0 (none), 1 (acquired)
+    uint8_t early_brca1_bypass = 0; ///< 1 if BRCA1 loss occurred before biallelic TP53 inactivation
     uint8_t cohort_age = 0;   ///< Cell cohort replicative age in years
     uint8_t d1_low_hits = 0;  ///< Number of low-level D1 damage accumulation events
     uint8_t d1_high_hits = 0; ///< Number of high-level D1 damage accumulation events
@@ -38,6 +41,8 @@ struct CellCohortKey {
     bool operator==(const CellCohortKey& other) const noexcept {
         return brca1_loss == other.brca1_loss &&
                tp53_hits == other.tp53_hits &&
+               driver_hit == other.driver_hit &&
+               early_brca1_bypass == other.early_brca1_bypass &&
                cohort_age == other.cohort_age &&
                d1_low_hits == other.d1_low_hits &&
                d1_high_hits == other.d1_high_hits &&
@@ -60,6 +65,8 @@ struct CellCohortHash {
         };
         mix(k.brca1_loss);
         mix(k.tp53_hits);
+        mix(k.driver_hit);
+        mix(k.early_brca1_bypass);
         mix(k.cohort_age);
         mix(k.d1_low_hits);
         mix(k.d1_high_hits);
@@ -83,6 +90,8 @@ struct TissueSimulationParameters {
     double theta_d2_mean;    ///< Baseline tissue-restraint barrier threshold (D2)
     double tau_expansion;    ///< Post-transformation clonal doubling time in years
     double sigma_theta_d2;   ///< Log-normal standard deviation for inter-individual D2 variation
+    double gamma_driver = 0.0;     ///< Transition probability for acquiring permissive driver (PTEN-like)
+    double alpha_bypass = 0.0;     ///< Probability of surviving BRCA1 loss prior to biallelic TP53 loss
 };
 
 /**
@@ -92,6 +101,7 @@ struct FounderLineage {
     long double unmutated_cells = 0.0L; ///< Cells retaining functional BRCA1 allele (BRCA1+/-)
     long double null_cells = 0.0L;      ///< Cells with complete BRCA1 loss (BRCA1-/-)
     long double sum_d1_unmutated = 0.0L;///< Integrated D1 damage for unmutated sublineage
+    bool enabled_by_checkpoint_relaxation = false; ///< True if lineage evolved via early BRCA1 loss bypass
 };
 
 /**
@@ -106,6 +116,7 @@ struct TissueSimulationResult {
     int major_lineages_1pct = 0;     ///< Lineages comprising >= 1% of the final tumor mass
     int major_lineages_5pct = 0;     ///< Lineages comprising >= 5% of the final tumor mass
     double effective_founders = 0.0; ///< Inverse Simpson index: 1 / sum(f_i^2)
+    bool has_checkpoint_relaxed_tumor = false; ///< Contains >=1 founder enabled by checkpoint relaxation
 };
 
 /**
@@ -184,8 +195,8 @@ inline TissueSimulationResult simulate_tissue(
     state.reserve(12000);
     next_state.reserve(12000);
 
-    // Initial state: N0 cells with zero mutations and zero damage
-    state[{0, 0, 0, 0, 0, 0, 0, 0, 0}] = initial_cells;
+    // Initial state: N0 cells with zero mutations, zero driver, and zero damage
+    state[{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}] = initial_cells;
 
     std::vector<FounderLineage> founder_lineages;
     founder_lineages.reserve(64);
@@ -199,100 +210,133 @@ inline TissueSimulationResult simulate_tissue(
         for (const auto& [cohort_key, cohort_count] : state) {
             if (cohort_count == 0) continue;
 
-            // BRCA1-null cells without biallelic TP53 inactivation undergo apoptosis/senescence
-            if (cohort_key.brca1_loss && cohort_key.tp53_hits < 2) continue;
+            // Optional driver acquisition (PTEN-like)
+            uint64_t n_new_drivers = 0;
+            if (!cohort_key.driver_hit && params.gamma_driver > 0.0) {
+                n_new_drivers = sample_binomial(rng, cohort_count, params.gamma_driver);
+            }
+            uint64_t n_no_drivers = cohort_count - n_new_drivers;
 
-            double d1_val = compute_d1(cohort_key, params, age_damage_rate);
-            double prob_brca1_loss = cohort_key.brca1_loss ? 0.0 : std::min(1.0, params.beta_brca1 * d1_val);
-            double prob_tp53_hit = (cohort_key.tp53_hits >= 2) ? 0.0 : std::min(1.0, params.mu_tp53 * d1_val);
+            for (int driver_branch = 0; driver_branch < 2; ++driver_branch) {
+                uint64_t sub_count = (driver_branch == 0) ? n_no_drivers : n_new_drivers;
+                if (sub_count == 0) continue;
 
-            uint64_t n_brca1_events = sample_binomial(rng, cohort_count, prob_brca1_loss);
-            uint64_t n_no_brca1_events = cohort_count - n_brca1_events;
+                uint8_t curr_driver = cohort_key.driver_hit || (driver_branch == 1);
 
-            uint64_t n_brca1_with_tp53 = sample_binomial(rng, n_brca1_events, prob_tp53_hit);
-            uint64_t n_no_brca1_with_tp53 = sample_binomial(rng, n_no_brca1_events, prob_tp53_hit);
+                double d1_val = compute_d1(cohort_key, params, age_damage_rate);
+                double prob_brca1_loss = cohort_key.brca1_loss ? 0.0 : std::min(1.0, params.beta_brca1 * d1_val);
+                double prob_tp53_hit = (cohort_key.tp53_hits >= 2) ? 0.0 : std::min(1.0, params.mu_tp53 * d1_val);
 
-            uint64_t counts[4] = {
-                n_no_brca1_events - n_no_brca1_with_tp53,
-                n_no_brca1_with_tp53,
-                n_brca1_events - n_brca1_with_tp53,
-                n_brca1_with_tp53
-            };
-            int brca1_mut_mask[4] = {0, 0, 1, 1};
-            int tp53_mut_mask[4]  = {0, 1, 0, 1};
+                uint64_t n_brca1_events = sample_binomial(rng, sub_count, prob_brca1_loss);
+                uint64_t n_no_brca1_events = sub_count - n_brca1_events;
 
-            for (int group = 0; group < 4; ++group) {
-                uint64_t n_cells = counts[group];
-                if (n_cells == 0) continue;
+                uint64_t n_brca1_with_tp53 = sample_binomial(rng, n_brca1_events, prob_tp53_hit);
+                uint64_t n_no_brca1_with_tp53 = sample_binomial(rng, n_no_brca1_events, prob_tp53_hit);
 
-                int new_brca1_loss = cohort_key.brca1_loss || brca1_mut_mask[group];
-                int new_tp53_hits = std::min(2, static_cast<int>(cohort_key.tp53_hits) + tp53_mut_mask[group]);
+                uint64_t counts[4] = {
+                    n_no_brca1_events - n_no_brca1_with_tp53,
+                    n_no_brca1_with_tp53,
+                    n_brca1_events - n_brca1_with_tp53,
+                    n_brca1_with_tp53
+                };
+                int brca1_mut_mask[4] = {0, 0, 1, 1};
+                int tp53_mut_mask[4]  = {0, 1, 0, 1};
 
-                CellCohortKey updated_key = cohort_key;
-                updated_key.brca1_loss = static_cast<uint8_t>(new_brca1_loss);
-                updated_key.tp53_hits = static_cast<uint8_t>(new_tp53_hits);
+                for (int group = 0; group < 4; ++group) {
+                    uint64_t n_cells = counts[group];
+                    if (n_cells == 0) continue;
 
-                if (new_tp53_hits == 1) {
-                    updated_key.d1_low_hits++;
-                    updated_key.d2_low_hits++;
-                } else if (new_tp53_hits == 2) {
-                    updated_key.d1_high_hits++;
-                    updated_key.d2_high_hits++;
-                }
+                    int new_brca1_loss = cohort_key.brca1_loss || brca1_mut_mask[group];
+                    int new_tp53_hits = std::min(2, static_cast<int>(cohort_key.tp53_hits) + tp53_mut_mask[group]);
 
-                if (new_brca1_loss) {
-                    updated_key.d2_high_hits = static_cast<uint8_t>(std::min<int>(255, updated_key.d2_high_hits + 2));
-                } else {
-                    updated_key.d2_low_hits++;
-                }
+                    // Checkpoint bypass logic: If a NEW BRCA1 loss event occurs before biallelic TP53 inactivation,
+                    // cells undergo death unless permissive driver is present and bypasses checkpoint with probability alpha_bypass.
+                    // If the cohort had already survived early bypass in a prior year, it remains viable.
+                    bool is_new_brca1_loss = (!cohort_key.brca1_loss && new_brca1_loss);
+                    bool early_brca1_event = (is_new_brca1_loss && new_tp53_hits < 2);
+                    uint64_t surviving_cells = n_cells;
+                    uint8_t bypassed_flag = cohort_key.early_brca1_bypass;
 
-                updated_key.d1_age_accum += cohort_key.cohort_age;
-                updated_key.d2_age_accum += cohort_key.cohort_age;
+                    if (early_brca1_event) {
+                        if (curr_driver && params.alpha_bypass > 0.0) {
+                            surviving_cells = sample_binomial(rng, n_cells, params.alpha_bypass);
+                            bypassed_flag = 1;
+                        } else {
+                            surviving_cells = 0;
+                        }
+                    } else if (new_brca1_loss && new_tp53_hits < 2 && !bypassed_flag) {
+                        surviving_cells = 0; // Unviable without driver bypass
+                    }
+                    if (surviving_cells == 0) continue;
 
-                bool is_unviable = (new_brca1_loss && new_tp53_hits < 2);
-                double d1_new = compute_d1(updated_key, params, age_damage_rate);
-                double d2_new = compute_d2(updated_key, params, age_damage_rate);
+                    CellCohortKey updated_key = cohort_key;
+                    updated_key.brca1_loss = static_cast<uint8_t>(new_brca1_loss);
+                    updated_key.tp53_hits = static_cast<uint8_t>(new_tp53_hits);
+                    updated_key.driver_hit = curr_driver;
+                    updated_key.early_brca1_bypass = bypassed_flag;
 
-                bool is_transformed = false;
-                if (!is_unviable && new_tp53_hits == 2 && d1_new > params.theta_d1) {
-                    if (d2_new > individual_theta_d2) {
-                        is_transformed = true;
+                    if (new_tp53_hits == 1) {
+                        updated_key.d1_low_hits++;
+                        updated_key.d2_low_hits++;
+                    } else if (new_tp53_hits == 2) {
+                        updated_key.d1_high_hits++;
+                        updated_key.d2_high_hits++;
+                    }
+
+                    if (new_brca1_loss) {
+                        updated_key.d2_high_hits = static_cast<uint8_t>(std::min<int>(255, updated_key.d2_high_hits + 2));
                     } else {
+                        updated_key.d2_low_hits++;
+                    }
+
+                    updated_key.d1_age_accum += cohort_key.cohort_age;
+                    updated_key.d2_age_accum += cohort_key.cohort_age;
+
+                    double d1_new = compute_d1(updated_key, params, age_damage_rate);
+                    double d2_new = compute_d2(updated_key, params, age_damage_rate);
+
+                    bool is_transformed = false;
+                    if (new_tp53_hits == 2 && d1_new > params.theta_d1) {
+                        if (d2_new > individual_theta_d2) {
+                            is_transformed = true;
+                        } else {
+                            continue;
+                        }
+                    }
+
+                    if (is_transformed) {
+                        total_founders += surviving_cells;
+                        if (new_brca1_loss) null_founders += surviving_cells;
+
+                        if (surviving_cells > 1000000ULL) {
+                            std::cerr << "Error: Uncontrolled explosive founder generation (" << surviving_cells << ")\n";
+                            std::exit(3);
+                        }
+
+                        for (uint64_t j = 0; j < surviving_cells; ++j) {
+                            FounderLineage lineage;
+                            lineage.enabled_by_checkpoint_relaxation = (bypassed_flag == 1);
+                            if (new_brca1_loss) {
+                                lineage.null_cells = 1.0L;
+                            } else {
+                                lineage.unmutated_cells = 1.0L;
+                                lineage.sum_d1_unmutated = d1_new;
+                            }
+                            founder_lineages.push_back(lineage);
+                        }
                         continue;
                     }
-                }
 
-                if (is_transformed) {
-                    total_founders += n_cells;
-                    if (new_brca1_loss) null_founders += n_cells;
+                    uint64_t n_divisions = sample_binomial(rng, surviving_cells, basal_division_rate);
+                    CellCohortKey aging_cohort = updated_key;
+                    aging_cohort.cohort_age = static_cast<uint8_t>(std::min<int>(255, static_cast<int>(cohort_key.cohort_age) + 1));
+                    next_state[aging_cohort] += surviving_cells;
 
-                    if (n_cells > 1000000ULL) {
-                        std::cerr << "Error: Uncontrolled explosive founder generation (" << n_cells << ")\n";
-                        std::exit(3);
+                    if (n_divisions > 0) {
+                        CellCohortKey daughter_cohort = updated_key;
+                        daughter_cohort.cohort_age = 0;
+                        next_state[daughter_cohort] += n_divisions;
                     }
-
-                    for (uint64_t j = 0; j < n_cells; ++j) {
-                        FounderLineage lineage;
-                        if (new_brca1_loss) {
-                            lineage.null_cells = 1.0L;
-                        } else {
-                            lineage.unmutated_cells = 1.0L;
-                            lineage.sum_d1_unmutated = d1_new;
-                        }
-                        founder_lineages.push_back(lineage);
-                    }
-                    continue;
-                }
-
-                uint64_t n_divisions = is_unviable ? 0 : sample_binomial(rng, n_cells, basal_division_rate);
-                CellCohortKey aging_cohort = updated_key;
-                aging_cohort.cohort_age = static_cast<uint8_t>(std::min<int>(255, static_cast<int>(cohort_key.cohort_age) + 1));
-                next_state[aging_cohort] += n_cells;
-
-                if (n_divisions > 0) {
-                    CellCohortKey daughter_cohort = updated_key;
-                    daughter_cohort.cohort_age = 0;
-                    next_state[daughter_cohort] += n_divisions;
                 }
             }
         }
@@ -351,6 +395,7 @@ inline TissueSimulationResult simulate_tissue(
             int major_lineages_1pct = 0;
             int major_lineages_5pct = 0;
             long double sum_squared_frequencies = 0.0L;
+            bool has_relaxed = false;
 
             for (const auto& lineage : founder_lineages) {
                 long double lineage_size = lineage.unmutated_cells + lineage.null_cells;
@@ -358,7 +403,10 @@ inline TissueSimulationResult simulate_tissue(
 
                 long double frequency = lineage_size / total_tumor_cells;
                 if (frequency >= 0.01L) major_lineages_1pct++;
-                if (frequency >= 0.05L) major_lineages_5pct++;
+                if (frequency >= 0.05L) {
+                    major_lineages_5pct++;
+                    if (lineage.enabled_by_checkpoint_relaxation) has_relaxed = true;
+                }
                 sum_squared_frequencies += frequency * frequency;
             }
 
@@ -373,7 +421,8 @@ inline TissueSimulationResult simulate_tissue(
                 total_null_mass,
                 major_lineages_1pct,
                 major_lineages_5pct,
-                effective_founders
+                effective_founders,
+                has_relaxed
             };
         }
 
@@ -395,7 +444,8 @@ inline TissueSimulationResult simulate_tissue(
         total_null_mass,
         0,
         0,
-        0.0
+        0.0,
+        false
     };
 }
 

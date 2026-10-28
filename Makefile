@@ -145,6 +145,10 @@ exp06-fig6:
 	@echo "📊 Generando Figura 6 (Penetrancia, Estado BRCA1 y Linajes Fundadores)..."
 	python3 tissue_scale/scripts/make_figure6_sfig6.py --output-dir tissue_scale/results
 
+exp06-simulate: tissue-scale-build
+	@echo "🔬 Ejecutando simulación estocástica ad-hoc de tejidos para Figura 6 (Panels d y e)..."
+	python3 tissue_scale/scripts/simulate_figure6_data.py
+
 exp06-sfig7:
 	@echo "📊 Generando Figura Suplementaria S7 (Ajuste y Trade-off de Modelo Homogéneo)..."
 	python3 tissue_scale/scripts/make_sfig7.py --output-dir tissue_scale/results

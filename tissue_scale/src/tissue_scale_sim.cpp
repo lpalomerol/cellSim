@@ -3,9 +3,12 @@
 int main(int argc, char** argv) {
     if (argc < 11) {
         std::cerr << "Usage: " << argv[0]
-                  << " <mu_tp53> <beta_brca1> <delta_low> <delta_high> <theta_d1> <theta_d2> <tau> <sigma> <nsim> <seed>\n";
+                  << " <mu_tp53> <beta_brca1> <delta_low> <delta_high> <theta_d1> <theta_d2> <tau> <sigma> <nsim> <seed> [gamma_driver] [alpha_bypass]\n";
         return 2;
     }
+
+    double gamma_driver = (argc > 11) ? std::stod(argv[11]) : 0.0;
+    double alpha_bypass = (argc > 12) ? std::stod(argv[12]) : 0.0;
 
     tissue_scale::TissueSimulationParameters params {
         std::stod(argv[1]),
@@ -15,7 +18,9 @@ int main(int argc, char** argv) {
         std::stod(argv[5]),
         std::stod(argv[6]),
         std::stod(argv[7]),
-        std::stod(argv[8])
+        std::stod(argv[8]),
+        gamma_driver,
+        alpha_bypass
     };
 
     int n_simulations = std::stoi(argv[9]);
@@ -29,7 +34,7 @@ int main(int argc, char** argv) {
     }
 
     std::cout << "sim,detect_age,founders,founder_null,founder_null_fraction,"
-              << "brca1_null_fraction,brca1_wt_fraction,major_founders_1pct,major_founders_5pct,effective_founders\n"
+              << "brca1_null_fraction,brca1_wt_fraction,major_founders_1pct,major_founders_5pct,effective_founders,checkpoint_relaxed\n"
               << std::setprecision(12);
 
     for (int i = 0; i < n_simulations; ++i) {
@@ -49,7 +54,8 @@ int main(int argc, char** argv) {
                   << wt_fraction << ","
                   << r.major_lineages_1pct << ","
                   << r.major_lineages_5pct << ","
-                  << r.effective_founders << "\n";
+                  << r.effective_founders << ","
+                  << (r.has_checkpoint_relaxed_tumor ? 1 : 0) << "\n";
     }
 
     return 0;
