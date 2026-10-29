@@ -1,0 +1,5 @@
+parameter,relative_CI_width
+brca1_rate,0.17748
+low_delta,0.2601
+high_delta,0.9516600000000001
+neoplastic_div_rate,0.9720599999999999

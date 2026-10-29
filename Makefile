@@ -2,7 +2,17 @@
 # Makefile: BRCA1-ONSET / CellSim Simulation Pipeline
 # ============================================================
 
-.PHONY: build rebuild test clean bootstrap-quick bootstrap-paper calibration-paper calibration-pilot calibration-dry-run sensitivity-global-lhs sensitivity-unaccelerated exp01-fig2 exp01-fig2-grid exp01-fig2-100years exp01-fig2-grid-100years exp01-fig2-paper exp01-simulate exp01-smoke exp02-sfig1 exp02-smoke exp02-simulate exp06-fig6 exp06-sfig7 exp06-smoke exp06-validate tissue-scale-build
+.PHONY: build rebuild test clean exp-smoke-all paper-figures \
+	exp01-cs-fig2 exp01-cs-simulate exp01-cs-smoke exp01-fig2 exp01-simulate exp01-smoke \
+	exp02-cs-sfig1 exp02-cs-simulate exp02-cs-smoke exp02-sfig1 exp02-simulate exp02-smoke \
+	exp03-cs-fig3 exp03-cs-sfig4 exp03-cs-sfig4b exp03-cs-sfig4c exp03-cs-sfig4d exp03-cs-sfig4-all exp03-cs-smoke exp03-cs-abc-pilot exp03-cs-simulate exp03-fig3 exp03-sfig4 exp03-sfig4b exp03-sfig4c exp03-sfig4d exp03-smoke exp03-simulate \
+	exp04-cs-fig4 exp04-cs-simulate exp04-cs-smoke exp04-fig4 exp04-simulate exp04-smoke \
+	exp05-cs-fig5 exp05-cs-sfig5 exp05-cs-simulate exp05-cs-smoke exp05-fig5 exp05-sfig5 exp05-simulate exp05-smoke \
+	exp06-cs-sfig2 exp06-cs-sfig3 exp06-cs-simulate exp06-cs-smoke exp06-sfig2 exp06-sfig3 \
+	exp07-ts-fig6 exp07-ts-simulate exp07-ts-smoke exp07-fig6 exp07-simulate exp07-smoke \
+	exp08-ts-sfig6 exp08-ts-smoke exp08-sfig6 exp08-smoke \
+	exp09-ts-sfig7 exp09-ts-simulate exp09-ts-smoke exp09-sfig7 exp09-simulate exp09-smoke \
+	bootstrap-quick bootstrap-paper calibration-paper calibration-pilot calibration-dry-run sensitivity-global-lhs sensitivity-unaccelerated
 
 # Compilación limpia y construcción con soporte OpenMP y tests
 rebuild:
@@ -20,156 +30,232 @@ clean:
 	rm -rf build
 
 # ============================================================
-# Rebanadas Verticales de Experimentos y Figuras del Paper
+# Rebanadas Verticales de Experimentos (9 Experimentos Modulares)
 # ============================================================
 
-# Experimento 01: Exploración preliminar y aceleración tumoral (Figura 2)
-exp01-fig2:
-	@echo "📊 Generando Figura 2 Simulada (PDF y PNG)..."
-	python3 experiments/exp01_exploratory_acceleration/plot_figure2.py --mode simulated
+# ------------------------------------------------------------
+# Experimento 01 (CS): Exploración preliminar y aceleración (Figura 2)
+# ------------------------------------------------------------
+exp01-cs-fig2:
+	@echo "📊 Generando Figura 2 Canónica (PDF y PNG)..."
+	python3 experiments/exp01_cs_exploratory_acceleration/plot_figure2.py
 
-exp01-fig2-grid:
-	@echo "📊 Generando Figura 2 Extra (con nube gris de las 36 opciones del grid)..."
-	python3 experiments/exp01_exploratory_acceleration/plot_figure2.py --mode simulated --show-grid
-
-exp01-fig2-grid-d001:
-	@echo "📊 Generando Figura 2 Extra para d=0.01 (representativas + grid)..."
-	python3 experiments/exp01_exploratory_acceleration/plot_figure2.py --mode simulated --show-grid --data-suffix _d001 --output-name Figure2_extra_grid_d0.01
-
-exp01-fig2-100years:
-	@echo "📊 Generando Figura 2 extendida a 100 años (PDF y PNG)..."
-	python3 experiments/exp01_exploratory_acceleration/plot_figure2.py --mode simulated --max-age 100 --output-name Figure2_100years
-
-exp01-fig2-grid-100years:
-	@echo "📊 Generando Figura 2 Extra con grid completo extendido a 100 años..."
-	python3 experiments/exp01_exploratory_acceleration/plot_figure2.py --mode simulated --max-age 100 --show-grid
-
-exp01-fig2-paper:
-	@echo "📊 Generando Figura 2 del Paper (PDF y PNG)..."
-	python3 experiments/exp01_exploratory_acceleration/plot_figure2.py --mode paper
-
-exp01-simulate: build
+exp01-cs-simulate: build
 	@echo "🔬 Ejecutando simulaciones estocásticas para Figura 2 (N=500)..."
-	python3 experiments/exp01_exploratory_acceleration/run_exploratory.py --generate-trajectories --n-runs 500
+	python3 experiments/exp01_cs_exploratory_acceleration/run_exploratory.py --generate-trajectories --n-runs 500
 
-exp01-simulate-d001: build
-	@echo "🔬 Ejecutando simulaciones estocásticas para d=0.01 (representativas + grid, N=500)..."
-	python3 experiments/exp01_exploratory_acceleration/run_exploratory.py --generate-trajectories --division-rate 0.01 --file-suffix _d001 --n-runs 500
-	python3 experiments/exp01_exploratory_acceleration/run_exploratory.py --generate-grid-trajectories --division-rate 0.01 --file-suffix _d001 --n-runs 500
-
-exp01-smoke: build
+exp01-cs-smoke: build
 	@echo "🧪 Verificando pipeline de simulación del Experimento 01..."
-	python3 experiments/exp01_exploratory_acceleration/run_exploratory.py --smoke-test
+	python3 experiments/exp01_cs_exploratory_acceleration/run_exploratory.py --smoke-test
 
-# Experimento 02: Análisis global de sensibilidad LHS y PRCC (Figura Suplementaria S1)
-exp02-sfig1:
+exp01-fig2: exp01-cs-fig2
+exp01-simulate: exp01-cs-simulate
+exp01-smoke: exp01-cs-smoke
+
+# ------------------------------------------------------------
+# Experimento 02 (CS): Análisis global de sensibilidad LHS/PRCC (Figura S1)
+# ------------------------------------------------------------
+exp02-cs-sfig1:
 	@echo "📊 Generando Figura Suplementaria S1 (PDF y PNG)..."
-	python3 experiments/exp02_sensitivity_global/plot_sfig1.py
+	python3 experiments/exp02_cs_sensitivity_global/plot_sfig1.py
 
-exp02-smoke: build
+exp02-cs-smoke: build
 	@echo "🧪 Verificando pipeline de sensibilidad del Experimento 02 (LHS smoke-test)..."
-	python3 experiments/exp02_sensitivity_global/run_lhs_sensitivity.py --smoke-test
+	python3 experiments/exp02_cs_sensitivity_global/run_lhs_sensitivity.py --smoke-test
 
-exp02-simulate: build
+exp02-cs-simulate: build
 	@echo "🔬 Ejecutando campaña completa de sensibilidad global LHS (1,000 combinaciones x 200 simulaciones)..."
-	python3 experiments/exp02_sensitivity_global/run_lhs_sensitivity.py --n-samples 1000 --n-sim 200
+	python3 experiments/exp02_cs_sensitivity_global/run_lhs_sensitivity.py --n-samples 1000 --n-sim 200
 
-# Experimento 03: Calibración Bayesiana ABC-SMC y Posterior Predictive (Figura 3 y Figura S4)
-exp03-fig3:
+exp02-sfig1: exp02-cs-sfig1
+exp02-smoke: exp02-cs-smoke
+exp02-simulate: exp02-cs-simulate
+
+# ------------------------------------------------------------
+# Experimento 03 (CS): Calibración Bayesiana ABC-SMC (Figuras 3 y S4)
+# ------------------------------------------------------------
+exp03-cs-fig3:
 	@echo "📊 Generando Figura 3 (Performance ABC-SMC & Posterior Predictive)..."
-	python3 experiments/exp03_abc_smc_calibration/plot_figure3.py
+	python3 experiments/exp03_cs_abc_smc_calibration/plot_figure3.py
 
-exp03-sfig4:
-	@echo "📊 Generando Figuras Suplementarias S4, S4b y S4c (Posterior Canónica, Ratios Cruzados & Auto-ratios)..."
-	python3 experiments/exp03_abc_smc_calibration/plot_sfig4.py --variant all
+exp03-cs-sfig4:
+	@echo "📊 Generando Figura Suplementaria S4 Canónica (Posterior Corner Matrix 4x4)..."
+	python3 experiments/exp03_cs_abc_smc_calibration/plot_sfig4.py --variant 4a
 
-exp03-sfig4b:
+exp03-cs-sfig4b:
 	@echo "📊 Generando Figura Suplementaria S4b (Ratios Cruzados Normalizados por Beta)..."
-	python3 experiments/exp03_abc_smc_calibration/plot_sfig4.py --variant 4b
+	python3 experiments/exp03_cs_abc_smc_calibration/plot_sfig4.py --variant 4b
 
-exp03-sfig4c:
+exp03-cs-sfig4c:
 	@echo "📊 Generando Figura Suplementaria S4c (Auto-ratios Normalizados por Beta)..."
-	python3 experiments/exp03_abc_smc_calibration/plot_sfig4.py --variant 4c
+	python3 experiments/exp03_cs_abc_smc_calibration/plot_sfig4.py --variant 4c
 
-exp03-smoke: build
+exp03-cs-sfig4d:
+	@echo "📊 Generando Figura Suplementaria S4d (Densidades 1D de los 6 Pares de Parámetros)..."
+	python3 experiments/exp03_cs_abc_smc_calibration/plot_sfig4.py --variant 4d
+
+exp03-cs-sfig4-all:
+	@echo "📊 Generando todas las variantes de Figura Suplementaria S4 (4a, 4b, 4c, 4d)..."
+	python3 experiments/exp03_cs_abc_smc_calibration/plot_sfig4.py --variant all
+
+exp03-cs-smoke: build
 	@echo "🧪 Verificando pipeline ABC-SMC del Experimento 03 (smoke-test rápido)..."
-	python3 experiments/exp03_abc_smc_calibration/abc_smc.py --smoke-test
+	python3 experiments/exp03_cs_abc_smc_calibration/abc_smc.py --smoke-test
 
-exp03-abc-pilot: build
+exp03-cs-abc-pilot: build
 	@echo "⚡ Ejecutando calibración ABC-SMC piloto (50 partículas x 4 generaciones)..."
-	python3 experiments/exp03_abc_smc_calibration/abc_smc.py --particles 50 --generations 4 --n-sim 100 --workers 4
+	python3 experiments/exp03_cs_abc_smc_calibration/abc_smc.py --particles 50 --generations 4 --n-sim 100 --workers 4
 
-exp03-simulate: build
+exp03-cs-simulate: build
 	@echo "🔬 Ejecutando calibración canónica ABC-SMC (250 partículas x 20 generaciones)..."
-	python3 experiments/exp03_abc_smc_calibration/abc_smc.py --particles 250 --generations 20 --n-sim 300 --workers 8
+	python3 experiments/exp03_cs_abc_smc_calibration/abc_smc.py --particles 250 --generations 20 --n-sim 300 --workers 8
 
-# Experimento 04: Características Emergentes del Tumor y Linajes Clonales (Figura 4)
-exp04-fig4:
+exp03-fig3: exp03-cs-fig3
+exp03-sfig4: exp03-cs-sfig4
+exp03-sfig4b: exp03-cs-sfig4b
+exp03-sfig4c: exp03-cs-sfig4c
+exp03-sfig4d: exp03-cs-sfig4d
+exp03-smoke: exp03-cs-smoke
+exp03-simulate: exp03-cs-simulate
+
+# ------------------------------------------------------------
+# Experimento 04 (CS): Características Emergentes del Tumor (Figura 4)
+# ------------------------------------------------------------
+exp04-cs-fig4:
 	@echo "📊 Generando Figura 4 (Posterior Parameters, BRCA1 Composition & Founder Lineages)..."
-	python3 experiments/exp04_emergent_features/plot_figure4.py
+	python3 experiments/exp04_cs_emergent_features/plot_figure4.py
 
-exp04-smoke: build
+exp04-cs-smoke: build
 	@echo "🧪 Verificando pipeline de características emergentes del Experimento 04..."
-	python3 experiments/exp04_emergent_features/run_emergent_features.py --smoke-test
+	python3 experiments/exp04_cs_emergent_features/run_emergent_features.py --smoke-test
 
-exp04-simulate: build
-	@echo "🔬 Simulando características emergentes del tumor a través de la población posterior..."
-	python3 experiments/exp04_emergent_features/run_emergent_features.py
+exp04-cs-simulate: build
+	@echo "🔬 Simulando características emergentes del tumor..."
+	python3 experiments/exp04_cs_emergent_features/run_emergent_features.py
 
-# Experimento 05: Intervención e Intercepción de Cáncer (Figura 5 y Figura S5)
-exp05-fig5:
+exp04-fig4: exp04-cs-fig4
+exp04-smoke: exp04-cs-smoke
+exp04-simulate: exp04-cs-simulate
+
+# ------------------------------------------------------------
+# Experimento 05 (CS): Intervención e Intercepción de Cáncer (Figuras 5 y S5)
+# ------------------------------------------------------------
+exp05-cs-fig5:
 	@echo "📊 Generando Figura 5 (Cancer Interception, Timing & Dose-Response)..."
-	python3 experiments/exp05_cancer_interception/plot_figure5_sfig5.py
+	python3 experiments/exp05_cs_cancer_interception/plot_figure5_sfig5.py
 
-exp05-sfig5:
+exp05-cs-sfig5:
 	@echo "📊 Generando Figura Suplementaria S5 (D1-D2 Sub-additive Interaction)..."
-	python3 experiments/exp05_cancer_interception/plot_figure5_sfig5.py
+	python3 experiments/exp05_cs_cancer_interception/plot_figure5_sfig5.py
 
-exp05-smoke: build
+exp05-cs-smoke: build
 	@echo "🧪 Verificando pipeline de intercepción del Experimento 05..."
-	python3 experiments/exp05_cancer_interception/run_interception.py --smoke-test
+	python3 experiments/exp05_cs_cancer_interception/run_interception.py --smoke-test
 
-exp05-simulate: build
+exp05-cs-simulate: build
 	@echo "🔬 Ejecutando simulación de cohortes de intercepción..."
-	python3 experiments/exp05_cancer_interception/run_interception.py --simulate
+	python3 experiments/exp05_cs_cancer_interception/run_interception.py --simulate
+
+exp05-fig5: exp05-cs-fig5
+exp05-sfig5: exp05-cs-sfig5
+exp05-smoke: exp05-cs-smoke
+exp05-simulate: exp05-cs-simulate
+
+# ------------------------------------------------------------
+# Experimento 06 (CS): Sensibilidad Estructural (Figuras S2 y S3)
+# ------------------------------------------------------------
+exp06-cs-sfig2:
+	@echo "📊 Generando Figura Suplementaria S2 (Sensibilidad OAT de Parámetros Fijos)..."
+	python3 experiments/exp06_cs_sensitivity_structural/plot_sfig2.py
+
+exp06-cs-sfig3:
+	@echo "📊 Generando Figura Suplementaria S3 (Sensibilidad Estructural Kappa y TP53)..."
+	python3 experiments/exp06_cs_sensitivity_structural/plot_sfig3.py
+
+exp06-cs-smoke: build
+	@echo "🧪 Verificando pipeline de sensibilidad estructural (smoke test)..."
+	python3 experiments/exp06_cs_sensitivity_structural/run_structural_sensitivity.py --smoke-test
+
+exp06-cs-simulate: build
+	@echo "🔬 Ejecutando simulaciones estocásticas para Figuras S2 y S3 (N=300)..."
+	python3 experiments/exp06_cs_sensitivity_structural/run_structural_sensitivity.py --simulate --n-runs 300
+
+exp06-sfig2: exp06-cs-sfig2
+exp06-sfig3: exp06-cs-sfig3
+exp06-smoke: exp06-cs-smoke
+exp06-simulate: exp06-cs-simulate
+
+# ------------------------------------------------------------
+# Experimento 07 (TS): Validación Multiobjetivo a Escala de Tejido (Figura 6)
+# ------------------------------------------------------------
+exp07-ts-fig6:
+	@echo "📊 Generando Figura 6 (5 paneles a-e, Escala de Tejido)..."
+	python3 experiments/exp07_ts_multiobjective_cohort/plot_figure6.py
+
+exp07-ts-smoke: build
+	@echo "🧪 Verificando pipeline a escala de tejido del Experimento 07..."
+	python3 experiments/exp07_ts_multiobjective_cohort/simulate_figure6_data.py --smoke-test
+
+exp07-ts-simulate: build
+	@echo "🔬 Ejecutando simulación estocástica completa de tejidos para Figura 6..."
+	python3 experiments/exp07_ts_multiobjective_cohort/simulate_figure6_data.py
+
+exp07-fig6: exp07-ts-fig6
+exp07-smoke: exp07-ts-smoke
+exp07-simulate: exp07-ts-simulate
+
+# ------------------------------------------------------------
+# Experimento 08 (TS): Restricción Homogénea a Escala de Tejido (Figura S6)
+# ------------------------------------------------------------
+exp08-ts-sfig6:
+	@echo "📊 Generando Figura Suplementaria S6 (Trade-off de Restricción Homogénea)..."
+	python3 experiments/exp08_ts_homogeneous_restraint/plot_sfig6.py
+
+exp08-ts-smoke:
+	@echo "🧪 Verificando generación de Figura S6..."
+	python3 experiments/exp08_ts_homogeneous_restraint/plot_sfig6.py
+
+exp08-sfig6: exp08-ts-sfig6
+exp08-smoke: exp08-ts-smoke
+
+# ------------------------------------------------------------
+# Experimento 09 (TS): Relajación de Checkpoints por Driver Somático (Figura S7)
+# ------------------------------------------------------------
+exp09-ts-sfig7:
+	@echo "📊 Generando Figura Suplementaria S7 (Heatmaps de Relajación de Checkpoints)..."
+	python3 experiments/exp09_ts_checkpoint_relaxation/plot_sfig7.py
+
+exp09-ts-smoke: build
+	@echo "🧪 Verificando grid de relajación de checkpoints (smoke test)..."
+	python3 experiments/exp09_ts_checkpoint_relaxation/run_checkpoint_grid.py --smoke-test --output /tmp/sfig7_smoke.csv
+
+exp09-ts-simulate: build
+	@echo "🔬 Ejecutando grid completo de 24 condiciones para Figura S7 (N=3,000 por celda)..."
+	python3 experiments/exp09_ts_checkpoint_relaxation/run_checkpoint_grid.py --n-sim 3000
+
+exp09-sfig7: exp09-ts-sfig7
+exp09-smoke: exp09-ts-smoke
+exp09-simulate: exp09-ts-simulate
 
 # ============================================================
-# Experimento 06: Modelo a Escala de Tejido (10^7 Células, Figuras 6 y S7)
+# Smoke-Test Global de Todos los Experimentos (< 30s)
 # ============================================================
+exp-smoke-all: build exp01-cs-smoke exp02-cs-smoke exp03-cs-smoke exp04-cs-smoke exp05-cs-smoke exp06-cs-smoke exp07-ts-smoke exp08-ts-smoke exp09-ts-smoke
+	@echo "✅ Todos los smoke tests (exp01 a exp09) se completaron con éxito."
 
-tissue-scale-build:
-	@echo "🔨 Compilando simulador C++20 de escala de tejido (tissue_scale_sim)..."
-	@$(MAKE) -C tissue_scale
-
-exp06-fig6:
-	@echo "📊 Generando Figura 6 (Penetrancia, Estado BRCA1 y Linajes Fundadores)..."
-	python3 tissue_scale/scripts/make_figure6_sfig6.py --output-dir tissue_scale/results
-
-exp06-simulate: tissue-scale-build
-	@echo "🔬 Ejecutando simulación estocástica ad-hoc de tejidos para Figura 6 (Panels d y e)..."
-	python3 tissue_scale/scripts/simulate_figure6_data.py
-
-exp06-sfig7:
-	@echo "📊 Generando Figura Suplementaria S7 (Ajuste y Trade-off de Modelo Homogéneo)..."
-	python3 tissue_scale/scripts/make_sfig7.py --output-dir tissue_scale/results
-
-exp06-smoke: tissue-scale-build
-	@echo "🧪 Ejecutando smoke test rápido del simulador a escala de tejido (N=10)..."
-	python3 tissue_scale/scripts/run_validation.py --smoke-test --output tissue_scale/results/smoke.csv
-	python3 tissue_scale/scripts/summarize_validation.py --input tissue_scale/results/smoke.csv
-
-exp06-validate:
-	@echo "📋 Resumiendo métricas del dataset congelado de 10.000 tejidos..."
-	python3 tissue_scale/scripts/summarize_validation.py --input tissue_scale/data/final_multiobjective_validation_10000.csv
-
+# ============================================================
+# Sincronización Centralizada de Figuras del Paper
+# ============================================================
+paper-figures:
+	@echo "📊 Sincronizando y exportando todas las figuras canónicas del paper..."
+	python3 results/paper_figures/export_all_figures.py
 
 # ============================================================
 # Targets Directos de Bootstrapping (C++ Monte Carlo)
 # ============================================================
 
-# Simulación rápida (N=50 tejidos virtuales, ~1-2 segundos) con los parámetros del paper
 bootstrap-quick: build
-	@echo "🧬 Ejecutando simulación rápida de bootstrapping (N=50 tejidos, modo acelerado)..."
+	@echo "🧬 Ejecutando simulación rápida de bootstrapping (N=50 tejidos)..."
 	./build/run_bootstrapping \
 		--n-runs 50 \
 		--n-cells 500 \
@@ -181,9 +267,8 @@ bootstrap-quick: build
 		--weighted-sse \
 		--verbose
 
-# Simulación canónica (N=1,000 tejidos virtuales, evaluación posterior de penetrancia)
 bootstrap-paper: build
-	@echo "🧬 Ejecutando evaluación completa de penetrancia (N=1,000 tejidos, parámetros posteriores)..."
+	@echo "🧬 Ejecutando evaluación completa de penetrancia (N=1,000 tejidos)..."
 	./build/run_bootstrapping \
 		--n-runs 1000 \
 		--n-cells 500 \
@@ -199,12 +284,10 @@ bootstrap-paper: build
 # Targets de Calibración y Sensibilidad Activos
 # ============================================================
 
-# Smoke test instantáneo de verificación del pipeline
 calibration-dry-run: build
 	@echo "🧪 Verificando pipeline ABC-SMC (--dry-run)..."
 	python3 scripts/experiments/exp_01_abc_smc_global.py --dry-run --workers 2
 
-# Análisis de sensibilidad piloto rápido (50 partículas x 4 generaciones)
 calibration-pilot: build
 	@echo "⚡ Iniciando Análisis de Sensibilidad ABC-SMC Piloto (50 partículas x 4 generaciones)..."
 	@mkdir -p results/20260928_draft_map/sensitivity_abc_pilot
@@ -216,7 +299,6 @@ calibration-pilot: build
 		--workers 4 \
 		--output-dir results/20260928_draft_map/sensitivity_abc_pilot
 
-# Calibración canónica de referencia (250 partículas x 20 generaciones)
 calibration-paper: build
 	@echo "🔬 Calibración canónica de referencia..."
 	@mkdir -p results/20260928_draft_map/exp_01_abc_smc_global
@@ -228,7 +310,6 @@ calibration-paper: build
 		--workers 4 \
 		--output-dir results/20260928_draft_map/exp_01_abc_smc_global
 
-# Global Sensitivity Analysis LHS (1,000 combinaciones) -> Fig. S1
 sensitivity-global-lhs: build
 	@echo "🌐 Ejecutando Global Sensitivity Analysis (1,000 LHS parameter combinations)..."
 	@mkdir -p results/20260928_draft_map/exp_02_global_sensitivity
@@ -238,7 +319,6 @@ sensitivity-global-lhs: build
 		--workers 4 \
 		--output-dir results/20260928_draft_map/exp_02_global_sensitivity
 
-# Contraste de ablación sin aceleración tumoral (nu = d, Fig. 2)
 sensitivity-unaccelerated: build
 	@echo "📉 Evaluando modelo sin aceleración tumoral (locked division nu = d)..."
 	@mkdir -p results/20260928_draft_map/sensitivity_unaccelerated
