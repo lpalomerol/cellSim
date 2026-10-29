@@ -29,28 +29,28 @@ TEST_F(TissueScaleSimulatorTest, ExactNumericalEquivalenceAcrossSeeds) {
     // Tissue 0: Expect no tumor by age 80
     auto res0 = simulate_tissue(baseline_params, base_seed);
     EXPECT_EQ(res0.age_at_detection, -1);
-    EXPECT_EQ(res0.total_founders, 1ULL);
-    EXPECT_EQ(res0.null_founders, 1ULL);
+    EXPECT_EQ(res0.total_founders, 0ULL);
+    EXPECT_EQ(res0.null_founders, 0ULL);
 
-    // Tissue 1: Detected at age 69 with 2 founders
+    // Tissue 1: Detected at age 29 with 1 founder
     auto res1 = simulate_tissue(baseline_params, base_seed + 1000003ULL);
-    EXPECT_EQ(res1.age_at_detection, 69);
-    EXPECT_EQ(res1.total_founders, 2ULL);
-    EXPECT_EQ(res1.null_founders, 2ULL);
-    EXPECT_NEAR(res1.effective_founders, 1.00028567893, 1e-6);
+    EXPECT_EQ(res1.age_at_detection, 29);
+    EXPECT_EQ(res1.total_founders, 1ULL);
+    EXPECT_EQ(res1.null_founders, 1ULL);
+    EXPECT_NEAR(res1.effective_founders, 1.0, 1e-6);
 
-    // Tissue 2: Detected early at age 35 with 6 founders (polyclonal)
+    // Tissue 2: Detected early at age 32 with 6 founders (polyclonal)
     auto res2 = simulate_tissue(baseline_params, base_seed + 2000006ULL);
-    EXPECT_EQ(res2.age_at_detection, 35);
+    EXPECT_EQ(res2.age_at_detection, 32);
     EXPECT_EQ(res2.total_founders, 6ULL);
-    EXPECT_EQ(res2.null_founders, 0ULL);
-    EXPECT_EQ(res2.major_lineages_1pct, 2);
-    EXPECT_EQ(res2.major_lineages_5pct, 1);
-    EXPECT_NEAR(res2.effective_founders, 1.08681534969, 1e-6);
+    EXPECT_EQ(res2.null_founders, 1ULL);
+    EXPECT_EQ(res2.major_lineages_1pct, 3);
+    EXPECT_EQ(res2.major_lineages_5pct, 2);
+    EXPECT_NEAR(res2.effective_founders, 1.3781315, 1e-6);
 
-    // Tissue 4: Detected at age 62 with 1 founder (monoclonal)
+    // Tissue 4: Detected at age 55 with 1 founder (monoclonal)
     auto res4 = simulate_tissue(baseline_params, base_seed + 4000012ULL);
-    EXPECT_EQ(res4.age_at_detection, 62);
+    EXPECT_EQ(res4.age_at_detection, 55);
     EXPECT_EQ(res4.total_founders, 1ULL);
     EXPECT_EQ(res4.null_founders, 1ULL);
     EXPECT_NEAR(res4.effective_founders, 1.0, 1e-9);

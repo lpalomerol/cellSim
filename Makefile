@@ -49,13 +49,13 @@ exp01-fig2-paper:
 	python3 experiments/exp01_exploratory_acceleration/plot_figure2.py --mode paper
 
 exp01-simulate: build
-	@echo "🔬 Ejecutando simulaciones estocásticas para Figura 2 (N=1000)..."
-	python3 experiments/exp01_exploratory_acceleration/run_exploratory.py --generate-trajectories --n-runs 1000
+	@echo "🔬 Ejecutando simulaciones estocásticas para Figura 2 (N=500)..."
+	python3 experiments/exp01_exploratory_acceleration/run_exploratory.py --generate-trajectories --n-runs 500
 
 exp01-simulate-d001: build
-	@echo "🔬 Ejecutando simulaciones estocásticas para d=0.01 (representativas + grid, N=1000)..."
-	python3 experiments/exp01_exploratory_acceleration/run_exploratory.py --generate-trajectories --division-rate 0.01 --file-suffix _d001 --n-runs 1000
-	python3 experiments/exp01_exploratory_acceleration/run_exploratory.py --generate-grid-trajectories --division-rate 0.01 --file-suffix _d001 --n-runs 1000
+	@echo "🔬 Ejecutando simulaciones estocásticas para d=0.01 (representativas + grid, N=500)..."
+	python3 experiments/exp01_exploratory_acceleration/run_exploratory.py --generate-trajectories --division-rate 0.01 --file-suffix _d001 --n-runs 500
+	python3 experiments/exp01_exploratory_acceleration/run_exploratory.py --generate-grid-trajectories --division-rate 0.01 --file-suffix _d001 --n-runs 500
 
 exp01-smoke: build
 	@echo "🧪 Verificando pipeline de simulación del Experimento 01..."
@@ -131,7 +131,7 @@ exp05-smoke: build
 
 exp05-simulate: build
 	@echo "🔬 Ejecutando simulación de cohortes de intercepción..."
-	python3 experiments/exp05_cancer_interception/run_interception.py
+	python3 experiments/exp05_cancer_interception/run_interception.py --simulate
 
 # ============================================================
 # Experimento 06: Modelo a Escala de Tejido (10^7 Células, Figuras 6 y S7)

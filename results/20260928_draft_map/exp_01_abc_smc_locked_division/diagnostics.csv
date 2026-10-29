@@ -1,0 +1,3 @@
+generation,epsilon,particles_accepted,proposals_attempted,acceptance_rate,ess,min_distance,median_distance,elapsed_seconds
+0,468.102500,2,6,0.3333,2.00,108.500000,348.235000,0.38
+1,264.340000,2,6,0.3333,1.66,188.800000,239.160000,0.23

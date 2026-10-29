@@ -50,13 +50,13 @@ make exp01-fig2-paper
 ```
 Generates `Figure2_paper.pdf` and `Figure2_paper.png` without modifying the simulated files.
 
-### 6. Re-run Monte Carlo Simulations ($N = 1000$ tissues per curve, ~15s total):
+### 6. Re-run Monte Carlo Simulations ($N = 500$ tissues per curve, ~7s total):
 ```bash
 make exp01-simulate
 ```
 Updates `figure2a_simulated_trajectories.csv` and `figure2b_simulated_trajectories.csv`.
 
-### 7. Re-run Monte Carlo Simulations with d = 0.01 (Representative + Grid, N = 1000 per curve):
+### 7. Re-run Monte Carlo Simulations with d = 0.01 (Representative + Grid, N = 500 per curve):
 ```bash
 make exp01-simulate-d001
 ```
