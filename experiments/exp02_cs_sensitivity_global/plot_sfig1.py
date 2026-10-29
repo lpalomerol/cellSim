@@ -96,7 +96,7 @@ def weighted_ecdf(values: np.ndarray, weights: np.ndarray) -> Tuple[np.ndarray, 
 def render_figure_s1(
     data_dir: Path,
     out_dir: Path,
-    mode: str = "paper",
+    mode: str = "recalculated",
 ) -> Tuple[Path, Path]:
     """Renders the comprehensive Supplementary Figure S1."""
     # Load data files
@@ -154,25 +154,29 @@ def render_figure_s1(
         panel_a_labels = [item[0] for item in reversed(PAPER_PANEL_A)]
         panel_a_vals = [item[1] for item in reversed(PAPER_PANEL_A)]
     else:
-        # Load from rf_permutation_importance.csv
+        # Load from rf_permutation_importance.csv with fallback to paper values if missing
         rf_csv = data_dir / "rf_permutation_importance.csv"
-        df_rf = pd.read_csv(rf_csv)
-        top5 = df_rf.tail(5)
-        name_map = {
-            "tp53_rate": r"$\mu_{\rm TP53}$",
-            "neoplastic_div_rate": r"$\nu$",
-            "low_delta": r"$\delta_{\rm low}$",
-            "brca1_rate": r"$\beta$",
-            "d2_threshold": r"$\theta_{D2}$",
-            "high_delta": r"$\delta_{\rm high}$",
-            "delta_ratio": r"$\delta_{\rm high}/\delta_{\rm low}$",
-            "d1_threshold": r"$\theta_{D1}$",
-            "division_rate": r"$d$",
-            "kappa_brca1": r"$\kappa_{\rm BRCA1}$",
-            "age_drift": r"$a$",
-        }
-        panel_a_labels = [name_map.get(p, p) for p in top5["parameter"]]
-        panel_a_vals = [val / 100.0 for val in top5["importance_pct"]]
+        if rf_csv.exists():
+            df_rf = pd.read_csv(rf_csv)
+            top5 = df_rf.tail(5)
+            name_map = {
+                "tp53_rate": r"$\mu_{\rm TP53}$",
+                "neoplastic_div_rate": r"$\nu$",
+                "low_delta": r"$\delta_{\rm low}$",
+                "brca1_rate": r"$\beta$",
+                "d2_threshold": r"$\theta_{D2}$",
+                "high_delta": r"$\delta_{\rm high}$",
+                "delta_ratio": r"$\delta_{\rm high}/\delta_{\rm low}$",
+                "d1_threshold": r"$\theta_{D1}$",
+                "division_rate": r"$d$",
+                "kappa_brca1": r"$\kappa_{\rm BRCA1}$",
+                "age_drift": r"$a$",
+            }
+            panel_a_labels = [name_map.get(p, p) for p in top5["parameter"]]
+            panel_a_vals = [val / 100.0 for val in top5["importance_pct"]]
+        else:
+            panel_a_labels = [item[0] for item in reversed(PAPER_PANEL_A)]
+            panel_a_vals = [item[1] for item in reversed(PAPER_PANEL_A)]
 
     y_positions = np.arange(len(panel_a_labels))
     bars = ax_a.barh(
@@ -333,9 +337,9 @@ def main() -> int:
     )
     parser.add_argument(
         "--mode",
-        choices=["paper", "recalculated"],
-        default="paper",
-        help="Rendering mode ('paper' for exact manuscript alignment or 'recalculated' from raw CSV)",
+        choices=["recalculated", "paper"],
+        default="recalculated",
+        help="Rendering mode ('recalculated' from raw CSV [default] or 'paper' for exact manuscript alignment)",
     )
 
     args = parser.parse_args()

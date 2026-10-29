@@ -92,6 +92,7 @@ struct TissueSimulationParameters {
     double sigma_theta_d2;   ///< Log-normal standard deviation for inter-individual D2 variation
     double gamma_driver = 0.0;     ///< Transition probability for acquiring permissive driver (PTEN-like)
     double alpha_bypass = 0.0;     ///< Probability of surviving BRCA1 loss prior to biallelic TP53 loss
+    uint8_t kappa_brca1 = 2;       ///< Multiplier for BRCA1-null contribution to D2 high hits (default 2)
 };
 
 /**
@@ -284,7 +285,7 @@ inline TissueSimulationResult simulate_tissue(
                     }
 
                     if (new_brca1_loss) {
-                        updated_key.d2_high_hits = static_cast<uint8_t>(std::min<int>(255, updated_key.d2_high_hits + 2));
+                        updated_key.d2_high_hits = static_cast<uint8_t>(std::min<int>(255, updated_key.d2_high_hits + params.kappa_brca1));
                     } else {
                         updated_key.d2_low_hits++;
                     }

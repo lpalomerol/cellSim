@@ -9,6 +9,7 @@ int main(int argc, char** argv) {
 
     double gamma_driver = (argc > 11) ? std::stod(argv[11]) : 0.0;
     double alpha_bypass = (argc > 12) ? std::stod(argv[12]) : 0.0;
+    uint8_t kappa_brca1 = (argc > 13) ? static_cast<uint8_t>(std::stoi(argv[13])) : 2;
 
     tissue_scale::TissueSimulationParameters params {
         std::stod(argv[1]),
@@ -20,7 +21,8 @@ int main(int argc, char** argv) {
         std::stod(argv[7]),
         std::stod(argv[8]),
         gamma_driver,
-        alpha_bypass
+        alpha_bypass,
+        kappa_brca1
     };
 
     int n_simulations = std::stoi(argv[9]);
