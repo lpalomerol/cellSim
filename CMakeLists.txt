@@ -1,171 +1,40 @@
 cmake_minimum_required(VERSION 3.28.3)
-project(cellSim)
+project(BRCA1_ONSET_Simulation_Suite CXX)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Opción para evitar descargar y construir tests (googletest) en entornos offline
-option(BUILD_TESTS "Construir tests unitarios (puede descargar googletest)" OFF)
+# Opciones de compilación
+option(BUILD_TESTS "Construir suite de tests unitarios" ON)
 
 include(FetchContent)
 
-# Librerías externas
+# Dependencias externas globales
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
 FetchContent_MakeAvailable(json)
 
 FetchContent_Declare(cxxopts GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git GIT_TAG v3.2.1)
 FetchContent_MakeAvailable(cxxopts)
 
-# Fuentes comunes del núcleo de la aplicación
-set(COMMON_SOURCES
-        src/domain/ports/ICell.h
-        src/domain/ports/INoiseSource.h
-        src/domain/ports/ILogger.h
-        src/domain/ports/CellNoise.h
-        src/domain/adapters/RandomNoise.h
-        src/domain/adapters/FixedNoise.h
-        src/domain/adapters/LogLevel.h
-        src/domain/adapters/Logger.h
-        src/domain/adapters/NullLogger.h
-        src/domain/cell/CellFactory.cpp
-        src/domain/cell/CellFactory.h
-        src/domain/cell/AgenticCell.cpp
-        src/domain/cell/AgenticCell.h
-        src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.cpp
-        src/domain/cell/strategies/GenomicInstabilityDeltaStrategy.h
-        src/domain/cell/strategies/IInstabilityDeltaStrategy.h
-        src/domain/cell/strategies/LognormalNoiseInstabilityStrategy.h
-        src/domain/cell/strategies/LognormalNoiseInstabilityStrategy.cpp
-        src/domain/cell/strategies/GenomicViabilityStrategy.cpp
-        src/domain/cell/strategies/GenomicViabilityStrategy.h
-        src/domain/cell/strategies/IViabilityStrategy.h
-        src/domain/gene/Gene.cpp
-        src/domain/gene/Gene.h
-        src/domain/gene/Genome.cpp
-        src/domain/gene/GenomeFactory.cpp
-        src/domain/gene/Genome.h
-        src/application/config/SimulationConfig.cpp
-        src/application/config/SimulationConfig.h
-        src/application/presenter/GeneticSummaryPresenter.cpp
-        src/application/presenter/GeneticSummaryPresenter.h)
-
-add_executable(cellSim app/main.cpp
-        src/application/simulation/Simulation.cpp
-        src/application/simulation/Simulation.h
-        src/application/simulation/Simulations.cpp
-        src/application/simulation/Simulations.h
-        ${COMMON_SOURCES}
-        src/domain/tissue/Tissue.cpp
-        src/domain/tissue/Tissue.h
-        src/domain/cell/AgenticCell.cpp
-        src/domain/cell/AgenticCell.h)
-
-# Ejecutable interactivo: reutiliza las mismas fuentes para enlazar correctamente
-add_executable(interactive app/main_interactive.cpp
-        src/application/simulation/Simulation.cpp
-        src/application/simulation/Simulation.h
-        src/application/simulation/InteractiveSimulation.cpp
-        src/application/simulation/InteractiveSimulation.h
-        ${COMMON_SOURCES}
-        src/domain/tissue/Tissue.cpp
-        src/domain/tissue/Tissue.h
-        src/domain/cell/AgenticCell.cpp
-        src/domain/cell/AgenticCell.h)
-
-
-# Ejecutable para evaluar evolución de una única célula
-add_executable(single_cell_evolution app/single_cell_evolution.cpp
-        src/application/simulation/Simulation.cpp
-        src/application/simulation/Simulation.h
-        src/application/simulation/InteractiveSimulation.cpp
-        src/application/simulation/InteractiveSimulation.h
-        ${COMMON_SOURCES}
-        src/domain/tissue/Tissue.cpp
-        src/domain/tissue/Tissue.h
-        src/domain/cell/CellFactory.cpp
-        src/domain/cell/CellFactory.h
-        src/domain/cell/AgenticCell.cpp
-        src/domain/cell/AgenticCell.h)
-
-
-# Ejecutable: Captura completa de 6 escenarios (3 runs cada uno)
-add_executable(run_all_scenarios app/run_all_scenarios.cpp
-        src/application/simulation/PopulationTracker.cpp
-        src/application/simulation/PopulationTracker.h
-        src/application/config/SimulationConfig.cpp
-        src/application/config/SimulationConfig.h
-        ${COMMON_SOURCES}
-        src/domain/tissue/Tissue.cpp
-        src/domain/tissue/Tissue.h
-        src/domain/cell/CellFactory.cpp
-        src/domain/cell/CellFactory.h
-        src/domain/cell/AgenticCell.cpp
-        src/domain/cell/AgenticCell.h)
-
-
-# Ejecutable CLI con configuración JSON
-add_executable(cellSim_cli app/main_cli.cpp
-        src/application/config/JsonConfigLoader.cpp
-        src/application/config/JsonConfigLoader.h
-        src/application/simulation/Simulation.cpp
-        src/application/simulation/Simulation.h
-        src/application/simulation/Simulations.cpp
-        src/application/simulation/Simulations.h
-        src/application/simulation/PopulationTracker.cpp
-        src/application/simulation/PopulationTracker.h
-        ${COMMON_SOURCES}
-        src/domain/tissue/Tissue.cpp
-        src/domain/tissue/Tissue.h)
-target_link_libraries(cellSim_cli PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts)
-
-
-# Calibration sweep: parameter grid search for D1/D2 threshold calibration
-add_executable(calibration_sweep app/calibration_sweep.cpp
-        src/application/simulation/Simulation.cpp
-        src/application/simulation/Simulation.h
-        src/application/simulation/PopulationTracker.cpp
-        src/application/simulation/PopulationTracker.h
-        ${COMMON_SOURCES}
-        src/domain/tissue/Tissue.cpp
-        src/domain/tissue/Tissue.h
-        src/domain/cell/CellFactory.cpp
-        src/domain/cell/CellFactory.h
-        src/domain/cell/AgenticCell.cpp
-        src/domain/cell/AgenticCell.h)
-target_link_libraries(calibration_sweep PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts)
-
-# Bootstrap calibration: cumulative risk curve vs. Kuchenbaecker 2017 BRCA1 data
-add_executable(run_bootstrapping app/run_bootstrapping.cpp
-        src/application/bootstrapping/BootstrappingMetrics.h
-        src/application/bootstrapping/BootstrappingMetrics.cpp
-        src/application/simulation/Simulation.cpp
-        src/application/simulation/Simulation.h
-        src/application/simulation/PopulationTracker.cpp
-        src/application/simulation/PopulationTracker.h
-        ${COMMON_SOURCES}
-        src/domain/tissue/Tissue.cpp
-        src/domain/tissue/Tissue.h
-        src/domain/cell/CellFactory.cpp
-        src/domain/cell/CellFactory.h
-        src/domain/cell/AgenticCell.cpp
-        src/domain/cell/AgenticCell.h)
-find_package(OpenMP)
-if(OpenMP_CXX_FOUND)
-    target_link_libraries(run_bootstrapping PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts OpenMP::OpenMP_CXX)
-    target_compile_definitions(run_bootstrapping PRIVATE BOOTSTRAPPING_USE_OMP)
-else()
-    target_link_libraries(run_bootstrapping PRIVATE nlohmann_json::nlohmann_json cxxopts::cxxopts)
-    message(WARNING "OpenMP not found — run_bootstrapping will run single-threaded")
+# Habilitar soporte de tests
+if(BUILD_TESTS)
+    enable_testing()
 endif()
 
+# ============================================================
+# Motores Simétricos de Simulación (Arquitectura Opción A)
+# ============================================================
 
-# Añadir tests solo si BUILD_TESTS=ON (tests pueden descargar googletest)
-if (BUILD_TESTS)
-    enable_testing()
-    add_subdirectory(tests)
+# 1. Motor Celular Discreto (Cell Scale: 500 células / tejido)
+add_subdirectory(cell_scale)
 
-    # Target auxiliar para CLion: ejecutar todos los tests
+# 2. Motor Continuo a Escala de Tejido (Tissue Scale: 10^7 células / tejido)
+add_subdirectory(tissue_scale)
+
+# Target auxiliar para ejecutar todos los tests
+if(BUILD_TESTS)
     add_custom_target(run_tests
-            COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-            DEPENDS unit_tests
-            COMMENT "Ejecutando todos los tests...")
+        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+        DEPENDS unit_tests
+        COMMENT "Ejecutando todos los tests unitarios...")
 endif()

@@ -1,325 +1,315 @@
+# ============================================================
+# Makefile: BRCA1-ONSET / CellSim Simulation Pipeline
+# ============================================================
+
+.PHONY: build rebuild test clean exp-smoke-all paper-figures \
+	exp01-cs-fig2 exp01-cs-simulate exp01-cs-smoke exp01-fig2 exp01-simulate exp01-smoke \
+	exp02-cs-sfig1 exp02-cs-simulate exp02-cs-smoke exp02-sfig1 exp02-simulate exp02-smoke \
+	exp03-cs-fig3 exp03-cs-sfig4 exp03-cs-sfig4b exp03-cs-sfig4-all exp03-cs-smoke exp03-cs-abc-pilot exp03-cs-simulate exp03-fig3 exp03-sfig4 exp03-sfig4b exp03-smoke exp03-simulate \
+	exp04-cs-fig4 exp04-cs-simulate exp04-cs-smoke exp04-fig4 exp04-simulate exp04-smoke \
+	exp05-cs-fig5 exp05-cs-sfig5 exp05-cs-simulate exp05-cs-smoke exp05-fig5 exp05-sfig5 exp05-simulate exp05-smoke \
+	exp06-cs-sfig2 exp06-cs-sfig3 exp06-cs-simulate exp06-cs-smoke exp06-sfig2 exp06-sfig3 \
+	exp07-ts-fig6 exp07-ts-simulate exp07-ts-smoke exp07-fig6 exp07-simulate exp07-smoke \
+	exp08-ts-sfig6 exp08-ts-smoke exp08-sfig6 exp08-smoke \
+	exp09-ts-sfig7 exp09-ts-simulate exp09-ts-smoke exp09-sfig7 exp09-simulate exp09-smoke \
+	bootstrap-quick bootstrap-paper calibration-paper calibration-pilot calibration-dry-run sensitivity-global-lhs sensitivity-unaccelerated
+
+# Compilación limpia y construcción con soporte OpenMP y tests
 rebuild:
-	cmake -S . -B build -DUSE_CXXOPTS=OFF -DBUILD_TESTS=ON
-	cmake --build build
+	cmake -S . -B build -DBUILD_TESTS=ON
+	cmake --build build -j
 
-.PHONY: build test all all-test cellSim run_all_scenarios single_cell_evolution interactive unit_tests calibration_sweep clean install uninstall dist-package dist-deploy dist-run dist-run-seed clean-dist
+build:
+	cmake --build build -j
 
-# Alias para rebuild
-build: rebuild
-
-# Ejecutar solo tests
+# Ejecución de la suite completa de tests unitarios
 test:
-	cmake --build build --target run_tests 2>/dev/null || cmake --build build --target unit_tests 2>/dev/null || (cd build && ctest --output-on-failure)
+	ctest --test-dir build --output-on-failure
 
-# Target para compilar y ejecutar tests (el que CLion debería usar)
-all: rebuild test
-
-# Alias alternativo
-all-test: all
-
-# ============================================================
-# Targets para compilar aplicativos individuales
-# ============================================================
-
-# Compilar cellSim (ejecutable principal)
-cellSim: build
-	@echo "✅ cellSim compilado"
-	@./build/cellSim
-
-# Compilar y ejecutar run_all_scenarios (todos los escenarios)
-run_all_scenarios: build
-	@echo "✅ run_all_scenarios compilado"
-	@./build/run_all_scenarios
-
-# Compilar y ejecutar single_cell_evolution (célula única)
-single_cell_evolution: build
-	@echo "✅ single_cell_evolution compilado"
-	@./build/single_cell_evolution
-
-# Compilar y ejecutar interactive (modo interactivo)
-interactive: build
-	@echo "✅ interactive compilado"
-	@./build/interactive
-
-# ============================================================
-# Calibración empírica de parámetros D1/D2
-#
-# Observación empírica clave (sweep 3x3, 20 runs, 200 células):
-#   La transformación neoplásica requiere que D2 supere su umbral
-#   ANTES que D1 supere el suyo. Si D1 cruza primero, la célula
-#   muere por vigilancia inmune en estado PRIMER.
-#
-#   Régimen funcional encontrado: δ_low ≥ 0.1 con θ_D1 ≥ 2.6
-#   Objetivo clínico: onset mediano ~40-50 años (portadores BRCA1)
-#
-# Variables de sweep:
-#   CALIB_DMIN / CALIB_DMAX   → rango δ_low  (log scale)
-#   CALIB_T1MIN / CALIB_T1MAX → rango θ_D1   (linear)
-#   CALIB_STEPS               → puntos por eje
-#   CALIB_RUNS                → repeticiones por punto
-#   CALIB_OUT                 → fichero CSV de salida
-# ============================================================
-CALIB_DMIN   ?= 0.02
-CALIB_DMAX   ?= 0.5
-CALIB_T1MIN  ?= 1.5
-CALIB_T1MAX  ?= 4.0
-CALIB_STEPS  ?= 8
-CALIB_RUNS   ?= 100
-CALIB_CELLS  ?= 200
-CALIB_MAXT   ?= 100
-CALIB_CV     ?= 0.0
-CALIB_OUT    ?= calibration_results.csv
-
-calibration_sweep: build
-	@echo "🔬 Lanzando calibration sweep → $(CALIB_OUT)"
-	@./build/calibration_sweep \
-		--low-delta-min $(CALIB_DMIN) \
-		--low-delta-max $(CALIB_DMAX) \
-		--low-delta-steps $(CALIB_STEPS) \
-		--d1-min $(CALIB_T1MIN) \
-		--d1-max $(CALIB_T1MAX) \
-		--d1-steps $(CALIB_STEPS) \
-		--runs $(CALIB_RUNS) \
-		--cells $(CALIB_CELLS) \
-		--max-t $(CALIB_MAXT) \
-		--delta-cv $(CALIB_CV) \
-		--output $(CALIB_OUT)
-	@echo "✅ Resultados en $(CALIB_OUT)"
-
-# Compilar y ejecutar cellSim_cli con configuración por defecto
-cellSim_cli: build
-	@echo "✅ cellSim_cli compilado"
-	@./build/cellSim_cli --config configs/default.json --verbose
-
-cellSim_cli_silent: build
-	@echo "✅ cellSim_cli compilado"
-	@./build/cellSim_cli --config configs/default.json
-
-# ============================================================
-# Targets para simulaciones múltiples con variabilidad
-# ============================================================
-
-# Ejecutar escenario default una vez
-default: build
-	@./cmake-build-debug/cellSim_cli --config configs/default.json
-
-# Ejecutar N simulaciones con diferentes seeds (default N=10)
-N ?= 50
-multi: build
-	@echo "🧬 Ejecutando $(N) simulaciones con diferentes seeds..."
-	@mkdir -p traces/multi
-	@for seed in $$(seq 1 $(N)); do \
-		echo "  → Seed $$seed..."; \
-		./cmake-build-debug/cellSim_cli --config configs/default.json --seed $$seed --output traces/multi/seed_$$seed 2>/dev/null; \
-	done
-	@echo ""
-	@echo "📊 Resumen de años donde se excede el 10% de neoplásticas:"
-	@echo "seed,tumor_threshold_year"
-	@for seed in $$(seq 1 $(N)); do \
-		year=$$(grep "tumor_threshold_year" traces/multi/seed_$$seed/default_run1_SUMMARY.csv 2>/dev/null | cut -d',' -f2); \
-		echo "$$seed,$$year"; \
-	done
-	@echo ""
-	@echo "📈 Estadísticas:"
-	@years=""; for seed in $$(seq 1 $(N)); do \
-		year=$$(grep "tumor_threshold_year" traces/multi/seed_$$seed/default_run1_SUMMARY.csv 2>/dev/null | cut -d',' -f2); \
-		if [ "$$year" != "-1" ] && [ -n "$$year" ]; then years="$$years $$year"; fi; \
-	done; \
-	if [ -n "$$years" ]; then \
-		echo "$$years" | tr ' ' '\n' | grep -v '^$$' | awk '{ sum += $$1; sumsq += $$1*$$1; n++ } END { if(n>0) { mean=sum/n; sd=sqrt(sumsq/n - mean*mean); printf "  Promedio: %.1f años\n  SD: %.1f años\n  N: %d\n", mean, sd, n } }'; \
-	else \
-		echo "  No hay datos válidos"; \
-	fi
-
-# Ejecutar simulaciones rápidas (5 seeds)
-multi-quick: build
-	@$(MAKE) multi N=5
-
-# Ejecutar simulaciones extensas (20 seeds)
-multi-full: build
-	@$(MAKE) multi N=20
-
-# Limpiar resultados de simulaciones múltiples
-clean-multi:
-	@rm -rf traces/multi
-	@echo "🧹 Limpiados resultados de simulaciones múltiples"
-
-
-
-# Compilar solo tests (sin ejecutar)
-unit_tests: build
-	@echo "✅ unit_tests compilado"
-	@./build/tests/unit_tests
-
-# Limpiar build directory
 clean:
-	@echo "🧹 Limpiando build directory..."
-	@rm -rf build
-	@echo "✅ Limpieza completada"
+	rm -rf build
 
 # ============================================================
-# Targets para instalación y desinstalación
+# Rebanadas Verticales de Experimentos (9 Experimentos Modulares)
 # ============================================================
 
-# Directorio de instalación (personalizable con PREFIX=/ruta)
-PREFIX ?= /usr/local
-BINDIR = $(PREFIX)/bin
+# ------------------------------------------------------------
+# Experimento 01 (CS): Exploración preliminar y aceleración (Figura 2)
+# ------------------------------------------------------------
+exp01-cs-fig2:
+	@echo "📊 Generando Figura 2 Canónica (PDF y PNG)..."
+	python3 experiments/exp01_cs_exploratory_acceleration/plot_figure2.py
 
-# Instalar binarios en el sistema
-install: rebuild
-	@echo "📦 Instalando binarios en $(BINDIR)..."
-	@mkdir -p $(BINDIR)
-	@install -m 755 build/cellSim $(BINDIR)/cellSim
-	@install -m 755 build/cellSim_cli $(BINDIR)/cellSim_cli
-	@install -m 755 build/run_all_scenarios $(BINDIR)/run_all_scenarios
-	@install -m 755 build/single_cell_evolution $(BINDIR)/single_cell_evolution
-	@install -m 755 build/interactive $(BINDIR)/interactive
-	@echo "✅ Instalación completada en $(BINDIR)"
-	@echo "   Ahora puedes ejecutar: cellSim, cellSim_cli, etc. desde cualquier directorio"
+exp01-cs-simulate: build
+	@echo "🔬 Ejecutando simulaciones estocásticas para Figura 2 (N=500)..."
+	python3 experiments/exp01_cs_exploratory_acceleration/run_exploratory.py --generate-trajectories --n-runs 500
 
-# Desinstalar binarios del sistema
-uninstall:
-	@echo "🗑️  Desinstalando binarios de $(BINDIR)..."
-	@rm -f $(BINDIR)/cellSim
-	@rm -f $(BINDIR)/cellSim_cli
-	@rm -f $(BINDIR)/run_all_scenarios
-	@rm -f $(BINDIR)/single_cell_evolution
-	@rm -f $(BINDIR)/interactive
-	@echo "✅ Desinstalación completada"
+exp01-cs-smoke: build
+	@echo "🧪 Verificando pipeline de simulación del Experimento 01..."
+	python3 experiments/exp01_cs_exploratory_acceleration/run_exploratory.py --smoke-test
+
+exp01-fig2: exp01-cs-fig2
+exp01-simulate: exp01-cs-simulate
+exp01-smoke: exp01-cs-smoke
+
+# ------------------------------------------------------------
+# Experimento 02 (CS): Análisis global de sensibilidad LHS/PRCC (Figura S1)
+# ------------------------------------------------------------
+exp02-cs-sfig1:
+	@echo "📊 Generando Figura Suplementaria S1 (PDF y PNG)..."
+	python3 experiments/exp02_cs_sensitivity_global/plot_sfig1.py
+
+exp02-cs-smoke: build
+	@echo "🧪 Verificando pipeline de sensibilidad del Experimento 02 (LHS smoke-test)..."
+	python3 experiments/exp02_cs_sensitivity_global/run_lhs_sensitivity.py --smoke-test
+
+exp02-cs-simulate: build
+	@echo "🔬 Ejecutando campaña completa de sensibilidad global LHS (1,000 combinaciones x 200 simulaciones)..."
+	python3 experiments/exp02_cs_sensitivity_global/run_lhs_sensitivity.py --n-samples 1000 --n-sim 200
+
+exp02-sfig1: exp02-cs-sfig1
+exp02-smoke: exp02-cs-smoke
+exp02-simulate: exp02-cs-simulate
+
+# ------------------------------------------------------------
+# Experimento 03 (CS): Calibración Bayesiana ABC-SMC (Figuras 3 y S4)
+# ------------------------------------------------------------
+exp03-cs-fig3:
+	@echo "📊 Generando Figura 3 (Performance ABC-SMC & Posterior Predictive)..."
+	python3 experiments/exp03_cs_abc_smc_calibration/plot_figure3.py
+
+exp03-cs-sfig4:
+	@echo "📊 Generando Figura Suplementaria S4 Canónica (Posterior Corner Matrix 4x4)..."
+	python3 experiments/exp03_cs_abc_smc_calibration/plot_sfig4.py --variant 4a
+
+exp03-cs-sfig4b:
+	@echo "📊 Generando Figura Suplementaria S4b (Densidades 1D de los 6 Pares de Parámetros)..."
+	python3 experiments/exp03_cs_abc_smc_calibration/plot_sfig4.py --variant 4b
+
+exp03-cs-sfig4-all:
+	@echo "📊 Generando todas las figuras suplementarias S4 (S4 y S4b)..."
+	python3 experiments/exp03_cs_abc_smc_calibration/plot_sfig4.py --variant all
+
+exp03-cs-smoke: build
+	@echo "🧪 Verificando pipeline ABC-SMC del Experimento 03 (smoke-test rápido)..."
+	python3 experiments/exp03_cs_abc_smc_calibration/abc_smc.py --smoke-test
+
+exp03-cs-abc-pilot: build
+	@echo "⚡ Ejecutando calibración ABC-SMC piloto (50 partículas x 4 generaciones)..."
+	python3 experiments/exp03_cs_abc_smc_calibration/abc_smc.py --particles 50 --generations 4 --n-sim 100 --workers 4
+
+exp03-cs-simulate: build
+	@echo "🔬 Ejecutando calibración canónica ABC-SMC (250 partículas x 20 generaciones)..."
+	python3 experiments/exp03_cs_abc_smc_calibration/abc_smc.py --particles 250 --generations 20 --n-sim 300 --workers 8
+
+exp03-fig3: exp03-cs-fig3
+exp03-sfig4: exp03-cs-sfig4
+exp03-sfig4b: exp03-cs-sfig4b
+exp03-smoke: exp03-cs-smoke
+exp03-simulate: exp03-cs-simulate
+
+# ------------------------------------------------------------
+# Experimento 04 (CS): Características Emergentes del Tumor (Figura 4)
+# ------------------------------------------------------------
+exp04-cs-fig4:
+	@echo "📊 Generando Figura 4 (Posterior Parameters, BRCA1 Composition & Founder Lineages)..."
+	python3 experiments/exp04_cs_emergent_features/plot_figure4.py
+
+exp04-cs-smoke: build
+	@echo "🧪 Verificando pipeline de características emergentes del Experimento 04..."
+	python3 experiments/exp04_cs_emergent_features/run_emergent_features.py --smoke-test
+
+exp04-cs-simulate: build
+	@echo "🔬 Simulando características emergentes del tumor..."
+	python3 experiments/exp04_cs_emergent_features/run_emergent_features.py
+
+exp04-fig4: exp04-cs-fig4
+exp04-smoke: exp04-cs-smoke
+exp04-simulate: exp04-cs-simulate
+
+# ------------------------------------------------------------
+# Experimento 05 (CS): Intervención e Intercepción de Cáncer (Figuras 5 y S5)
+# ------------------------------------------------------------
+exp05-cs-fig5:
+	@echo "📊 Generando Figura 5 (Cancer Interception, Timing & Dose-Response)..."
+	python3 experiments/exp05_cs_cancer_interception/plot_figure5_sfig5.py
+
+exp05-cs-sfig5:
+	@echo "📊 Generando Figura Suplementaria S5 (D1-D2 Sub-additive Interaction)..."
+	python3 experiments/exp05_cs_cancer_interception/plot_figure5_sfig5.py
+
+exp05-cs-smoke: build
+	@echo "🧪 Verificando pipeline de intercepción del Experimento 05..."
+	python3 experiments/exp05_cs_cancer_interception/run_interception.py --smoke-test
+
+exp05-cs-simulate: build
+	@echo "🔬 Ejecutando simulación de cohortes de intercepción..."
+	python3 experiments/exp05_cs_cancer_interception/run_interception.py --simulate
+
+exp05-fig5: exp05-cs-fig5
+exp05-sfig5: exp05-cs-sfig5
+exp05-smoke: exp05-cs-smoke
+exp05-simulate: exp05-cs-simulate
+
+# ------------------------------------------------------------
+# Experimento 06 (CS): Sensibilidad Estructural (Figuras S2 y S3)
+# ------------------------------------------------------------
+exp06-cs-sfig2:
+	@echo "📊 Generando Figura Suplementaria S2 (Sensibilidad OAT de Parámetros Fijos)..."
+	python3 experiments/exp06_cs_sensitivity_structural/plot_sfig2.py
+
+exp06-cs-sfig3:
+	@echo "📊 Generando Figura Suplementaria S3 (Sensibilidad Estructural Kappa y TP53)..."
+	python3 experiments/exp06_cs_sensitivity_structural/plot_sfig3.py
+
+exp06-cs-smoke: build
+	@echo "🧪 Verificando pipeline de sensibilidad estructural (smoke test)..."
+	python3 experiments/exp06_cs_sensitivity_structural/run_structural_sensitivity.py --smoke-test
+
+exp06-cs-simulate: build
+	@echo "🔬 Ejecutando simulaciones estocásticas para Figuras S2 y S3 (N=300)..."
+	python3 experiments/exp06_cs_sensitivity_structural/run_structural_sensitivity.py --simulate --n-runs 300
+
+exp06-sfig2: exp06-cs-sfig2
+exp06-sfig3: exp06-cs-sfig3
+exp06-smoke: exp06-cs-smoke
+exp06-simulate: exp06-cs-simulate
+
+# ------------------------------------------------------------
+# Experimento 07 (TS): Validación Multiobjetivo a Escala de Tejido (Figura 6)
+# ------------------------------------------------------------
+exp07-ts-fig6:
+	@echo "📊 Generando Figura 6 (5 paneles a-e, Escala de Tejido)..."
+	python3 experiments/exp07_ts_multiobjective_cohort/plot_figure6.py
+
+exp07-ts-smoke: build
+	@echo "🧪 Verificando pipeline a escala de tejido del Experimento 07..."
+	python3 experiments/exp07_ts_multiobjective_cohort/simulate_figure6_data.py --smoke-test
+
+exp07-ts-simulate: build
+	@echo "🔬 Ejecutando simulación estocástica completa de tejidos para Figura 6..."
+	python3 experiments/exp07_ts_multiobjective_cohort/simulate_figure6_data.py
+
+exp07-fig6: exp07-ts-fig6
+exp07-smoke: exp07-ts-smoke
+exp07-simulate: exp07-ts-simulate
+
+# ------------------------------------------------------------
+# Experimento 08 (TS): Restricción Homogénea a Escala de Tejido (Figura S6)
+# ------------------------------------------------------------
+exp08-ts-sfig6:
+	@echo "📊 Generando Figura Suplementaria S6 (Trade-off de Restricción Homogénea)..."
+	python3 experiments/exp08_ts_homogeneous_restraint/plot_sfig6.py
+
+exp08-ts-smoke:
+	@echo "🧪 Verificando generación de Figura S6..."
+	python3 experiments/exp08_ts_homogeneous_restraint/plot_sfig6.py
+
+exp08-sfig6: exp08-ts-sfig6
+exp08-smoke: exp08-ts-smoke
+
+# ------------------------------------------------------------
+# Experimento 09 (TS): Relajación de Checkpoints por Driver Somático (Figura S7)
+# ------------------------------------------------------------
+exp09-ts-sfig7:
+	@echo "📊 Generando Figura Suplementaria S7 (Heatmaps de Relajación de Checkpoints)..."
+	python3 experiments/exp09_ts_checkpoint_relaxation/plot_sfig7.py
+
+exp09-ts-smoke: build
+	@echo "🧪 Verificando grid de relajación de checkpoints (smoke test)..."
+	python3 experiments/exp09_ts_checkpoint_relaxation/run_checkpoint_grid.py --smoke-test --output /tmp/sfig7_smoke.csv
+
+exp09-ts-simulate: build
+	@echo "🔬 Ejecutando grid completo de 24 condiciones para Figura S7 (N=3,000 por celda)..."
+	python3 experiments/exp09_ts_checkpoint_relaxation/run_checkpoint_grid.py --n-sim 3000
+
+exp09-sfig7: exp09-ts-sfig7
+exp09-smoke: exp09-ts-smoke
+exp09-simulate: exp09-ts-simulate
 
 # ============================================================
-# Targets para distribución en servidores sin internet
+# Smoke-Test Global de Todos los Experimentos (< 30s)
 # ============================================================
-
-DIST_DIR ?= cellSim-dist
-DIST_VERSION ?= 0.1.0
-REMOTE_USER ?= user
-REMOTE_HOST ?= server.com
-REMOTE_PATH ?= /opt/cellSim
-
-# Crear paquete distributable con todos los binarios y configs
-dist-package: rebuild
-	@echo "📦 Creando paquete distributable..."
-	@mkdir -p $(DIST_DIR)/bin
-	@mkdir -p $(DIST_DIR)/configs
-	@mkdir -p $(DIST_DIR)/lib
-	@cp build/cellSim $(DIST_DIR)/bin/
-	@cp build/cellSim_cli $(DIST_DIR)/bin/
-	@cp build/run_all_scenarios $(DIST_DIR)/bin/
-	@cp build/single_cell_evolution $(DIST_DIR)/bin/
-	@cp build/interactive $(DIST_DIR)/bin/
-	@chmod +x $(DIST_DIR)/bin/*
-	@cp -r configs/* $(DIST_DIR)/configs/
-	@cp README.md $(DIST_DIR)/ 2>/dev/null || true
-	@tar -czf cellSim-$(DIST_VERSION).tar.gz $(DIST_DIR)/
-	@echo "✅ Paquete creado: cellSim-$(DIST_VERSION).tar.gz"
-	@rm -rf $(DIST_DIR)
-
-# Copiar paquete al servidor (requiere ruta válida)
-dist-deploy: dist-package
-	@echo "📤 Desplegando en servidor remoto..."
-	@scp cellSim-$(DIST_VERSION).tar.gz $(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_PATH)/
-	@ssh $(REMOTE_USER)@$(REMOTE_HOST) "cd $(REMOTE_PATH) && tar -xzf cellSim-$(DIST_VERSION).tar.gz && mv cellSim-dist/* . && rmdir cellSim-dist && chmod +x bin/*"
-	@echo "✅ Deployment completado en $(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_PATH)"
-
-# Ejecutar cellSim_cli en el servidor remoto
-dist-run:
-	@echo "🚀 Ejecutando cellSim_cli en servidor remoto..."
-	@ssh $(REMOTE_USER)@$(REMOTE_HOST) "$(REMOTE_PATH)/bin/cellSim_cli --config $(REMOTE_PATH)/configs/default.json --verbose"
-
-# Ejecutar cellSim_cli en el servidor remoto con seed personalizado
-dist-run-seed:
-	@ssh $(REMOTE_USER)@$(REMOTE_HOST) "$(REMOTE_PATH)/bin/cellSim_cli --config $(REMOTE_PATH)/configs/default.json --seed $(SEED) --verbose"
-
-# Limpiar archivos de distribución locales
-clean-dist:
-	@rm -rf $(DIST_DIR)
-	@rm -f cellSim-*.tar.gz
-	@echo "🧹 Limpiados archivos de distribución"
+exp-smoke-all: build exp01-cs-smoke exp02-cs-smoke exp03-cs-smoke exp04-cs-smoke exp05-cs-smoke exp06-cs-smoke exp07-ts-smoke exp08-ts-smoke exp09-ts-smoke
+	@echo "✅ Todos los smoke tests (exp01 a exp09) se completaron con éxito."
 
 # ============================================================
-# QA & Testing Pipeline
+# Sincronización Centralizada de Figuras del Paper
+# ============================================================
+paper-figures:
+	@echo "📊 Sincronizando y exportando todas las figuras canónicas del paper..."
+	python3 results/paper_figures/export_all_figures.py
+
+# ============================================================
+# Targets Directos de Bootstrapping (C++ Monte Carlo)
 # ============================================================
 
-.PHONY: qa qa-quick qa-full qa-report qa-clean qa-show
-
-# Quick QA check (N=100 for speed, ~2 min)
-qa-quick: rebuild
-	@echo ""
-	@echo "╔════════════════════════════════════════════════════════════╗"
-	@echo "║          🧪 QUICK QA CHECK (N=100)                         ║"
-	@echo "╚════════════════════════════════════════════════════════════╝"
-	@echo ""
-	@./build/run_bootstrapping \
-		--n-runs 100 \
-		--brca1-rate 0.045 \
-		--low-delta 0.120 \
-		--high-delta 0.240 \
+bootstrap-quick: build
+	@echo "🧬 Ejecutando simulación rápida de bootstrapping (N=50 tejidos)..."
+	./build/run_bootstrapping \
+		--n-runs 50 \
+		--n-cells 500 \
+		--brca1-rate 0.0457 \
+		--low-delta 0.104 \
+		--high-delta 0.392 \
+		--neoplastic-div-rate 0.159 \
 		--big-bang \
-		--output /tmp/qa_quick.csv
-	@python3 scripts/generate_figures.py 2>/dev/null || echo "⚠️  Figures skipped (missing CSVs)"
-	@python3 scripts/qa_report.py docs/paper3/validation_report.json docs/paper3/qa_report.html
-	@echo ""
-	@echo "✅ Quick QA complete. Report: docs/paper3/qa_report.html"
+		--weighted-sse \
+		--verbose
 
-# Full experimental pipeline + validation + figures (~30 min)
-qa-full: rebuild
-	@echo ""
-	@echo "╔════════════════════════════════════════════════════════════╗"
-	@echo "║          🔬 FULL QA PIPELINE                               ║"
-	@echo "╚════════════════════════════════════════════════════════════╝"
-	@echo ""
-	@echo "Running all experiments (baseline + sweeps + final)..."
-	@bash scripts/run_experiments.sh
-	@echo ""
-	@echo "Generating figures..."
-	@python3 scripts/generate_figures.py
-	@echo ""
-	@echo "Generating HTML report..."
-	@python3 scripts/qa_report.py docs/paper3/validation_report.json docs/paper3/qa_report.html
-	@echo ""
-	@echo "╔════════════════════════════════════════════════════════════╗"
-	@echo "║          ✅ FULL QA COMPLETE                               ║"
-	@echo "╚════════════════════════════════════════════════════════════╝"
-	@echo ""
-	@echo "📊 Outputs:"
-	@echo "   - Figures: docs/paper3/fig*.{png,pdf}"
-	@echo "   - Validation: docs/paper3/validation_report.json"
-	@echo "   - HTML Report: docs/paper3/qa_report.html"
-	@echo ""
-	@echo "Open report: file://$(shell pwd)/docs/paper3/qa_report.html"
+bootstrap-paper: build
+	@echo "🧬 Ejecutando evaluación completa de penetrancia (N=1,000 tejidos)..."
+	./build/run_bootstrapping \
+		--n-runs 1000 \
+		--n-cells 500 \
+		--brca1-rate 0.0457 \
+		--low-delta 0.104 \
+		--high-delta 0.392 \
+		--neoplastic-div-rate 0.159 \
+		--big-bang \
+		--weighted-sse \
+		--output bootstrapping_results.csv
 
-# Alias: run full pipeline + open report
-qa: qa-full qa-show
+# ============================================================
+# Targets de Calibración y Sensibilidad Activos
+# ============================================================
 
-# Generate HTML report from existing validation JSON
-qa-report:
-	@if [ ! -f docs/paper3/validation_report.json ]; then \
-		echo "❌ validation_report.json not found. Run 'make qa-full' first."; \
-		exit 1; \
-	fi
-	@python3 scripts/qa_report.py docs/paper3/validation_report.json docs/paper3/qa_report.html
-	@echo "✅ HTML report: docs/paper3/qa_report.html"
+calibration-dry-run: build
+	@echo "🧪 Verificando pipeline ABC-SMC (--smoke-test)..."
+	python3 experiments/exp03_cs_abc_smc_calibration/abc_smc.py --smoke-test --workers 2
 
-# Open HTML report in browser (Linux/Mac)
-qa-show:
-	@if [ -f docs/paper3/qa_report.html ]; then \
-		if command -v xdg-open > /dev/null 2>&1; then \
-			xdg-open docs/paper3/qa_report.html; \
-		elif command -v open > /dev/null 2>&1; then \
-			open docs/paper3/qa_report.html; \
-		else \
-			echo "Open manually: file://$(shell pwd)/docs/paper3/qa_report.html"; \
-		fi; \
-	else \
-		echo "❌ Report not found. Run 'make qa-full' first."; \
-	fi
+calibration-pilot: build
+	@echo "⚡ Iniciando Análisis de Sensibilidad ABC-SMC Piloto (50 partículas x 4 generaciones)..."
+	@mkdir -p results/20260928_draft_map/sensitivity_abc_pilot
+	python3 experiments/exp03_cs_abc_smc_calibration/abc_smc.py \
+		--particles 50 \
+		--generations 4 \
+		--n-sim 100 \
+		--workers 4 \
+		--output-dir results/20260928_draft_map/sensitivity_abc_pilot
 
-# Clean QA artifacts
-qa-clean:
-	@rm -f /tmp/qa_*.csv
-	@rm -f docs/paper3/validation_report.json
-	@rm -f docs/paper3/qa_report.html
-	@rm -f results_*.csv sweep_results*.csv
-	@echo "✅ QA artifacts cleaned"
+calibration-paper: build
+	@echo "🔬 Calibración canónica de referencia..."
+	@mkdir -p results/20260928_draft_map/exp_01_abc_smc_global
+	python3 experiments/exp03_cs_abc_smc_calibration/abc_smc.py \
+		--particles 250 \
+		--generations 20 \
+		--n-sim 300 \
+		--workers 8 \
+		--output-dir results/20260928_draft_map/exp_01_abc_smc_global
 
+sensitivity-global-lhs: build
+	@echo "🌐 Ejecutando Global Sensitivity Analysis (1,000 LHS parameter combinations)..."
+	@mkdir -p results/20260928_draft_map/exp_02_global_sensitivity
+	python3 experiments/exp02_cs_sensitivity_global/run_lhs_sensitivity.py \
+		--n-samples 1000 \
+		--n-sim 200 \
+		--workers 8 \
+		--output-dir results/20260928_draft_map/exp_02_global_sensitivity
+
+sensitivity-unaccelerated: build
+	@echo "📉 Evaluando modelo sin aceleración tumoral..."
+	@mkdir -p results/20260928_draft_map/sensitivity_unaccelerated
+	python3 experiments/exp01_cs_exploratory_acceleration/run_exploratory.py \
+		--generate-trajectories \
+		--output-dir results/20260928_draft_map/sensitivity_unaccelerated

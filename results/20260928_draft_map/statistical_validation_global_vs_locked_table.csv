@@ -1,0 +1,10 @@
+parameter,symbol,nominal_reference,global_median,global_q25,global_q75,global_ci95_lower,global_ci95_upper,in_global_95_ci,locked_median,locked_q25,locked_q75,locked_ci95_lower,locked_ci95_upper,in_locked_95_ci,wilcoxon_p_value,ks_p_value,rank_biserial_r,statistical_inference
+brca1_rate,beta,0.045,0.0508,0.0404,0.0619,0.0222,0.0767,True,0.0685,0.0633,0.0738,0.055,0.0788,False,1.113e-45,8.238e-48,0.733,Divergent (Artifact)
+tp53_rate,mu_TP53,0.003,0.0033,0.0024,0.0045,0.0014,0.0083,True,0.0041,0.0035,0.0053,0.0029,0.0074,True,3.289e-13,1.802e-16,0.376,Divergent (Compensation)
+low_delta,delta_low,0.12,0.1337,0.1019,0.1619,0.0568,0.2277,True,0.1519,0.1161,0.1959,0.0607,0.2425,True,2.953e-05,1.293e-04,0.216,Shifted
+d2_threshold,theta_D2,5.0,5.8572,5.0096,6.8543,3.4548,7.9149,True,5.4297,4.3801,6.2537,3.238,7.7989,True,7.940e-05,4.501e-03,-0.204,Shifted
+division_rate,d,0.001,0.0029,0.0016,0.0038,0.0006,0.0048,True,0.0029,0.0018,0.0038,0.0006,0.0048,True,5.449e-01,8.290e-01,0.031,Invariant (ns)
+d1_threshold,theta_D1,2.0,2.2667,1.6959,2.9922,1.0817,3.8989,True,2.407,1.8155,3.0612,1.0852,3.8663,True,3.447e-01,4.665e-01,0.049,Invariant (ns)
+high_delta,delta_high,0.24,0.3658,0.2764,0.459,0.1603,0.58,True,0.3923,0.2828,0.4897,0.1655,0.5859,True,6.666e-02,1.997e-01,0.095,Invariant (ns)
+kappa_brca1,kappa_BRCA1,2.0,2.4377,1.8899,3.0736,1.1085,3.837,True,2.3332,1.7492,3.0637,1.1535,3.8864,True,3.095e-01,1.642e-01,-0.053,Invariant (ns)
+neoplastic_div_rate,nu,0.1,0.1151,0.0639,0.1611,0.0174,0.2295,True,,,,,,,,,,Unconstrained in Global

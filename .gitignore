@@ -1,21 +1,48 @@
-.idea/*
+# Build outputs and compilation caches
 build/
-/tests/results.xml
-/single_cell_trace_fixed00.csv
-/single_cell_trace_fixed00.json
-/single_cell_trace_fixed99.csv
-/single_cell_trace_fixed99.json
+cmake-build-debug/
 ci_build/
-/build_check/
-/build_test/
-/traces/
-/cmake-build-debug/
+build_check/
+build_test/
+Testing/
+*.log
+*.aux
+*.out
+*.toc
+*.bbl
+*.blg
+*.Rhistory
+*~
+#*#
+
+# Editor and IDE metadata
+.idea/
+.vscode/
+
+# AI assistant configurations and tool artifacts
+.claude/
+.opencode/
+openspec/
+.copilot-config.json
+.copilot-instructions.md
+.cursorrules
 
 # Binaries and container images
 *.sif
 *.sif.tar.gz
 *.tar.gz
 
-# Paper drafts and bibliography references
-docs/paper/
-docs/paper2/
+# Python caches and bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Ephemeral traces and outputs
+/tests/results.xml
+/single_cell_trace_*.csv
+/single_cell_trace_*.json
+/traces/
+/out1/
+/bootstrapping_results.csv
+*intervention_design.csv
+archive_backup/

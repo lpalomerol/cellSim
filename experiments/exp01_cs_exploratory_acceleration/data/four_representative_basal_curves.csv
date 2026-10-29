@@ -1,0 +1,5 @@
+label,brca1_rate,low_delta,high_delta,neoplastic_div_rate,sse,weighted_sse,risk_30,risk_40,risk_50,risk_60,risk_70,risk_80
+Representative higher-beta setting,0.1,0.04,0.08,0.001,15096.919999999998,1147.116876618037,0.0,0.0,0.2,0.4,0.4,0.6
+Representative lower-beta setting,0.01,0.1,0.2,0.001,7847.28,828.2596887171745,0.0,0.0,0.0,1.6,22.400000000000002,63.4
+Representative higher-delta setting,0.04,0.15,0.3,0.001,2841.16,405.90083312115803,0.0,0.8,9.0,31.6,54.6,74.0
+Representative lower-delta setting,0.04,0.02,0.04,0.001,15297.0,1159.6223935692585,0.0,0.0,0.0,0.0,0.0,0.0

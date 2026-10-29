@@ -1,0 +1,10 @@
+parameter,symbol,initial_nominal_value,posterior_weighted_mean,posterior_weighted_median,ci95_mean_lower,ci95_mean_upper,credible95_lower_q025,credible95_upper_q975,is_inside_95_credible_interval
+brca1_rate,beta,0.045,0.05017,0.05284,0.04753,0.05281,0.01455,0.07651,True
+low_delta,delta_low,0.12,0.14066,0.13264,0.13226,0.14906,0.06363,0.24549,True
+high_delta,delta_high,0.24,0.378,0.37962,0.35775,0.39825,0.13108,0.5913,True
+neoplastic_div_rate,nu,0.1,0.11237,0.1055,0.10245,0.1223,0.00646,0.23008,True
+tp53_rate,mu_tp53,0.003,0.00396,0.00323,0.00363,0.00429,0.00133,0.00944,True
+d1_threshold,theta_d1,2.0,2.39605,2.30868,2.26709,2.52502,1.08991,3.94177,True
+d2_threshold,theta_d2,5.0,5.60277,5.50415,5.38234,5.8232,3.09821,7.87402,True
+division_rate,d_basal,0.001,0.00276,0.00282,0.00257,0.00296,0.0006,0.00473,True
+kappa_brca1,kappa_brca1,2.0,2.44128,2.40466,2.3138,2.56877,1.03132,3.84797,True

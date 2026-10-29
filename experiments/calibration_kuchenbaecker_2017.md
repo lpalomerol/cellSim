@@ -209,7 +209,7 @@ by age 80, which is biologically inconsistent. The deltas (0.15/0.40) cause D1/D
 to accumulate too fast, while the low brca1_rate delays first onset. Together they produce
 an artificial "late but catastrophic" pattern. Calibration reduces SSE by 125×.
 
-**Figure:** `docs/paper3/fig_initial_vs_calibrated.png`
+**Figure:** `results/paper_figures/Figure3.png`
 
 ### Convergence analysis — N=500 vs 1000 vs 2000 (best combo)
 
