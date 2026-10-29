@@ -305,7 +305,7 @@ def main():
     parser.add_argument("--division-rate", type=float, default=0.001, help="Normal cell division rate per tick / d (default: 0.001)")
     parser.add_argument("--max-t", type=int, default=80, help="Maximum years of follow-up (default: 80)")
     parser.add_argument("--file-suffix", type=str, default="", help="Suffix for output CSV files (e.g. '_d001')")
-    parser.add_argument("--n-runs", type=int, default=1000, help="Tissues per setting (default: 1000)")
+    parser.add_argument("--n-runs", type=int, default=500, help="Tissues per setting (default: 500)")
     parser.add_argument("--output-dir", type=str, default=str(Path(__file__).parent / "data"))
 
     args = parser.parse_args()

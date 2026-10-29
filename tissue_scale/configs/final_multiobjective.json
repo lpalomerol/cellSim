@@ -1,0 +1,20 @@
+{
+  "name": "final_multiobjective_tissue_scale",
+  "N0": 10000000,
+  "max_age": 80,
+  "tumor_positive_cells": 500000,
+  "mu_TP53": 2.0075832417423e-05,
+  "beta_BRCA1": 0.00275,
+  "delta_low": 0.226663913638,
+  "delta_high": 1.4927594013876,
+  "theta_D1": 13.64168215564,
+  "theta_D2_mean": 31.78627057176,
+  "tau_T_years": 0.65,
+  "sigma_thetaD2": 0.38,
+  "preneoplastic_division_probability": 0.001,
+  "age_drift": 1e-05,
+  "kappa_BRCA1": 2.0,
+  "validation_n": 10000,
+  "suggested_seed": 20260923,
+  "note": "The manuscript values are calculated from the frozen validation CSV included in data/. The suggested seed is provided for new independent reruns; it is not asserted to be the historical seed used to generate the frozen CSV."
+}

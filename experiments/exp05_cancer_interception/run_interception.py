@@ -263,6 +263,7 @@ def run_smoke_test(binary_path: str, out_dir: Path) -> int:
 
 
 def main() -> int:
+    print("=== Cancer Interception Simulation Runner ===")
     parser = argparse.ArgumentParser(description="Cancer interception runner.")
     parser.add_argument("--smoke-test", action="store_true", help="Fast smoke test (<1s)")
     parser.add_argument("--simulate", action="store_true", help="Run full 204,000 condition simulation")
@@ -275,10 +276,13 @@ def main() -> int:
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    print(f"[INFO] Running in mode {'smoke test' if args.smoke_test else 'full simulation' if args.simulate else 'no action'}...")
+
     if args.smoke_test:
         return run_smoke_test(args.binary, out_dir)
 
     if args.simulate:
+        print("[INFO] Running full matched intervention simulation...")
         post = pd.read_csv(args.post_csv)
         design_path = out_dir / "intervention_design.csv"
         results_path = out_dir / "intervention_results.csv"

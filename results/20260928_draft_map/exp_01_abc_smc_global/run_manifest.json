@@ -1,6 +1,6 @@
 {
-  "timestamp_utc": "2026-10-25T17:05:36.234796+00:00",
-  "git_commit": "b54ce19142c876892af3f0fe8fb46adc9cd1acbe",
+  "timestamp_utc": "2026-10-28T16:53:15.567562+00:00",
+  "git_commit": "3d543bef1fb9f991a044490c6c990686eb1961ba",
   "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.39",
   "config": {
     "n_particles": 2,
@@ -50,6 +50,6 @@
     },
     "fixed_params": {}
   },
-  "total_elapsed_seconds": 0.5224323272705078,
-  "best_particle_distance": 2439.42
+  "total_elapsed_seconds": 0.5057644844055176,
+  "best_particle_distance": 2271.41
 }
