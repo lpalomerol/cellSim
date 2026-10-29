@@ -46,21 +46,12 @@ The 4 unconstrained cellular parameters estimated by ABC-SMC are:
 - **Panel a (Right)**: Acceptance rate decay and Effective Sample Size (ESS) preservation (maintaining $>80\%$ of particle count).
 - **Panel b**: Posterior predictive cumulative penetrance curve across ages 30–80 years evaluated across 1,000 simulated virtual tissues per particle, showing posterior median and 95% credible intervals against Kuchenbaecker et al. (2017).
 
-### 4. Supplementary Figure S4 Modular Variants (4a, 4b, 4c, 4d)
-- **Figure S4 (Variant 4a - Canonical Corner Plot)**:
+### 4. Supplementary Figures S4 & S4b
+- **Figure S4 (Canonical Corner Plot)**:
   - **Diagonal**: 1D marginal posterior Kernel Density Estimates (KDEs) with posterior median (solid line) and 95% credible intervals (dashed lines).
   - **Lower Triangle**: Smoothed 2D bivariate posterior contour density maps capturing compensatory parameter trade-offs (e.g., negative correlation between $\nu$ and $\delta_{\text{low}}$).
   - **Upper Triangle**: Normalized posterior density scale legend.
-- **Figure S4b (Variant 4b - Cross-Parameter Identifiability Grid $3 \times 2$)**:
-  - Evaluates parameter decoupling and time-scale identifiability by setting the **X-axis** to rate ratios normalized by the BRCA1 second-hit mutation rate ($\theta / \beta$): $\delta_{\mathrm{high}}/\beta$, $\delta_{\mathrm{low}}/\beta$, $\nu/\beta$.
-  - Sets the **Y-axis** to the complementary unnormalized biological rates ($\delta_{\mathrm{low}}$, $\delta_{\mathrm{high}}$, $\nu$).
-  - Shows that the well-identified dimensionless rate ratios on the X-axis form narrow, vertical bands ($r \approx 0$).
-- **Figure S4c (Variant 4c - Self-Ratio Strip $1 \times 3$)**:
-  - Direct pairwise comparison for each parameter against its own normalized ratio:
-    - (a) $\delta_{\mathrm{low}}$ vs $\delta_{\mathrm{low}} / \beta$
-    - (b) $\delta_{\mathrm{high}}$ vs $\delta_{\mathrm{high}} / \beta$
-    - (c) $\nu$ vs $\nu / \beta$
-- **Figure S4d (Variant 4d - 1D Posterior Distributions of All 6 Pairwise Ratios $2 \times 3$)**:
+- **Figure S4b (1D Posterior Distributions of All 6 Pairwise Ratios $2 \times 3$)**:
   - Directly addresses the relative time-scale identifiability across all $\binom{4}{2} = 6$ parameter pairs:
     - (a) $R_1 = \delta_{\rm high} / \delta_{\rm low}$ (Median: 3.65, 95% CrI: [1.15, 6.48])
     - (b) $R_2 = \delta_{\rm low} / \beta$ (Median: 2.29, 95% CrI: [1.95, 2.65])
@@ -89,10 +80,8 @@ The 4 unconstrained cellular parameters estimated by ABC-SMC are:
 ```bash
 make exp03-cs-fig3        # Renders Figure 3 (PDF & PNG)
 make exp03-cs-sfig4       # Renders Supplementary Figure S4 canonical corner matrix (PDF & PNG)
-make exp03-cs-sfig4b      # Renders Supplementary Figure S4b cross-ratios (PDF & PNG)
-make exp03-cs-sfig4c      # Renders Supplementary Figure S4c self-ratios (PDF & PNG)
-make exp03-cs-sfig4d      # Renders Supplementary Figure S4d pairwise ratios (PDF & PNG)
-make exp03-cs-sfig4-all   # Renders all 4 variants
+make exp03-cs-sfig4b      # Renders Supplementary Figure S4b pairwise ratios (PDF & PNG)
+make exp03-cs-sfig4-all   # Renders both Supplementary Figures S4 and S4b
 ```
 
 ### 2. Fast Pipeline Smoke Test (< 1 second)

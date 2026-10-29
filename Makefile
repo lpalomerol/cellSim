@@ -5,7 +5,7 @@
 .PHONY: build rebuild test clean exp-smoke-all paper-figures \
 	exp01-cs-fig2 exp01-cs-simulate exp01-cs-smoke exp01-fig2 exp01-simulate exp01-smoke \
 	exp02-cs-sfig1 exp02-cs-simulate exp02-cs-smoke exp02-sfig1 exp02-simulate exp02-smoke \
-	exp03-cs-fig3 exp03-cs-sfig4 exp03-cs-sfig4b exp03-cs-sfig4c exp03-cs-sfig4d exp03-cs-sfig4-all exp03-cs-smoke exp03-cs-abc-pilot exp03-cs-simulate exp03-fig3 exp03-sfig4 exp03-sfig4b exp03-sfig4c exp03-sfig4d exp03-smoke exp03-simulate \
+	exp03-cs-fig3 exp03-cs-sfig4 exp03-cs-sfig4b exp03-cs-sfig4-all exp03-cs-smoke exp03-cs-abc-pilot exp03-cs-simulate exp03-fig3 exp03-sfig4 exp03-sfig4b exp03-smoke exp03-simulate \
 	exp04-cs-fig4 exp04-cs-simulate exp04-cs-smoke exp04-fig4 exp04-simulate exp04-smoke \
 	exp05-cs-fig5 exp05-cs-sfig5 exp05-cs-simulate exp05-cs-smoke exp05-fig5 exp05-sfig5 exp05-simulate exp05-smoke \
 	exp06-cs-sfig2 exp06-cs-sfig3 exp06-cs-simulate exp06-cs-smoke exp06-sfig2 exp06-sfig3 \
@@ -83,19 +83,11 @@ exp03-cs-sfig4:
 	python3 experiments/exp03_cs_abc_smc_calibration/plot_sfig4.py --variant 4a
 
 exp03-cs-sfig4b:
-	@echo "📊 Generando Figura Suplementaria S4b (Ratios Cruzados Normalizados por Beta)..."
+	@echo "📊 Generando Figura Suplementaria S4b (Densidades 1D de los 6 Pares de Parámetros)..."
 	python3 experiments/exp03_cs_abc_smc_calibration/plot_sfig4.py --variant 4b
 
-exp03-cs-sfig4c:
-	@echo "📊 Generando Figura Suplementaria S4c (Auto-ratios Normalizados por Beta)..."
-	python3 experiments/exp03_cs_abc_smc_calibration/plot_sfig4.py --variant 4c
-
-exp03-cs-sfig4d:
-	@echo "📊 Generando Figura Suplementaria S4d (Densidades 1D de los 6 Pares de Parámetros)..."
-	python3 experiments/exp03_cs_abc_smc_calibration/plot_sfig4.py --variant 4d
-
 exp03-cs-sfig4-all:
-	@echo "📊 Generando todas las variantes de Figura Suplementaria S4 (4a, 4b, 4c, 4d)..."
+	@echo "📊 Generando todas las figuras suplementarias S4 (S4 y S4b)..."
 	python3 experiments/exp03_cs_abc_smc_calibration/plot_sfig4.py --variant all
 
 exp03-cs-smoke: build
@@ -113,8 +105,6 @@ exp03-cs-simulate: build
 exp03-fig3: exp03-cs-fig3
 exp03-sfig4: exp03-cs-sfig4
 exp03-sfig4b: exp03-cs-sfig4b
-exp03-sfig4c: exp03-cs-sfig4c
-exp03-sfig4d: exp03-cs-sfig4d
 exp03-smoke: exp03-cs-smoke
 exp03-simulate: exp03-cs-simulate
 

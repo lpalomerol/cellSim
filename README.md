@@ -108,10 +108,8 @@ All official figures are synchronized in [`results/paper_figures/`](results/pape
 | **Figure S1** | `exp02_cs_sensitivity_global` | `make exp02-cs-sfig1` | Global sensitivity analysis: Latin Hypercube Sampling (1,000 pts) & PRCC rankings |
 | **Figure S2** | `exp06_cs_sensitivity_structural` | `make exp06-cs-sfig2` | Fixed-parameter OAT sensitivity (tornado plot, SSE, $\pm 10\%$ and $\pm 25\%$ recalibrations) |
 | **Figure S3** | `exp06_cs_sensitivity_structural` | `make exp06-cs-sfig3` | Structural sensitivity across genomic instability scaling $\kappa_{\text{BRCA1}}$ and somatic $\mu_{\text{TP53}}$ |
-| **Figure S4** | `exp03_cs_abc_smc_calibration` | `make exp03-cs-sfig4` | Canonical $4\times 4$ posterior parameter corner matrix (Variant 4a) |
-| **Figure S4b**| `exp03_cs_abc_smc_calibration` | `make exp03-cs-sfig4b` | Variant 4b: Cross-parameter normalized rate ratios ($\theta_i/\beta$) |
-| **Figure S4c**| `exp03_cs_abc_smc_calibration` | `make exp03-cs-sfig4c` | Variant 4c: Self-ratio strip ($\theta_i/\beta$ vs $\theta_i$) |
-| **Figure S4d**| `exp03_cs_abc_smc_calibration` | `make exp03-cs-sfig4d` | Variant 4d: 1D posterior distributions (SIS KDE) and 95% CrIs of all 6 parameter pairs |
+| **Figure S4** | `exp03_cs_abc_smc_calibration` | `make exp03-cs-sfig4` | Canonical $4\times 4$ posterior parameter corner matrix (Figure S4) |
+| **Figure S4b**| `exp03_cs_abc_smc_calibration` | `make exp03-cs-sfig4b` | 1D posterior distributions (SIS KDE) and 95% CrIs of all 6 parameter pairs (Figure S4b) |
 | **Figure S5** | `exp05_cs_cancer_interception` | `make exp05-cs-sfig5` | Sub-additive interaction between genomic stabilization ($D_1$) and tissue restraint ($D_2$) |
 | **Figure S6** | `exp08_ts_homogeneous_restraint` | `make exp08-ts-sfig6` | Homogeneous tissue-restraint fitting limitations & early vs late SSE trade-off |
 | **Figure S7** | `exp09_ts_checkpoint_relaxation` | `make exp09-ts-sfig7` | Checkpoint relaxation sensitivity heatmaps ($\gamma \times p_{\text{bypass}}$ grid) |
