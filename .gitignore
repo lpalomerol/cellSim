@@ -32,10 +32,6 @@ openspec/
 *.sif.tar.gz
 *.tar.gz
 
-# Paper drafts and bibliography references
-docs/paper/
-docs/paper2/
-
 # Python caches and bytecode
 __pycache__/
 *.pyc
