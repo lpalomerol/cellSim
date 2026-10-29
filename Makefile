@@ -285,47 +285,41 @@ bootstrap-paper: build
 # ============================================================
 
 calibration-dry-run: build
-	@echo "🧪 Verificando pipeline ABC-SMC (--dry-run)..."
-	python3 scripts/experiments/exp_01_abc_smc_global.py --dry-run --workers 2
+	@echo "🧪 Verificando pipeline ABC-SMC (--smoke-test)..."
+	python3 experiments/exp03_cs_abc_smc_calibration/abc_smc.py --smoke-test --workers 2
 
 calibration-pilot: build
 	@echo "⚡ Iniciando Análisis de Sensibilidad ABC-SMC Piloto (50 partículas x 4 generaciones)..."
 	@mkdir -p results/20260928_draft_map/sensitivity_abc_pilot
-	python3 scripts/experiments/exp_01_abc_smc_global.py \
+	python3 experiments/exp03_cs_abc_smc_calibration/abc_smc.py \
 		--particles 50 \
 		--generations 4 \
 		--n-sim 100 \
-		--n-reps 1 \
 		--workers 4 \
 		--output-dir results/20260928_draft_map/sensitivity_abc_pilot
 
 calibration-paper: build
 	@echo "🔬 Calibración canónica de referencia..."
 	@mkdir -p results/20260928_draft_map/exp_01_abc_smc_global
-	python3 scripts/experiments/exp_01_abc_smc_global.py \
+	python3 experiments/exp03_cs_abc_smc_calibration/abc_smc.py \
 		--particles 250 \
 		--generations 20 \
 		--n-sim 300 \
-		--n-reps 1 \
-		--workers 4 \
+		--workers 8 \
 		--output-dir results/20260928_draft_map/exp_01_abc_smc_global
 
 sensitivity-global-lhs: build
 	@echo "🌐 Ejecutando Global Sensitivity Analysis (1,000 LHS parameter combinations)..."
 	@mkdir -p results/20260928_draft_map/exp_02_global_sensitivity
-	python3 scripts/experiments/exp_02_global_sensitivity_prcc.py \
+	python3 experiments/exp02_cs_sensitivity_global/run_lhs_sensitivity.py \
 		--n-samples 1000 \
 		--n-sim 200 \
-		--workers 4 \
+		--workers 8 \
 		--output-dir results/20260928_draft_map/exp_02_global_sensitivity
 
 sensitivity-unaccelerated: build
-	@echo "📉 Evaluando modelo sin aceleración tumoral (locked division nu = d)..."
+	@echo "📉 Evaluando modelo sin aceleración tumoral..."
 	@mkdir -p results/20260928_draft_map/sensitivity_unaccelerated
-	python3 scripts/experiments/exp_01_abc_smc_locked_division.py \
-		--particles 100 \
-		--generations 4 \
-		--n-sim 100 \
-		--n-reps 1 \
-		--workers 4 \
+	python3 experiments/exp01_cs_exploratory_acceleration/run_exploratory.py \
+		--generate-trajectories \
 		--output-dir results/20260928_draft_map/sensitivity_unaccelerated
